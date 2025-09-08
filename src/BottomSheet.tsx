@@ -73,6 +73,10 @@ export const BottomSheet = React.forwardRef<
     onDragEnd,
     reserveScrollBarGap = blocking,
     expandOnContentDrag = false,
+    snapPointSensitivityMultiplierDownwards = 1.0,
+    snapPointSensitivityMultiplierUpwards = 1.0,
+    dismissVelocityThreshold = 2.0,
+    swipeDismissFromMinSnapOnly = false,
     ...props
   },
   forwardRef
@@ -502,16 +506,36 @@ export const BottomSheet = React.forwardRef<
 
     const rawY = memo + my
     const predictedDistance = my * velocity
+
     const predictedY = Math.max(
       minSnapRef.current,
-      Math.min(maxSnapRef.current, rawY + predictedDistance * 2)
+      Math.min(
+        maxSnapRef.current,
+        rawY +
+          predictedDistance *
+            (direction < 0
+              ? snapPointSensitivityMultiplierUpwards
+              : snapPointSensitivityMultiplierDownwards)
+      )
     )
+    // is within 10 pixels of the min snap point
+    const isAtMinSnap = Math.abs(memo - minSnapRef.current) < 10
+
+    const dismissSwipeConditions = swipeDismissFromMinSnapOnly
+      ? // if its a fast flick and already at the min snap point
+        isAtMinSnap && velocity > dismissVelocityThreshold
+      : // if final drag location plus predicted distance is less than half the min snap point
+        rawY + predictedDistance < minSnapRef.current / 2 &&
+        velocity > dismissVelocityThreshold
+
+    // drag position is below 65% of the min snap point
+    const dismissDragConditions = rawY < minSnapRef.current * 0.65
 
     if (
       !down &&
       onDismiss &&
       direction > 0 &&
-      rawY + predictedDistance < minSnapRef.current / 2
+      (dismissDragConditions || dismissSwipeConditions)
     ) {
       cancel()
       onDismiss()
@@ -558,7 +582,7 @@ export const BottomSheet = React.forwardRef<
 
     if (first) {
       send({ type: 'DRAG' })
-      onDragStartRef.current?.()    // ← Add this line
+      onDragStartRef.current?.()
     }
 
     if (last) {
@@ -570,7 +594,7 @@ export const BottomSheet = React.forwardRef<
           source: 'dragging',
         },
       })
-      onDragEndRef.current?.()      // ← Add this line
+      onDragEndRef.current?.()
 
       return memo
     }

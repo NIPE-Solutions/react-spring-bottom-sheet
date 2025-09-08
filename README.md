@@ -244,6 +244,27 @@ Type: `boolean`
 
 Disabled by default. By default, a user can expand the bottom sheet only by dragging a header or the overlay. This option enables expanding the bottom sheet on the content dragging.
 
+#### dismissVelocityThreshold
+
+Type: `number`
+
+Minimum velocity threshold for a "strong" flick that should dismiss the sheet. Higher values make it harder to dismiss with small flicks.
+@default 2.0
+
+#### snapPointSensitivityMultiplier
+
+Type: `number`
+
+Velocity multiplier for drags/flicks that affects how aggressively the sheet predicts snap point selection. Lower values make the sheet more conservative in snap point prediction.
+@default 1
+
+#### swipeDismissFromMinSnapOnly
+
+Type: `boolean`
+
+Restricts dismiss swipe actions to only trigger when already at the minimum snap point. When enabled, flick dismissal only works from the bottom snap point, while drag dismissal can still work from any snap point.
+@default false
+
 #### springConfig
 
 Type: `{ mass: number; tension: number; friction: number }`
