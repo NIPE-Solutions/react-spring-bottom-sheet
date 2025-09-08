@@ -251,11 +251,18 @@ Type: `number`
 Minimum velocity threshold for a "strong" flick that should dismiss the sheet. Higher values make it harder to dismiss with small flicks.
 @default 2.0
 
-#### snapPointSensitivityMultiplier
+#### snapPointSensitivityMultiplierDownwards
 
 Type: `number`
 
-Velocity multiplier for drags/flicks that affects how aggressively the sheet predicts snap point selection. Lower values make the sheet more conservative in snap point prediction.
+Velocity multiplier for drags/flicks that affects how aggressively the sheet predicts snap point selection on downwards swipes. Lower values make the sheet more conservative in snap point prediction.
+@default 1
+
+#### snapPointSensitivityMultiplierUpwards
+
+Type: `number`
+
+Velocity multiplier for drags/flicks that affects how aggressively the sheet predicts snap point selection on upwards swipes. Lower values make the sheet more conservative in snap point prediction.
 @default 1
 
 #### swipeDismissFromMinSnapOnly
