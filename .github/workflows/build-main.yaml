@@ -1,0 +1,38 @@
+# Workflow to build and validate the code on the main branch, then push the build
+# artifacts, which will be used by the subsequent release workflows.
+name: Build main
+
+on:
+  # Run when commits but not tags are pushed to the main branch
+  push:
+    branches:
+      - main
+
+# Cancel any queued or in-progress workflow runs for this branch if a new trigger
+# event occurs
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  # Needed to clone the repository
+  contents: read
+  # Needed to authenticate with AWS and Vault
+  id-token: write
+
+env:
+  APP_NAME: ${{ github.event.repository.name }}
+
+jobs:
+  build-images:
+    name: Build images
+    uses: ./.github/workflows/utility-build-images.yaml
+
+  validate:
+    name: Validate
+    needs: [build-images]
+    uses: ./.github/workflows/utility-validate.yaml
+#
+# NOTE: Once this workflow has successfully completed the 'Release packages' and
+# 'Release pages' workflows will be triggered. You can see the progress of these
+# workflows in the GitHub Actions UI under their respective workflow tabs.

@@ -1,0 +1,67 @@
+# Utility workflow for validating the repository and its contents through steps like
+# tests and linting. This workflow is intended to be triggered by other workflows and
+# not run directly.
+name: Utility validate
+
+# Allow this workflow to be triggered by other workflows.
+on:
+  workflow_call:
+
+# There is no need to specify permissions in helper workflows that are only called
+# by other workflows. The permissions are inherited from the calling workflow.
+# Leave this comment here as a reminder to future maintainers.
+# permissions:
+
+env:
+  APP_NAME: ${{ github.event.repository.name }}
+
+jobs:
+  validate:
+    name: Validate
+    runs-on: k8s-arm64-small
+    steps:
+      # Setup CI/CD environment by cloning the repository and initialising things
+      # common to all workflows.
+      - name: Setup environment
+        id: setup
+        uses: PropellerAero/github-actions/actions/setup-environment/v1@main
+        with:
+          app-name: ${{ env.APP_NAME }}
+
+      - name: Lint
+        uses: PropellerAero/github-actions/actions/docker-compose-run/v1@main
+        with:
+          service: prebuilt-environment
+          command: yarn lint
+
+      - name: Check formatting
+        uses: PropellerAero/github-actions/actions/docker-compose-run/v1@main
+        with:
+          service: prebuilt-environment
+          command: yarn format:check
+
+  # Run tests in a separate job so that they run in parallel with the validation
+  # steps. This is useful because the tests are usually the longest running steps
+  # in the validation process.
+  test:
+    name: Test
+    runs-on: k8s-arm64-small
+    steps:
+      # Setup CI/CD environment by cloning the repository and initialising things
+      # common to all workflows.
+      - name: Setup environment
+        id: setup
+        uses: PropellerAero/github-actions/actions/setup-environment/v1@main
+        with:
+          app-name: ${{ env.APP_NAME }}
+          # Fetch the secrets needed to run the tests
+          fetch-secrets: |
+            app-secrets/data/${{ env.APP_NAME }}/runtime/ci/all-regions * ;
+
+      - name: Test
+        uses: PropellerAero/github-actions/actions/docker-compose-run/v1@main
+        with:
+          service: prebuilt-environment
+          command: >-
+            yarn test
+          env-vars-json: '{"prebuilt-environment": ${{ steps.setup.outputs.secrets }}}'

@@ -1,0 +1,66 @@
+# Utility workflow for releasing the packages. This workflow is intended to be
+# triggered by other workflows and not run directly.
+name: Utility release packages
+
+# Allow this workflow to be triggered by other workflows.
+on:
+  workflow_call:
+    inputs:
+      pre-release:
+        description: >-
+          If you wish to release a pre-release version of your packages, specify the
+          pre-release tag to be used (e.g. `beta`). If you wish to release a stable
+          version, leave this empty.
+        required: false
+        type: string
+
+# There is no need to specify permissions in helper workflows that are only called
+# by other workflows. The permissions are inherited from the calling workflow.
+# Leave this comment here as a reminder to future maintainers.
+# permissions:
+
+env:
+  APP_NAME: ${{ github.event.repository.name }}
+
+jobs:
+  release-packages:
+    name: Release packages
+    environment: package-${{ inputs.pre-release && inputs.pre-release || 'stable' }}
+    # Run this job in parallel for each package path specified in the matrix.
+    strategy:
+      matrix:
+        # The paths inside the repository to the packages to be released (e.g.
+        # `packages/contracts`). This path should be relative to the root of the
+        # repository and not start or end with a `.` or `/`, unless it is the root
+        # of the repository, in which case it should just be `.`
+        package-path:
+          - .
+    runs-on: k8s-arm64-small
+    steps:
+      # Setup CI/CD environment by cloning the repository and initialising things
+      # common to all workflows.
+      - name: Setup environment
+        id: setup
+        uses: PropellerAero/github-actions/actions/setup-environment/v1@main
+        with:
+          app-name: ${{ env.APP_NAME }}
+          # Fetch the secrets needed to release the package. We fetch the
+          # READ_WRITE_NPM_TOKEN so that we can publish the package to npm.
+          fetch-secrets: |
+            app-secrets/data/all-apps/deployment/all-environments/all-regions READ_WRITE_NPM_TOKEN | NPM_TOKEN ;
+
+      # The built package already exists in the prebuilt-environment image. So we
+      # need to copy it to the host so we can release it.
+      - name: Copy built package to host
+        uses: PropellerAero/github-actions/actions/copy-files-from-docker/v1@main
+        with:
+          service: prebuilt-environment
+          from-docker-path: /app/${{ matrix.package-path }}/dist
+          to-host-path: ${{ github.workspace }}/${{ matrix.package-path }}/dist
+
+      # Publish the package using npm publish
+      - name: Publish package
+        run: >-
+          publish-javascript-package
+          --code-dir ./${{ matrix.package-path }}
+          ${{ inputs.pre-release && format('--pre-release {0}', inputs.pre-release) || '' }}

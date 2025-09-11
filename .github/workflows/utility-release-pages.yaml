@@ -1,0 +1,90 @@
+# Utility workflow for releasing the GitHub pages. This workflow is intended to be
+# triggered by other workflows and not run directly.
+name: Utility release pages
+
+# Allow this workflow to be triggered by other workflows.
+on:
+  workflow_call:
+    inputs:
+      preview:
+        description: >-
+          If you wish to release a preview version of your pges, pass in `true`. If
+          you wish to release a stable version, leave this empty or pass in `false`.
+        required: false
+        type: boolean
+        default: false
+
+# There is no need to specify permissions in helper workflows that are only called
+# by other workflows. The permissions are inherited from the calling workflow.
+# Leave this comment here as a reminder to future maintainers.
+# permissions:
+
+env:
+  APP_NAME: ${{ github.event.repository.name }}
+
+jobs:
+  release-pages:
+    name: Release pages
+    environment: pages-${{ inputs.preview && 'preview' || 'stable' }}
+    runs-on: k8s-arm64-small
+    steps:
+      # Setup CI/CD environment by cloning the repository and initialising things
+      # common to all workflows.
+      - name: Setup environment
+        id: setup
+        uses: PropellerAero/github-actions/actions/setup-environment/v1@main
+        with:
+          app-name: ${{ env.APP_NAME }}
+
+      # This is required for the gh-pages library to push to the repo
+      # https://github.com/tschaub/gh-pages#deploying-with-github-actions
+      - name: Set git remote
+        run: git remote set-url origin https://git:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # Build the pages so that they can be published.
+      - name: Build GitHub pages
+        uses: PropellerAero/github-actions/actions/docker-compose-run/v1@main
+        with:
+          service: prebuilt-environment
+          command: yarn gh-pages:build
+          # Mount the github-pages directory so that the built pages are available
+          # on the host for the publish step.
+          volume-args: >-
+            -v ${{ github.workspace }}/github-pages:/app/github-pages
+
+      # If we are releasing a preview version, install rsync because the
+      # pr-preview-action requires it.
+      - name: Install rsync
+        if: ${{ inputs.preview }}
+        run: sudo apt update && sudo apt -y --no-install-recommends install rsync
+
+      # If we are releasing a preview version, we use the pr-preview-action to
+      # publish it. This will push the built pages to the gh-pages branch under a
+      # folder called pr-preview and create a preview URL that will be added to the
+      # PR. We use an action here rather than our own script because it is easier
+      # than rewriting the action.
+      - name: Publish preview
+        if: ${{ inputs.preview }}
+        uses: rossjrw/pr-preview-action@v1
+        with:
+          source-dir: github-pages
+          custom-url: laughing-winner-2p6l22z.pages.github.io
+
+      # If we are releasing the stable version, we use the gh-pages:publish script
+      # to publish it. This will push the built pages to the gh-pages branch at the
+      # root of the repo.
+      - name: Publish stable
+        if: ${{ !inputs.preview }}
+        uses: PropellerAero/github-actions/actions/docker-compose-run/v1@main
+        with:
+          service: prebuilt-environment
+          command: >-
+            yarn gh-pages:publish --skip-build
+          # Mount the github-pages directory so that the built pages are available
+          # to be published. We also need to mount the .git directory so that the
+          # gh-pages script can push the changes.
+          volume-args: >-
+            -v ${{ github.workspace }}/github-pages:/app/github-pages
+            -v ${{ github.workspace }}/.git:/app/.git

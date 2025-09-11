@@ -1,0 +1,78 @@
+# Workflow to release the packages. It gets triggered automatically when the
+# 'Build main' workflow completes. It can can also be manually triggered in the
+# GitHub Actions UI on any branch to release a beta version of the packages that can
+# be used for testing in other applications.
+name: Release packages
+
+on:
+  # Run this workflow after the 'Build main' workflow has completed.
+  workflow_run:
+    workflows: [Build main]
+    types: [completed]
+
+  # Allow this workflow to be manually triggered via the GitHub Actions UI.
+  workflow_dispatch:
+    inputs:
+      pre-release:
+        description: >-
+          Please enter the pre-release tag to use (e.g. `beta`). You can only run
+          this workflow manually to create pre-release versions of the package.
+          Stable versions are released automatically on push to the main branch.
+        type: string
+        default: beta
+        required: true
+
+# Ensure that this workflow can only run one run at a time and that they are not
+# cancelled if they are in progress and a new trigger event occurs. This is to
+# prevent the released package getting into a bad state.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  # Needed to clone the repository and push the package version number tag
+  contents: write
+  # Needed to authenticate with AWS and Vault
+  id-token: write
+
+jobs:
+  # If this workflow is triggered manually (via workflow_dispatch), ensure that the
+  # workflow is not run on the main branch because we already have a workflow that
+  # releases the package on the main branch.
+  check-branch:
+    name: Check branch
+    runs-on: k8s-arm64-small
+    steps:
+      - name: Fail if main branch and triggered manually
+        if: ${{ github.event_name == 'workflow_dispatch' && github.ref_name == 'main' }}
+        run: >-
+          echo "This workflow cannot be run on the main branch, packages are already
+          released on push to the main branch."
+          && exit 1
+
+  # If this workflow is triggered manually (via workflow_dispatch), we need to build
+  # the images for the current commit because we don't know if the image we need will
+  # still be in ECR. If it is triggered by the completion of the 'Build main'
+  # workflow, we can skip this step because the image will already be in ECR. We
+  # need the image because we pull the built package code from the image to release
+  # it.
+  build-images:
+    name: Build images
+    needs: [check-branch]
+    if: ${{ github.event_name == 'workflow_dispatch' }}
+    uses: ./.github/workflows/utility-build-images.yaml
+
+  release-packages:
+    name: Release packages
+    needs: [build-images]
+    # Run this job if the workflow was triggered by a successful run of the 'Build
+    # main' workflow (via the workflow_run event). Also run if triggered by any other
+    # event type. The always() here ensures that the job runs even if the
+    # build-images job is skipped.
+    if: >-
+      always() &&
+      github.event.workflow_run.conclusion == 'success' ||
+      github.event_name != 'workflow_run'
+    uses: ./.github/workflows/utility-release-packages.yaml
+    with:
+      pre-release: ${{ inputs.pre-release }}

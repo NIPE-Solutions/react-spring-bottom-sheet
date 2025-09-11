@@ -1,0 +1,66 @@
+# Workflow to build and validate the code on a feature branch. This workflow is
+# required to succeed before a PR can be merged.
+name: Build branch
+
+# Run when a pull request is opened, has commits pushed or is reopened
+on: pull_request
+
+# Cancel any queued or in-progress workflow runs for this branch if a new trigger
+# event occurs
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  # Needed to clone the repository and push the built pages preview
+  contents: write
+  # Needed to authenticate with AWS and Vault
+  id-token: write
+  # Needed to post preview link to the pull request
+  pull-requests: write
+
+jobs:
+  build-images:
+    name: Build images
+    uses: ./.github/workflows/utility-build-images.yaml
+
+  validate:
+    name: Validate
+    needs: [build-images]
+    uses: ./.github/workflows/utility-validate.yaml
+
+  # In order to block PRs from merging until all jobs have succeeded, individual
+  # jobs need to be listed in the branch protection rules. This can make it difficult
+  # when you have workflows with multiple jobs that need to pass or when want to
+  # alter the workflow without breaking the branch protection rules. To get around
+  # we use this stable job to check if all the jobs we care about have succeeded, and
+  # then we can require this job to pass in our branch protection rules. For more
+  # info see here: https://github.com/re-actors/alls-green?tab=readme-ov-file#why
+  check-success:
+    name: Check if all required jobs succeeded
+    # List the jobs that need to succeed before a PR can be merged. For jobs that are
+    # chained together with `needs`, only the last job in the chain needs to be
+    # listed.
+    needs: [validate]
+    # This job should always run, even if the previous jobs failed, were cancelled or
+    # skipped. This is so we can rely on this job to determine if the PR can be
+    # merged or not.
+    if: always()
+    # We run on ubuntu because the self hosted runners don't have python installed
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check if all required jobs succeeded
+        uses: re-actors/alls-green@release/v1
+        with:
+          jobs: ${{ toJSON(needs) }}
+
+  # Release a preview version of the GitHub pages that can be used for reviewing
+  # changes. A link to the preview version will be posted in the PR. The success or
+  # failure of this job will not block the PR from being able to be merged as we use
+  # the check-success job for that.
+  release-pages:
+    name: Release pages preview
+    needs: [check-success]
+    uses: ./.github/workflows/utility-release-pages.yaml
+    with:
+      preview: true

@@ -1,0 +1,44 @@
+# Utility workflow for building and pushing the images to be used in the CI/CD
+# pipeline. This workflow is intended to be triggered by other workflows and not run
+# directly.
+name: Utility build images
+
+# Allow this workflow to be triggered by other workflows.
+on:
+  workflow_call:
+
+# There is no need to specify permissions in helper workflows that are only called
+# by other workflows. The permissions are inherited from the calling workflow.
+# Leave this comment here as a reminder to future maintainers.
+# permissions:
+
+env:
+  APP_NAME: ${{ github.event.repository.name }}
+
+jobs:
+  build-images:
+    name: Build images
+    runs-on: k8s-arm64-small
+    steps:
+      # Setup CI/CD environment by cloning the repository and initialising things
+      # common to all workflows.
+      - name: Setup environment
+        id: setup
+        uses: PropellerAero/github-actions/actions/setup-environment/v1@main
+        with:
+          app-name: ${{ env.APP_NAME }}
+          # Fetch the secrets needed to build the images. We fetch the
+          # READ_ONLY_NPM_RC so that we can install NPM packages.
+          fetch-secrets: |
+            app-secrets/data/${{ env.APP_NAME }}/build/all-environments/all-regions * ;
+            app-secrets/data/all-apps/build/all-environments/all-regions READ_ONLY_NPM_RC | NPM_RC ;
+
+      # Build and push the images using Docker Buildx because it gives us more
+      # control over caching. We do not use docker compose build because it
+      # unnecessarily loads the image into the Docker daemon, which takes significant
+      # time.
+      - name: Build and push images
+        run: >-
+          docker buildx bake
+          -f ./docker-compose.yaml -f ./deployment/docker-compose.ci.yaml
+          prebuilt-environment --push

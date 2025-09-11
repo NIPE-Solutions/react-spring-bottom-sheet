@@ -1,0 +1,33 @@
+# Workflow to check if the PR name follows Propeller convention and has a valid
+# JIRA ticket ID in it (e.g. [XYZ-123]). This workflow is required to succeed
+# before the PR can be merged.
+name: Check PR title
+
+# Run when a pull request to the main branch is opened, edited, has commits pushed,
+# or is reopened.
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+    branches:
+      - main
+
+jobs:
+  check-pr-title:
+    name: Check PR title
+    runs-on: k8s-arm64-small
+    steps:
+      # Check the PR title has a valid JIRA ticket ID in it and amend the PR
+      # description with the JIRA ticket ID if it is missing.
+      - name: Check PR title
+        # We cannot access secrets in PRs created by dependabot and we don't want to
+        # block them from being merged so that we can auto-merge them. We therefore
+        # skip this check for dependabot PRs.
+        if: ${{ github.actor != 'dependabot[bot]' }}
+        run: >-
+          check-pr-title
+          --repository-name ${{ github.event.repository.full_name }}
+          --pr-number ${{ github.event.pull_request.number }}
+          --github-token ${{ secrets.GITHUB_TOKEN }}
+          --jira-user ${{ secrets.JIRA_USER }}
+          --jira-token ${{ secrets.JIRA_TOKEN }}
+          --amend-pr-description
