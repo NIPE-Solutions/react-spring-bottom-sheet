@@ -76,3 +76,14 @@ test('displayed public API examples have a type-check fixture', () => {
     existsSync(new URL('../test/types/docs-examples.tsx', import.meta.url)),
   )
 })
+
+test('Vercel serves the exported website as static files', () => {
+  const config = JSON.parse(
+    readFileSync(new URL('../vercel.json', import.meta.url), 'utf8'),
+  )
+
+  assert.equal(config.framework, null)
+  assert.equal(config.buildCommand, 'npm run build:website')
+  assert.equal(config.installCommand, 'npm ci')
+  assert.equal(config.outputDirectory, 'website/out')
+})
