@@ -73,7 +73,7 @@ export function useSheetInteractions({
           if (!sheetOwnsGestureRef.current) {
             const scrollElement = scrollElementRef.current
             const owner = decideGestureOwner({
-              deltaY: movement.deltaY,
+              deltaY: movement.deltaSinceLastY,
               scrollTop: scrollElement?.scrollTop ?? 0,
               scrollHeight: scrollElement?.scrollHeight ?? 0,
               clientHeight: scrollElement?.clientHeight ?? 0,

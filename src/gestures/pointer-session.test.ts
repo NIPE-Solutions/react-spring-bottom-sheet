@@ -113,8 +113,26 @@ describe('createPointerSession', () => {
 
     expect(onMove).toHaveBeenLastCalledWith({
       deltaY: -50,
+      deltaSinceLastY: -30,
       positionY: 150,
       velocityY: -2.5,
     })
+  })
+
+  it('reports the latest direction independently from total displacement', () => {
+    const onMove = vi.fn()
+    const session = createPointerSession({
+      onStart: vi.fn(),
+      onMove,
+      onEnd: vi.fn(),
+    })
+
+    session.start(pointer(1, 200, 0))
+    session.move(pointer(1, 240, 10))
+    session.move(pointer(1, 220, 20))
+
+    expect(onMove).toHaveBeenLastCalledWith(
+      expect.objectContaining({ deltaY: 20, deltaSinceLastY: -20 }),
+    )
   })
 })

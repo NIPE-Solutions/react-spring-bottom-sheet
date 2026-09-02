@@ -15,6 +15,7 @@ export interface PointerCaptureTarget {
 
 export interface PointerMovement {
   deltaY: number
+  deltaSinceLastY: number
   positionY: number
   velocityY: number
 }
@@ -63,11 +64,13 @@ export function createPointerSession(
   let pointerId: number | null = null
   let startY = 0
   let currentY = 0
+  let deltaSinceLastY = 0
   let captureTarget: PointerCaptureTarget | undefined
   let samples: PositionSample[] = []
 
   const movement = (): PointerMovement => ({
     deltaY: currentY - startY,
+    deltaSinceLastY,
     positionY: currentY,
     velocityY: calculateVelocity(samples),
   })
@@ -95,6 +98,7 @@ export function createPointerSession(
       pointerId = pointer.pointerId
       startY = pointer.clientY
       currentY = pointer.clientY
+      deltaSinceLastY = 0
       captureTarget = target
       samples = [{ position: pointer.clientY, time: pointer.timeStamp }]
       if (target) capturePointer(target, pointer.pointerId)
@@ -108,12 +112,14 @@ export function createPointerSession(
     },
     move(pointer) {
       if (pointer.pointerId !== pointerId) return
+      deltaSinceLastY = pointer.clientY - currentY
       currentY = pointer.clientY
       samples.push({ position: pointer.clientY, time: pointer.timeStamp })
       options.onMove(movement())
     },
     end(pointer) {
       if (pointer.pointerId !== pointerId) return
+      deltaSinceLastY = pointer.clientY - currentY
       currentY = pointer.clientY
       samples.push({ position: pointer.clientY, time: pointer.timeStamp })
       cleanup(false)
