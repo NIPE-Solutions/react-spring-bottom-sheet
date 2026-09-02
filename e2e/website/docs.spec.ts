@@ -12,7 +12,7 @@ test('home page exposes navigation and a working sheet', async ({ page }) => {
 
   await page.getByRole('button', { name: 'Open the live sheet' }).click()
   await expect(
-    page.getByRole('dialog', { name: 'Built from the real package' }),
+    page.getByRole('dialog', { name: 'Try the real package' }),
   ).toBeVisible()
   await page.keyboard.press('Escape')
   await expect(page.getByRole('dialog')).toHaveCount(0)
