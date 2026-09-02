@@ -18,6 +18,10 @@ import { SnapPointSheet } from './snap-points/SnapPointSheet'
 import { snapPointSource } from './snap-points/source'
 import { ConfirmationSheet } from './confirmation/ConfirmationSheet'
 import { confirmationSource } from './confirmation/source'
+import { CustomThemeSheet } from './custom-theme/CustomThemeSheet'
+import { customThemeSource } from './custom-theme/source'
+import { DarkThemeSheet } from './dark-theme/DarkThemeSheet'
+import { darkThemeSource } from './dark-theme/source'
 import type { RecipeDefinition } from './types'
 
 export const recipes = [
@@ -159,6 +163,44 @@ export const recipes = [
     accessibility: [
       'The library reads prefers-reduced-motion for every transition.',
       'Dialog semantics and focus behavior remain unchanged.',
+    ],
+  },
+  {
+    slug: 'custom-theme',
+    title: 'Complete custom theme',
+    summary:
+      'Replace every visual decision while retaining the mechanical layer.',
+    component: CustomThemeSheet,
+    source: customThemeSource,
+    relatedDocs: ['styling', 'accessibility'],
+    prerequisites: [
+      'Import core.css and keep theme selectors in an application-owned namespace.',
+    ],
+    behavior: [
+      'Application styles replace the default surface, handle, backdrop, and controls.',
+    ],
+    accessibility: [
+      'Focus indicators remain visible against the custom palette.',
+      'Text and controls retain sufficient contrast.',
+    ],
+  },
+  {
+    slug: 'dark-theme',
+    title: 'Explicit dark theme',
+    summary:
+      'Ship a dark surface that does not depend on the operating system preference.',
+    component: DarkThemeSheet,
+    source: darkThemeSource,
+    relatedDocs: ['styling', 'accessibility'],
+    prerequisites: [
+      'Import core.css and scope the dark palette to this sheet.',
+    ],
+    behavior: [
+      'The theme remains dark in both light and dark operating system modes.',
+    ],
+    accessibility: [
+      'The muted cyan focus ring remains visible on every dark surface.',
+      'Status information uses text rather than color alone.',
     ],
   },
   {

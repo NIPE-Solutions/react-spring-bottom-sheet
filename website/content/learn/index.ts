@@ -6,6 +6,7 @@ import { InstallationGuide } from './installation'
 import { IntroductionGuide } from './introduction'
 import { SnapPointsGuide } from './snap-points'
 import { StateGuide } from './state'
+import { StylingGuide } from './styling'
 import { TroubleshootingGuide } from './troubleshooting'
 
 const guides: Readonly<Record<string, ComponentType>> = {
@@ -16,6 +17,7 @@ const guides: Readonly<Record<string, ComponentType>> = {
   'snap-points': SnapPointsGuide,
   gestures: GesturesGuide,
   accessibility: AccessibilityGuide,
+  styling: StylingGuide,
   troubleshooting: TroubleshootingGuide,
 }
 

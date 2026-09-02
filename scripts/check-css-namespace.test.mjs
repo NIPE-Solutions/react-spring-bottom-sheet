@@ -57,3 +57,22 @@ test('allows keyframe selectors but validates declarations within them', () => {
     [],
   )
 })
+
+test('accepts isolated recipe themes and rejects website selector leakage', () => {
+  assert.deepEqual(
+    validateCssNamespace(`
+      .rsbs-example-field-note.rsbs-content {
+        --rsbs-example-field-note-accent: #1646d8;
+        color: var(--rsbs-example-field-note-accent);
+      }
+    `),
+    [],
+  )
+
+  assert.deepEqual(
+    validateCssNamespace(`.docs-page .rsbs-content { color: red }`).map(
+      ({ code }) => code,
+    ),
+    ['unprefixed-class'],
+  )
+})

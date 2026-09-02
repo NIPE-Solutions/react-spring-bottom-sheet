@@ -592,6 +592,37 @@
     padding-top: 2rem;
     border-top: 1px solid var(--docs-rule);
   }
+  .docs-styles-reference {
+    margin-block: 2rem;
+  }
+  .docs-styles-reference h3 {
+    margin-top: 1.8rem;
+  }
+  .docs-reference-table-wrap {
+    max-width: 100%;
+    overflow-x: auto;
+    border: 1px solid var(--docs-rule);
+  }
+  .docs-reference-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  .docs-reference-table th,
+  .docs-reference-table td {
+    padding: 0.75rem;
+    border-bottom: 1px solid var(--docs-rule);
+    text-align: left;
+    vertical-align: top;
+  }
+  .docs-reference-table th {
+    background: var(--docs-panel);
+    font-size: 0.8rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+  .docs-reference-table tr:last-child td {
+    border-bottom: 0;
+  }
   .docs-related-docs > p {
     flex-basis: 100%;
     margin: 0;

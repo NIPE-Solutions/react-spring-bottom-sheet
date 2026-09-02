@@ -4,7 +4,7 @@ import AxeBuilder from '@axe-core/playwright'
 test('recipe index links to every core pattern', async ({ page }) => {
   await page.goto('/examples/')
 
-  await expect(page.locator('.docs-recipe-grid article')).toHaveCount(10)
+  await expect(page.locator('.docs-recipe-grid article')).toHaveCount(12)
   await expect(
     page.getByRole('link', { name: 'Open basic sheet recipe' }),
   ).toHaveAttribute('href', '/examples/basic/')
@@ -146,6 +146,29 @@ test('confirmation recipe cannot dismiss without an explicit choice', async ({
   await expect(page.getByRole('dialog')).toHaveCount(0)
 })
 
+test('custom theme replaces the default sheet visuals', async ({ page }) => {
+  await page.goto('/examples/custom-theme/')
+  await page.getByRole('button', { name: 'Open field-note sheet' }).click()
+  const dialog = page.getByRole('dialog', { name: 'Field notes' })
+
+  await expect(dialog).toHaveCSS('background-color', 'rgb(248, 250, 255)')
+  await expect(dialog).toHaveCSS('border-radius', '0px')
+})
+
+test('dark theme is explicit instead of depending on system mode', async ({
+  page,
+}) => {
+  await page.emulateMedia({ colorScheme: 'light' })
+  await page.goto('/examples/dark-theme/')
+  await page
+    .getByRole('button', { name: 'Open night-instrument sheet' })
+    .click()
+  const dialog = page.getByRole('dialog', { name: 'Night instrument' })
+
+  await expect(dialog).toHaveCSS('background-color', 'rgb(14, 23, 38)')
+  await expect(dialog).toHaveCSS('color', 'rgb(232, 241, 247)')
+})
+
 test('source remains available as native disclosure content', async ({
   page,
 }) => {
@@ -166,6 +189,8 @@ for (const route of [
   '/examples/form/',
   '/examples/non-modal/',
   '/examples/confirmation/',
+  '/examples/custom-theme/',
+  '/examples/dark-theme/',
 ]) {
   test(`${route} has no detectable accessibility violations`, async ({
     page,
