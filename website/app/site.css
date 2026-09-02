@@ -684,6 +684,8 @@
   }
   .docs-api-table-wrap {
     min-width: 0;
+    container-name: docs-api-table;
+    container-type: inline-size;
   }
   .docs-api-summary {
     margin-bottom: 1rem;
@@ -878,6 +880,9 @@
   .docs-recipe-grid article:first-child {
     border-left: 1px solid var(--docs-rule);
   }
+}
+
+@container docs-api-table (max-width: 40rem) {
   .docs-api-table,
   .docs-api-table tbody,
   .docs-api-table tr,
@@ -888,6 +893,10 @@
   }
   .docs-api-table {
     border-bottom: 0;
+  }
+  .docs-api-table caption {
+    display: block;
+    width: 100%;
   }
   .docs-api-table thead {
     position: absolute;

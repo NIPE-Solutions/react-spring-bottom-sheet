@@ -130,6 +130,61 @@ test('API reference contains dense signatures at 320 pixels', async ({
   expect(dimensions.document).toBe(dimensions.viewport)
 })
 
+test('API reference responds to its available table width', async ({
+  page,
+}) => {
+  const rootProps = page.getByRole('table', { name: 'Sheet.Root props' })
+  const firstRowGeometry = () =>
+    rootProps
+      .locator('tbody tr')
+      .first()
+      .evaluate((row) => {
+        const table = row.closest('table')
+        const tableWidth = table?.getBoundingClientRect().width ?? 0
+        const captionWidth = table?.caption?.getBoundingClientRect().width ?? 0
+        const cells = Array.from(row.children, (cell) => {
+          const bounds = cell.getBoundingClientRect()
+          return { top: Math.round(bounds.top), width: bounds.width }
+        })
+
+        return { captionWidth, cells, tableWidth }
+      })
+
+  await page.setViewportSize({ width: 1024, height: 900 })
+  await page.goto('/docs/api/')
+  await expect(rootProps).toBeVisible()
+
+  const constrained = await firstRowGeometry()
+  expect(new Set(constrained.cells.map(({ top }) => top)).size).toBe(5)
+  expect(
+    constrained.cells.every(
+      ({ width }) => width >= constrained.tableWidth * 0.95,
+    ),
+  ).toBe(true)
+  expect(constrained.captionWidth).toBeGreaterThanOrEqual(
+    constrained.tableWidth * 0.95,
+  )
+
+  let dimensions = await page.evaluate(() => ({
+    viewport: window.innerWidth,
+    document: document.documentElement.scrollWidth,
+  }))
+  expect(dimensions.document).toBe(dimensions.viewport)
+
+  await page.setViewportSize({ width: 1440, height: 900 })
+  const wide = await firstRowGeometry()
+  expect(new Set(wide.cells.map(({ top }) => top)).size).toBe(1)
+  expect(wide.cells.some(({ width }) => width < wide.tableWidth * 0.5)).toBe(
+    true,
+  )
+
+  dimensions = await page.evaluate(() => ({
+    viewport: window.innerWidth,
+    document: document.documentElement.scrollWidth,
+  }))
+  expect(dimensions.document).toBe(dimensions.viewport)
+})
+
 test('documentation navigation becomes compact on a narrow viewport', async ({
   page,
 }) => {
