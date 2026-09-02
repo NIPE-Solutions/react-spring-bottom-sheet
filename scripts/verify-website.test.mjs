@@ -18,7 +18,7 @@ const requiredRoutes = [
 ]
 
 test('the documentation manifest covers every required topic', async () => {
-  const { docs } = await import('../website/content/docs.mjs')
+  const { docs } = await import('../website/content/docs.ts')
 
   assert.deepEqual(
     docs.map(({ slug }) => slug),
