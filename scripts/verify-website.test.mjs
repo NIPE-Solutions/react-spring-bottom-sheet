@@ -77,6 +77,27 @@ test('displayed public API examples have a type-check fixture', () => {
   )
 })
 
+test('the website keeps the generated public API reference inputs available', () => {
+  for (const path of [
+    '../website/generated/public-api.json',
+    '../website/content/reference/public-api.ts',
+    '../website/content/reference/behavior.tsx',
+  ]) {
+    assert.ok(existsSync(new URL(path, import.meta.url)), path)
+  }
+
+  const packageJson = JSON.parse(
+    readFileSync(new URL('../package.json', import.meta.url), 'utf8'),
+  )
+  const check = packageJson.scripts.check
+
+  assert.ok(check.includes('npm run test:api'))
+  assert.ok(
+    check.indexOf('npm run build:dist') < check.indexOf('npm run test:api'),
+  )
+  assert.match(packageJson.scripts['build:website'], /npm run generate:api/)
+})
+
 test('Vercel serves the exported website as static files', () => {
   const config = JSON.parse(
     readFileSync(new URL('../vercel.json', import.meta.url), 'utf8'),
