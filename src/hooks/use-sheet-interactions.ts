@@ -45,6 +45,7 @@ export function useSheetInteractions({
   const sheetOwnsGestureRef = useRef(false)
   const takeoverDeltaRef = useRef(0)
   const startPositionRef = useRef(0)
+  const captureTargetRef = useRef<HTMLElement | null>(null)
   stateRef.current = state
   layoutRef.current = layout
 
@@ -84,6 +85,9 @@ export function useSheetInteractions({
             )
               return
             sheetOwnsGestureRef.current = true
+            if (captureTargetRef.current) {
+              session.capture(captureTargetRef.current)
+            }
             takeoverDeltaRef.current = movement.deltaY
             startPositionRef.current = stateRef.current.position
             controller.dispatch({
@@ -165,7 +169,11 @@ export function useSheetInteractions({
       scrollElementRef.current = startedOnHandleRef.current
         ? null
         : findScrollableAncestor(event.target, content)
-      session.start(event.nativeEvent, event.currentTarget)
+      captureTargetRef.current = event.currentTarget
+      session.start(
+        event.nativeEvent,
+        startedOnHandleRef.current ? event.currentTarget : undefined,
+      )
     },
     onPointerMove(event) {
       session.move(event.nativeEvent)

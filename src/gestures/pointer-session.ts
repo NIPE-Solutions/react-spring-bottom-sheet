@@ -32,10 +32,29 @@ export interface PointerSessionOptions {
 export interface PointerSession {
   readonly active: boolean
   start(pointer: PointerSample, target?: PointerCaptureTarget): boolean
+  capture(target: PointerCaptureTarget): void
   move(pointer: PointerSample): void
   end(pointer: PointerSample): void
   cancel(): void
   dispose(): void
+}
+
+function capturePointer(target: PointerCaptureTarget, pointerId: number): void {
+  try {
+    target.setPointerCapture?.(pointerId)
+  } catch {
+    // The pointer may have ended before capture was requested.
+  }
+}
+
+function releasePointer(target: PointerCaptureTarget, pointerId: number): void {
+  try {
+    if (!target.hasPointerCapture || target.hasPointerCapture(pointerId)) {
+      target.releasePointerCapture?.(pointerId)
+    }
+  } catch {
+    // Capture may already have been released by the browser.
+  }
 }
 
 export function createPointerSession(
@@ -60,13 +79,7 @@ export function createPointerSession(
     const completion = { ...movement(), cancelled }
     pointerId = null
 
-    if (
-      captureTarget?.releasePointerCapture &&
-      (!captureTarget.hasPointerCapture ||
-        captureTarget.hasPointerCapture(completedPointerId))
-    ) {
-      captureTarget.releasePointerCapture(completedPointerId)
-    }
+    if (captureTarget) releasePointer(captureTarget, completedPointerId)
 
     captureTarget = undefined
     samples = []
@@ -84,9 +97,14 @@ export function createPointerSession(
       currentY = pointer.clientY
       captureTarget = target
       samples = [{ position: pointer.clientY, time: pointer.timeStamp }]
-      target?.setPointerCapture?.(pointer.pointerId)
+      if (target) capturePointer(target, pointer.pointerId)
       options.onStart(pointer.clientY)
       return true
+    },
+    capture(target) {
+      if (pointerId === null || captureTarget) return
+      captureTarget = target
+      capturePointer(target, pointerId)
     },
     move(pointer) {
       if (pointer.pointerId !== pointerId) return

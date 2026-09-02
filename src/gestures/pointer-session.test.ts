@@ -79,6 +79,26 @@ describe('createPointerSession', () => {
     expect(session.start(pointer(2, 100))).toBe(false)
   })
 
+  it('can defer capture until gesture ownership is decided', () => {
+    const target = {
+      setPointerCapture: vi.fn(),
+      releasePointerCapture: vi.fn(),
+      hasPointerCapture: vi.fn(() => true),
+    }
+    const session = createPointerSession({
+      onStart: vi.fn(),
+      onMove: vi.fn(),
+      onEnd: vi.fn(),
+    })
+
+    session.start(pointer(7, 100))
+    expect(target.setPointerCapture).not.toHaveBeenCalled()
+    session.capture(target)
+    expect(target.setPointerCapture).toHaveBeenCalledWith(7)
+    session.cancel()
+    expect(target.releasePointerCapture).toHaveBeenCalledWith(7)
+  })
+
   it('reports normalized displacement and velocity', () => {
     const onMove = vi.fn()
     const session = createPointerSession({

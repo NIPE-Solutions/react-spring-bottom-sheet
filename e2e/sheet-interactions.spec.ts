@@ -1,0 +1,84 @@
+import { expect, test } from '@playwright/test'
+
+async function sheetPosition(page: import('@playwright/test').Page) {
+  return page
+    .getByRole('dialog')
+    .evaluate((element) =>
+      Number.parseFloat(
+        getComputedStyle(element).getPropertyValue('--rsbs-position'),
+      ),
+    )
+}
+
+test('uses flick velocity to move to the next snap point', async ({ page }) => {
+  await page.goto('')
+  const handle = page.getByText('Drag sheet')
+  await expect(page.getByRole('dialog')).toHaveCSS('--rsbs-position', '400px')
+  const box = await handle.boundingBox()
+  if (!box) throw new Error('Expected the handle to be visible')
+
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2)
+  await page.mouse.down()
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2 - 50)
+  expect(await sheetPosition(page)).toBeLessThan(400)
+  await page.mouse.up()
+
+  await expect(page.getByRole('dialog')).toHaveCSS('--rsbs-position', '160px')
+})
+
+test('handles touch pointer dragging', async ({ page }) => {
+  await page.goto('')
+  const dialog = page.getByRole('dialog')
+  const handle = page.getByText('Drag sheet')
+  await expect(dialog).toHaveCSS('--rsbs-position', '400px')
+
+  await handle.dispatchEvent('pointerdown', {
+    bubbles: true,
+    pointerId: 12,
+    pointerType: 'touch',
+    clientY: 400,
+  })
+  await dialog.dispatchEvent('pointermove', {
+    bubbles: true,
+    pointerId: 12,
+    pointerType: 'touch',
+    clientY: 470,
+  })
+  expect(await sheetPosition(page)).toBeGreaterThan(400)
+  await dialog.dispatchEvent('pointercancel', {
+    bubbles: true,
+    pointerId: 12,
+    pointerType: 'touch',
+    clientY: 470,
+  })
+  await expect(dialog).toHaveCSS('--rsbs-position', '400px')
+})
+
+test('leaves a drag with nested scrollable content', async ({ page }) => {
+  await page.goto('')
+  await expect(page.getByRole('dialog')).toHaveCSS('--rsbs-position', '400px')
+  const region = page.getByTestId('scroll-region')
+  await region.evaluate((element) => {
+    element.scrollTop = 100
+  })
+  const action = page.getByRole('button', { name: 'Scrollable action' })
+  const box = await action.boundingBox()
+  if (!box) throw new Error('Expected the scroll action to be visible')
+  const before = await sheetPosition(page)
+
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2)
+  await page.mouse.down()
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2 + 60)
+
+  expect(await sheetPosition(page)).toBe(before)
+  await page.mouse.up()
+})
+
+test('reconciles position after a viewport resize', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 800 })
+  await page.goto('')
+  await expect(page.getByRole('dialog')).toHaveCSS('--rsbs-position', '400px')
+
+  await page.setViewportSize({ width: 390, height: 700 })
+  await expect(page.getByRole('dialog')).toHaveCSS('--rsbs-position', '350px')
+})
