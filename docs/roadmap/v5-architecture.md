@@ -293,6 +293,12 @@ The implementation should be staged so foundational contracts land before depend
 
 Version 5 will be validated through `5.0.0-alpha.x` and `5.0.0-beta.x` releases before the stable release. Release notes and a dedicated migration guide describe every intentional incompatibility with version 4. Semantic versioning governs subsequent public API changes.
 
+## Project lineage
+
+The GitHub repository remains in the `JasGH/react-spring-bottom-sheet` fork network. Version 5 is a continuation of that project even though its implementation and public API are substantially redesigned.
+
+The original copyright and MIT license notices are preserved. The README credits the original project and maintainers, explains that this fork is independently maintained by NIPE Solutions, and links to the upstream repository. Package metadata continues to credit the original authors alongside current maintainers.
+
 ## Success criteria
 
 Version 5 is ready for a stable release when:
@@ -303,5 +309,6 @@ Version 5 is ready for a stable release when:
 - Consumers can use the default theme or completely replace it without selector collisions.
 - The packed library works in a clean React 19 application.
 - The README, website, API reference, examples, and migration guide describe the shipped behavior.
+- The repository, license, package metadata, and README preserve the project's original lineage and attribution.
 - CI, preview deployments, production deployment, and prerelease publishing are operational.
 - No underlying motion implementation appears in the public contract.
