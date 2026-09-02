@@ -1,0 +1,83 @@
+import { expect, test } from '@playwright/test'
+import AxeBuilder from '@axe-core/playwright'
+
+test('homepage presents generated package evidence and useful next steps', async ({
+  page,
+}) => {
+  await page.goto('/')
+
+  await expect(
+    page.getByRole('heading', {
+      level: 1,
+      name: 'A bottom sheet with boundaries you can trust.',
+    }),
+  ).toBeVisible()
+  const evidence = page.getByRole('region', {
+    name: 'What the current build proves.',
+  })
+  await expect(evidence).toContainText('5.0.0-alpha.0')
+  await expect(evidence).toContainText('10.5 kB gzip')
+  await expect(evidence).toContainText('Chromium, Firefox, WebKit')
+  await expect(evidence).toContainText('React ^19.0.0')
+  await expect(
+    page.getByRole('heading', { name: 'Start with the whole system.' }),
+  ).toBeVisible()
+  await expect(
+    page.getByRole('link', { name: 'Explore controlled state' }),
+  ).toHaveAttribute('href', '/examples/controlled/')
+})
+
+test('live sheet opens, changes destination, and restores focus', async ({
+  page,
+}) => {
+  await page.goto('/')
+  const trigger = page.getByRole('button', { name: 'Open the live sheet' })
+
+  await trigger.click()
+  const dialog = page.getByRole('dialog', { name: 'Try the real package' })
+  await expect(dialog).toBeVisible()
+  await expect(page.getByText('Current destination: compact')).toBeVisible()
+  await page.getByRole('button', { name: 'Expand sheet' }).click()
+  await expect(page.getByText('Current destination: expanded')).toBeVisible()
+  await page.keyboard.press('Escape')
+  await expect(dialog).toHaveCount(0)
+  await expect(trigger).toBeFocused()
+})
+
+test('live sheet responds to a direct handle gesture', async ({ page }) => {
+  await page.goto('/')
+  await page.getByRole('button', { name: 'Open the live sheet' }).click()
+  await expect(page.getByRole('dialog')).toHaveAttribute(
+    'data-rsbs-state',
+    'open',
+  )
+  const handle = page.locator('[data-rsbs-handle]')
+  const box = await handle.boundingBox()
+  if (!box) throw new Error('Expected the sheet handle to be visible')
+
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2)
+  await page.mouse.down()
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2 - 80)
+  await page.mouse.up()
+
+  await expect(page.getByText('Current destination: expanded')).toBeVisible()
+})
+
+test('homepage has no detectable accessibility violations', async ({
+  page,
+}) => {
+  await page.goto('/')
+  const results = await new AxeBuilder({ page }).analyze()
+  expect(results.violations).toEqual([])
+})
+
+test('homepage remains contained at 320 pixels', async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 720 })
+  await page.goto('/')
+
+  const dimensions = await page.evaluate(() => ({
+    viewport: window.innerWidth,
+    document: document.documentElement.scrollWidth,
+  }))
+  expect(dimensions.document).toBe(dimensions.viewport)
+})

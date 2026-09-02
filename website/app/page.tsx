@@ -1,5 +1,9 @@
 import Link from 'next/link'
+import { Evidence } from '../components/Evidence'
 import { LiveSheet } from '../components/LiveSheet'
+import { QuickStart } from '../components/QuickStart'
+import { RecipeLinks } from '../components/RecipeLinks'
+import { buildEvidence } from '../content/evidence'
 
 export default function Home() {
   return (
@@ -7,7 +11,7 @@ export default function Home() {
       <section className="docs-hero">
         <div className="docs-hero-copy">
           <p className="docs-status">
-            <span /> Version 5 alpha · React 19
+            <span /> Version {buildEvidence.version} · React 19
           </p>
           <h1>A bottom sheet with boundaries you can trust.</h1>
           <p className="docs-lede">
@@ -25,38 +29,12 @@ export default function Home() {
               Read the API
             </Link>
           </div>
-          <pre className="docs-install" tabIndex={0}>
-            <code>npm install @nipe-solutions/react-spring-bottom-sheet</code>
-          </pre>
         </div>
         <LiveSheet />
       </section>
-      <section className="docs-principles" aria-labelledby="principles-title">
-        <h2 id="principles-title">Designed as a system</h2>
-        <div>
-          <article>
-            <h3>Compose the anatomy</h3>
-            <p>
-              Use explicit primitives or the convenience component. Both paths
-              share one implementation.
-            </p>
-          </article>
-          <article>
-            <h3>Own your visuals</h3>
-            <p>
-              Keep the default theme, replace every visual rule, or build from
-              stable tokens.
-            </p>
-          </article>
-          <article>
-            <h3>Keep behavior stable</h3>
-            <p>
-              Motion is an internal adapter. Your API does not change when its
-              implementation does.
-            </p>
-          </article>
-        </div>
-      </section>
+      <Evidence evidence={buildEvidence} />
+      <QuickStart />
+      <RecipeLinks />
     </main>
   )
 }

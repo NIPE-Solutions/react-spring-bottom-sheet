@@ -49,7 +49,7 @@
   "scripts": {
     "build": "npm run build:dist",
     "build:dist": "npm run clean && vite build && tsc --project tsconfig.build.json && node scripts/copy-styles.mjs",
-    "build:website": "npm run build:dist && next build website",
+    "build:website": "npm run build:dist && node scripts/write-website-evidence.mjs && next build website",
     "check": "npm run format:check && npm run lint && npm run test:css && npm run test:release && npm run test:website && npm run typecheck && npm run test:unit && npm run build:dist && npm run test:size && npm run test:package && npm run build:website",
     "clean": "rimraf dist",
     "dev": "next dev website",
@@ -65,7 +65,7 @@
     "test:release": "node --test scripts/check-bundle-size.test.mjs scripts/verify-release.test.mjs",
     "test:size": "node scripts/check-bundle-size.mjs",
     "test:unit": "vitest run --passWithNoTests",
-    "test:website": "node --test scripts/check-website-css.test.mjs scripts/verify-website.test.mjs && node scripts/check-website-css.mjs website/app/site.css",
+    "test:website": "node --test scripts/check-website-css.test.mjs scripts/verify-website.test.mjs scripts/write-website-evidence.test.mjs && node scripts/check-website-css.mjs website/app/site.css",
     "test:website:e2e": "playwright test --config playwright.website.config.ts",
     "typecheck": "tsc --noEmit"
   },
