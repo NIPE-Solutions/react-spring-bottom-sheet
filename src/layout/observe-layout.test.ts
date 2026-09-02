@@ -5,6 +5,7 @@ describe('observeLayout', () => {
   it('reports viewport, content, and safe-area measurements', () => {
     const viewport = document.createElement('div')
     const content = document.createElement('div')
+    document.body.append(viewport)
     Object.defineProperty(viewport, 'clientHeight', { value: 800 })
     Object.defineProperty(content, 'scrollHeight', { value: 460 })
     const onChange = vi.fn()
@@ -23,6 +24,7 @@ describe('observeLayout', () => {
       safeAreaBottom: 16,
     })
     observation.dispose()
+    viewport.remove()
   })
 
   it('measures the content box without counting visual overflow', () => {
@@ -37,6 +39,32 @@ describe('observeLayout', () => {
 
     expect(onChange).toHaveBeenLastCalledWith(
       expect.objectContaining({ contentHeight: 360 }),
+    )
+    observation.dispose()
+  })
+
+  it('measures a custom portal against its containing viewport', () => {
+    const portalContainer = document.createElement('section')
+    const viewport = document.createElement('div')
+    const content = document.createElement('div')
+    portalContainer.append(viewport)
+    Object.defineProperty(viewport, 'clientHeight', { value: 320 })
+    Object.defineProperty(content, 'scrollHeight', { value: 180 })
+    const onChange = vi.fn()
+
+    const observation = observeLayout({
+      viewport,
+      content,
+      onChange,
+      visualViewport: {
+        height: 900,
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+      },
+    })
+
+    expect(onChange).toHaveBeenLastCalledWith(
+      expect.objectContaining({ viewportHeight: 320 }),
     )
     observation.dispose()
   })
@@ -63,6 +91,7 @@ describe('observeLayout', () => {
     }
     const viewport = document.createElement('div')
     const content = document.createElement('div')
+    document.body.append(viewport)
     Object.defineProperty(content, 'scrollHeight', { value: 400 })
     const onChange = vi.fn()
 
@@ -87,5 +116,6 @@ describe('observeLayout', () => {
     expect(visualViewport.removeEventListener).toHaveBeenCalledOnce()
     for (const listener of visualListeners) listener(new Event('resize'))
     expect(onChange).toHaveBeenCalledTimes(3)
+    viewport.remove()
   })
 })

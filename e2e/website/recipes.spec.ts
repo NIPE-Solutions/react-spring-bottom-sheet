@@ -106,6 +106,30 @@ test('custom portal recipe renders within its owned container', async ({
   await expect(
     page.locator('.docs-custom-portal-target [role="dialog"]'),
   ).toBeVisible()
+  const bounds = await page.evaluate(() => {
+    const targetElement = document.querySelector('.docs-custom-portal-target')
+    const target = targetElement?.getBoundingClientRect()
+    const viewport = targetElement
+      ?.querySelector('[data-rsbs-viewport]')
+      ?.getBoundingClientRect()
+    const dialog = document
+      .querySelector('.docs-custom-portal-target [role="dialog"]')
+      ?.getBoundingClientRect()
+    return target && viewport && dialog && targetElement
+      ? {
+          target: { top: target.top, bottom: target.bottom },
+          viewport: { top: viewport.top, bottom: viewport.bottom },
+          dialog: { top: dialog.top, bottom: dialog.bottom },
+          overflow: getComputedStyle(targetElement).overflow,
+        }
+      : null
+  })
+  expect(bounds).not.toBeNull()
+  expect(bounds!.viewport.top).toBeGreaterThanOrEqual(bounds!.target.top)
+  expect(bounds!.viewport.bottom).toBeLessThanOrEqual(bounds!.target.bottom)
+  expect(bounds!.dialog.top).toBeGreaterThanOrEqual(bounds!.target.top)
+  expect(bounds!.dialog.top).toBeLessThan(bounds!.target.bottom)
+  expect(bounds!.overflow).toBe('hidden')
 })
 
 test('non-modal recipe leaves the page controls interactive', async ({

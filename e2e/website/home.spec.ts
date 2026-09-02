@@ -34,8 +34,34 @@ test('live sheet opens, changes destination, and restores focus', async ({
   const trigger = page.getByRole('button', { name: 'Open the live sheet' })
 
   await trigger.click()
+  const phone = page.getByLabel('Interactive sheet preview')
   const dialog = page.getByRole('dialog', { name: 'Try the real package' })
   await expect(dialog).toBeVisible()
+  await expect(phone.locator('[role="dialog"]')).toHaveCount(1)
+  const containment = await page.evaluate(() => {
+    const screen = document.querySelector('.docs-phone-screen')
+    const phone = screen?.getBoundingClientRect()
+    const viewport = screen
+      ?.querySelector('[data-rsbs-viewport]')
+      ?.getBoundingClientRect()
+    const dialog = document
+      .querySelector('.docs-phone-screen [role="dialog"]')
+      ?.getBoundingClientRect()
+    return phone && viewport && dialog && screen
+      ? {
+          phone: { top: phone.top, bottom: phone.bottom },
+          viewport: { top: viewport.top, bottom: viewport.bottom },
+          dialog: { top: dialog.top, bottom: dialog.bottom },
+          overflow: getComputedStyle(screen).overflow,
+        }
+      : null
+  })
+  expect(containment).not.toBeNull()
+  expect(containment!.viewport.top).toBeCloseTo(containment!.phone.top, 0)
+  expect(containment!.viewport.bottom).toBeCloseTo(containment!.phone.bottom, 0)
+  expect(containment!.dialog.top).toBeGreaterThanOrEqual(containment!.phone.top)
+  expect(containment!.dialog.top).toBeLessThan(containment!.phone.bottom)
+  expect(containment!.overflow).toBe('hidden')
   await expect(page.getByText('Current destination: compact')).toBeVisible()
   await page.getByRole('button', { name: 'Expand sheet' }).click()
   await expect(page.getByText('Current destination: expanded')).toBeVisible()
