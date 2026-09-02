@@ -13,13 +13,13 @@ export const Backdrop = forwardRef<HTMLDivElement, SheetBackdropProps>(
     { asChild = false, children, className, onClick, ...props },
     ref,
   ) {
-    const { dismissible, open, requestOpenChange } =
+    const { dismissible, requestOpenChange, transitionPhase } =
       useSheetContext('Sheet.Backdrop')
     const shared = {
       ...props,
       className: ['rsbs-backdrop', className].filter(Boolean).join(' '),
       'data-rsbs-backdrop': '',
-      'data-rsbs-state': open ? 'open' : 'closed',
+      'data-rsbs-state': transitionPhase,
       onClick: (event: MouseEvent<HTMLElement>) => {
         onClick?.(event as MouseEvent<HTMLDivElement>)
         if (

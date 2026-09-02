@@ -70,6 +70,9 @@ export function Root({
   const layoutRef = useRef(layout)
   layoutRef.current = layout
   const open = controlledOpen ?? uncontrolledOpen
+  const present = open || controllerState.phase !== 'closed'
+  const transitionPhase =
+    open && controllerState.phase === 'closed' ? 'open' : controllerState.phase
   const controlled = controlledOpen !== undefined
   const activeSnapPoint = controlledSnapPoint ?? uncontrolledSnapPoint
   const reducedMotion = useReducedMotion()
@@ -134,6 +137,7 @@ export function Root({
       if (
         point &&
         (current.phase === 'closed' ||
+          current.phase === 'closing' ||
           (current.phase === 'open' && current.activeSnapPoint !== point.id))
       ) {
         controller.dispatch({
@@ -183,6 +187,8 @@ export function Root({
   const value = useMemo(
     () => ({
       open,
+      present,
+      transitionPhase,
       modal,
       dismissible,
       titleId,
@@ -201,6 +207,8 @@ export function Root({
       dismissible,
       modal,
       open,
+      present,
+      transitionPhase,
       controllerState.phase,
       controllerState.position,
       interactionHandlers,

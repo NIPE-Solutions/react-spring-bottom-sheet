@@ -16,27 +16,31 @@ export function Fixture({ customTheme = false }: { customTheme?: boolean }) {
       <Sheet.Trigger className={customTheme ? 'catalog-trigger' : undefined}>
         Open sheet
       </Sheet.Trigger>
-      <Sheet.Backdrop
-        className={customTheme ? 'catalog-backdrop' : undefined}
-      />
-      <Sheet.Viewport>
-        <Sheet.Content
-          aria-label="Interaction fixture"
-          className={customTheme ? 'catalog-sheet' : undefined}
-        >
-          <Sheet.Handle className={customTheme ? 'catalog-handle' : undefined}>
-            Drag sheet
-          </Sheet.Handle>
-          <Sheet.Close className={customTheme ? 'catalog-close' : undefined}>
-            Dismiss sheet
-          </Sheet.Close>
-          <div className="scroll-region" data-testid="scroll-region">
-            <div className="spacer-before" />
-            <button>Scrollable action</button>
-            <div className="spacer-after" />
-          </div>
-        </Sheet.Content>
-      </Sheet.Viewport>
+      <Sheet.Portal>
+        <Sheet.Backdrop
+          className={customTheme ? 'catalog-backdrop' : undefined}
+        />
+        <Sheet.Viewport>
+          <Sheet.Content
+            aria-label="Interaction fixture"
+            className={customTheme ? 'catalog-sheet' : undefined}
+          >
+            <Sheet.Handle
+              className={customTheme ? 'catalog-handle' : undefined}
+            >
+              Drag sheet
+            </Sheet.Handle>
+            <Sheet.Close className={customTheme ? 'catalog-close' : undefined}>
+              Dismiss sheet
+            </Sheet.Close>
+            <div className="scroll-region" data-testid="scroll-region">
+              <div className="spacer-before" />
+              <button>Scrollable action</button>
+              <div className="spacer-after" />
+            </div>
+          </Sheet.Content>
+        </Sheet.Viewport>
+      </Sheet.Portal>
     </Sheet.Root>
   )
 }

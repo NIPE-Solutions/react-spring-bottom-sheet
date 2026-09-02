@@ -161,4 +161,32 @@ describe('sheet controller reducer', () => {
       targetPosition: 450,
     })
   })
+
+  it('keeps closing toward the updated closed position after a layout change', () => {
+    const closing: SheetState = {
+      phase: 'closing',
+      open: false,
+      activeSnapPoint: 'half',
+      position: 500,
+      targetPosition: 800,
+      velocity: 0,
+      dismissReason: 'close',
+    }
+
+    expect(
+      transition(closing, {
+        type: 'LAYOUT_CHANGED',
+        layout: {
+          viewportHeight: 700,
+          closedPosition: 700,
+          snapPoints: [{ id: 'half', position: 350 }],
+        },
+      }),
+    ).toMatchObject({
+      phase: 'closing',
+      open: false,
+      targetPosition: 700,
+      dismissReason: 'close',
+    })
+  })
 })

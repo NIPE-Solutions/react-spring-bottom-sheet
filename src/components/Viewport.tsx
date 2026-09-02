@@ -11,12 +11,13 @@ export type SheetViewportProps = HTMLAttributes<HTMLDivElement> & {
 
 export const Viewport = forwardRef<HTMLDivElement, SheetViewportProps>(
   function Viewport({ asChild = false, children, className, ...props }, ref) {
-    const { open, registerViewport } = useSheetContext('Sheet.Viewport')
+    const { registerViewport, transitionPhase } =
+      useSheetContext('Sheet.Viewport')
     const shared = {
       ...props,
       className: ['rsbs-viewport', className].filter(Boolean).join(' '),
       'data-rsbs-viewport': '',
-      'data-rsbs-state': open ? 'open' : 'closed',
+      'data-rsbs-state': transitionPhase,
     }
     return asChild ? (
       <Slot
