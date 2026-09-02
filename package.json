@@ -29,6 +29,7 @@
     },
     "./core.css": "./dist/core.css",
     "./theme.css": "./dist/theme.css",
+    "./tokens.css": "./dist/tokens.css",
     "./styles.css": "./dist/styles.css",
     "./package.json": "./package.json"
   },
@@ -44,7 +45,7 @@
   "scripts": {
     "build": "npm run build:dist",
     "build:dist": "npm run clean && vite build && tsc --project tsconfig.build.json && node scripts/copy-styles.mjs",
-    "check": "npm run format:check && npm run lint && npm run typecheck && npm run test:unit && npm run build:dist && npm run test:package",
+    "check": "npm run format:check && npm run lint && npm run test:css && npm run typecheck && npm run test:unit && npm run build:dist && npm run test:package",
     "clean": "rimraf dist",
     "format": "prettier --write package.json e2e playwright.config.ts postcss.config.js src/index.ts src/public-types.ts src/accessibility src/components src/composition src/context src/controller src/gestures src/hooks/use-reduced-motion.ts src/hooks/use-sheet-interactions.ts src/hooks/use-sheet-layout.ts src/hooks/use-sheet-motion.ts src/layout src/motion src/styles scripts test/package vite.config.ts vitest.config.ts eslint.config.js",
     "format:check": "prettier --check package.json e2e playwright.config.ts postcss.config.js src/index.ts src/public-types.ts src/accessibility src/components src/composition src/context src/controller src/gestures src/hooks/use-reduced-motion.ts src/hooks/use-sheet-interactions.ts src/hooks/use-sheet-layout.ts src/hooks/use-sheet-motion.ts src/layout src/motion src/styles scripts test/package vite.config.ts vitest.config.ts eslint.config.js",
@@ -53,6 +54,7 @@
     "test": "npm run test:unit",
     "test:e2e": "playwright test",
     "test:e2e:serve": "vite --host 127.0.0.1",
+    "test:css": "node --test scripts/check-css-namespace.test.mjs && node scripts/check-css-namespace.mjs src/styles/core.css src/styles/theme.css src/styles/tokens.css",
     "test:package": "node test/package/verify-package.mjs",
     "test:unit": "vitest run --passWithNoTests",
     "typecheck": "tsc --noEmit"
@@ -77,6 +79,8 @@
     "eslint": "^10.0.0",
     "globals": "^17.3.0",
     "jsdom": "^30.0.1",
+    "postcss": "^8.5.26",
+    "postcss-selector-parser": "^7.1.5",
     "prettier": "^3.9.0",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",

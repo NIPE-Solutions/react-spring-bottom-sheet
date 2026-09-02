@@ -25,6 +25,22 @@ describe('observeLayout', () => {
     observation.dispose()
   })
 
+  it('measures the content box without counting visual overflow', () => {
+    const viewport = document.createElement('div')
+    const content = document.createElement('div')
+    Object.defineProperty(viewport, 'clientHeight', { value: 800 })
+    Object.defineProperty(content, 'scrollHeight', { value: 1200 })
+    content.getBoundingClientRect = () => ({ height: 360 }) as DOMRect
+    const onChange = vi.fn()
+
+    const observation = observeLayout({ viewport, content, onChange })
+
+    expect(onChange).toHaveBeenLastCalledWith(
+      expect.objectContaining({ contentHeight: 360 }),
+    )
+    observation.dispose()
+  })
+
   it('reacts to element and visual viewport changes and disposes listeners', () => {
     let resizeCallback: () => void = () => undefined
     const disconnect = vi.fn()

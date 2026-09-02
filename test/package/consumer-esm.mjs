@@ -11,4 +11,5 @@ assert.equal(
 )
 require.resolve('@nipe-solutions/react-spring-bottom-sheet/core.css')
 require.resolve('@nipe-solutions/react-spring-bottom-sheet/theme.css')
+require.resolve('@nipe-solutions/react-spring-bottom-sheet/tokens.css')
 require.resolve('@nipe-solutions/react-spring-bottom-sheet/styles.css')

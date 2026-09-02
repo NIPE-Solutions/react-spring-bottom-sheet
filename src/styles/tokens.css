@@ -1,0 +1,44 @@
+@layer rsbs.theme {
+  :where(.rsbs-content, .rsbs-backdrop) {
+    --rsbs-z-index: 50;
+    --rsbs-backdrop-color: rgb(15 23 42);
+    --rsbs-backdrop-opacity: 0.48;
+    --rsbs-content-background: rgb(255 255 255);
+    --rsbs-content-color: rgb(15 23 42);
+    --rsbs-content-border: 1px solid rgb(226 232 240);
+    --rsbs-content-radius: 1.25rem;
+    --rsbs-content-shadow: 0 -1.25rem 3.75rem rgb(15 23 42 / 18%);
+    --rsbs-handle-color: rgb(148 163 184);
+    --rsbs-handle-width: 2.5rem;
+    --rsbs-handle-height: 0.25rem;
+    --rsbs-handle-hit-area: 2.75rem;
+    --rsbs-focus-color: rgb(79 70 229);
+    --rsbs-focus-width: 2px;
+    --rsbs-focus-offset: 3px;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :where(.rsbs-content, .rsbs-backdrop) {
+      --rsbs-backdrop-color: rgb(2 6 23);
+      --rsbs-backdrop-opacity: 0.7;
+      --rsbs-content-background: rgb(15 23 42);
+      --rsbs-content-color: rgb(241 245 249);
+      --rsbs-content-border: 1px solid rgb(51 65 85);
+      --rsbs-content-shadow: 0 -1.25rem 3.75rem rgb(0 0 0 / 38%);
+      --rsbs-handle-color: rgb(100 116 139);
+      --rsbs-focus-color: rgb(165 180 252);
+    }
+  }
+
+  @media (forced-colors: active) {
+    :where(.rsbs-content, .rsbs-backdrop) {
+      --rsbs-backdrop-color: CanvasText;
+      --rsbs-content-background: Canvas;
+      --rsbs-content-color: CanvasText;
+      --rsbs-content-border: 1px solid CanvasText;
+      --rsbs-content-shadow: none;
+      --rsbs-handle-color: CanvasText;
+      --rsbs-focus-color: Highlight;
+    }
+  }
+}

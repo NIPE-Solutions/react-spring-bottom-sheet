@@ -1,1 +1,41 @@
-@layer rsbs.theme;
+@import './tokens.css';
+
+@layer rsbs.theme {
+  :where(.rsbs-backdrop) {
+    background: var(--rsbs-backdrop-color);
+    opacity: var(--rsbs-backdrop-opacity);
+  }
+
+  :where(.rsbs-content) {
+    color: var(--rsbs-content-color);
+    background: var(--rsbs-content-background);
+    border: var(--rsbs-content-border);
+    border-bottom: 0;
+    border-radius: var(--rsbs-content-radius) var(--rsbs-content-radius) 0 0;
+    box-shadow: var(--rsbs-content-shadow);
+  }
+
+  :where(.rsbs-handle) {
+    display: grid;
+    min-height: var(--rsbs-handle-hit-area);
+    place-items: center;
+    cursor: grab;
+  }
+
+  :where(.rsbs-handle)::before {
+    width: var(--rsbs-handle-width);
+    height: var(--rsbs-handle-height);
+    content: '';
+    background: var(--rsbs-handle-color);
+    border-radius: 999px;
+  }
+
+  :where(.rsbs-content)[data-rsbs-dragging='true'] :where(.rsbs-handle) {
+    cursor: grabbing;
+  }
+
+  :where(.rsbs-trigger, .rsbs-close):focus-visible {
+    outline: var(--rsbs-focus-width) solid var(--rsbs-focus-color);
+    outline-offset: var(--rsbs-focus-offset);
+  }
+}

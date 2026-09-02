@@ -106,6 +106,40 @@ describe('Sheet', () => {
     expect(ref.current).toHaveClass('rsbs-content', 'product-sheet')
   })
 
+  it('adds namespaced classes without replacing consumer classes', () => {
+    render(
+      <Sheet.Root defaultOpen>
+        <Sheet.Trigger className="product-trigger">Open</Sheet.Trigger>
+        <Sheet.Content aria-label="Cart">
+          <Sheet.Handle className="product-handle" />
+          <Sheet.Title className="product-title">Cart</Sheet.Title>
+          <Sheet.Description className="product-description">
+            Current items
+          </Sheet.Description>
+          <Sheet.Close className="product-close">Done</Sheet.Close>
+        </Sheet.Content>
+      </Sheet.Root>,
+    )
+
+    expect(screen.getByRole('button', { name: 'Open' })).toHaveClass(
+      'rsbs-trigger',
+      'product-trigger',
+    )
+    expect(document.querySelector('[data-rsbs-handle]')).toHaveClass(
+      'rsbs-handle',
+      'product-handle',
+    )
+    expect(screen.getByText('Cart')).toHaveClass('rsbs-title', 'product-title')
+    expect(screen.getByText('Current items')).toHaveClass(
+      'rsbs-description',
+      'product-description',
+    )
+    expect(screen.getByRole('button', { name: 'Done' })).toHaveClass(
+      'rsbs-close',
+      'product-close',
+    )
+  })
+
   it('dismisses through the backdrop without treating child clicks as dismissal', () => {
     const onOpenChange = vi.fn()
     render(

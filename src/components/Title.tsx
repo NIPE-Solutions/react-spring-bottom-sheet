@@ -9,12 +9,20 @@ export type SheetTitleProps = HTMLAttributes<HTMLHeadingElement> & {
 }
 
 export const Title = forwardRef<HTMLHeadingElement, SheetTitleProps>(
-  function Title({ asChild = false, children, id: providedId, ...props }, ref) {
+  function Title(
+    { asChild = false, children, className, id: providedId, ...props },
+    ref,
+  ) {
     const generatedId = useId()
     const id = providedId ?? generatedId
     const { registerTitle } = useSheetContext('Sheet.Title')
     useEffect(() => registerTitle(id), [id, registerTitle])
-    const shared = { ...props, id, 'data-rsbs-title': '' }
+    const shared = {
+      ...props,
+      id,
+      className: ['rsbs-title', className].filter(Boolean).join(' '),
+      'data-rsbs-title': '',
+    }
     return asChild ? (
       <Slot {...shared} ref={ref as Ref<HTMLElement>}>
         {children as SlotProps['children']}

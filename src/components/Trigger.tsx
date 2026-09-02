@@ -10,12 +10,20 @@ export interface SheetTriggerProps extends ButtonHTMLAttributes<HTMLButtonElemen
 
 export const Trigger = forwardRef<HTMLButtonElement, SheetTriggerProps>(
   function Trigger(
-    { asChild = false, children, onClick, type = 'button', ...props },
+    {
+      asChild = false,
+      children,
+      className,
+      onClick,
+      type = 'button',
+      ...props
+    },
     ref,
   ) {
     const { open, requestOpenChange } = useSheetContext('Sheet.Trigger')
     const sharedProps = {
       ...props,
+      className: ['rsbs-trigger', className].filter(Boolean).join(' '),
       'aria-expanded': open,
       'data-rsbs-trigger': '',
       onClick: (event: MouseEvent<HTMLElement>) => {
