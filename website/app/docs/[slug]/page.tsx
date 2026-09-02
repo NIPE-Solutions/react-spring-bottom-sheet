@@ -34,9 +34,9 @@ export default async function Doc({
   if (!page) notFound()
 
   return (
-    <main id="content" className="doc-page">
+    <main id="content" className="docs-page" tabIndex={-1}>
       <header>
-        <p className="route">docs / {page.slug}</p>
+        <p className="docs-route">docs / {page.slug}</p>
         <h1>{page.title}</h1>
         <p>{page.description}</p>
       </header>

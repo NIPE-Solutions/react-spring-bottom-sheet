@@ -9,9 +9,9 @@ export const metadata: Metadata = {
 
 export default function ExamplesPage() {
   return (
-    <main id="content" className="doc-page examples-page">
+    <main id="content" className="docs-page docs-examples-page" tabIndex={-1}>
       <header>
-        <p className="route">laboratory</p>
+        <p className="docs-route">laboratory</p>
         <h1>Examples</h1>
         <p>Exercise real library behavior, not a visual imitation.</p>
       </header>

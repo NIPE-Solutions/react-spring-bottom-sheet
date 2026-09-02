@@ -20,7 +20,7 @@ test('home page exposes navigation and a working sheet', async ({ page }) => {
 
 test('every documentation link resolves', async ({ page }) => {
   await page.goto('/docs/introduction/')
-  const links = page.locator('.docs-nav a')
+  const links = page.locator('.docs-sidebar a')
   const count = await links.count()
   expect(count).toBe(12)
 
@@ -37,18 +37,44 @@ test('example sheet renders inside its custom portal target', async ({
   await page.goto('/examples/')
   await page.getByRole('button', { name: 'Open example' }).click()
 
-  await expect(page.locator('.portal-target [role="dialog"]')).toBeVisible()
+  await expect(
+    page.locator('.docs-portal-target [role="dialog"]'),
+  ).toBeVisible()
 })
 
 test('home page does not overflow a mobile viewport', async ({ page }) => {
-  await page.setViewportSize({ width: 390, height: 844 })
+  await page.setViewportSize({ width: 320, height: 720 })
   await page.goto('/')
 
-  const dimensions = await page.evaluate(() => ({
-    viewport: window.innerWidth,
-    document: document.documentElement.scrollWidth,
-  }))
+  const dimensions = await page.evaluate(() => {
+    const bounds = (selector: string) => {
+      const rect = document.querySelector(selector)?.getBoundingClientRect()
+      return rect ? { left: rect.left, right: rect.right } : null
+    }
+
+    return {
+      viewport: window.innerWidth,
+      document: document.documentElement.scrollWidth,
+      heading: bounds('h1'),
+      demo: bounds('.docs-demo-stage'),
+    }
+  })
   expect(dimensions.document).toBe(dimensions.viewport)
+  expect(dimensions.heading?.left).toBeGreaterThanOrEqual(0)
+  expect(dimensions.heading?.right).toBeLessThanOrEqual(dimensions.viewport)
+  expect(dimensions.demo?.left).toBeGreaterThanOrEqual(0)
+  expect(dimensions.demo?.right).toBeLessThanOrEqual(dimensions.viewport)
+})
+
+test('skip link moves keyboard focus to the main content', async ({ page }) => {
+  await page.goto('/')
+  await page.keyboard.press('Tab')
+
+  const skipLink = page.getByRole('link', { name: 'Skip to content' })
+  await expect(skipLink).toBeFocused()
+  await skipLink.press('Enter')
+
+  await expect(page.locator('main#content')).toBeFocused()
 })
 
 for (const route of ['/', '/docs/accessibility/', '/examples/']) {
