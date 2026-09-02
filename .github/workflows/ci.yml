@@ -56,12 +56,12 @@ jobs:
       fail-fast: false
       matrix:
         include:
+          - react: 16
+            react-version: 16.14.0
+          - react: 17
+            react-version: 17.0.2
           - react: 18
             react-version: 18.3.1
-            types-version: 18.3.31
-          - react: 19
-            react-version: 19.2.8
-            types-version: 19.2.18
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
@@ -69,11 +69,8 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - name: Install React ${{ matrix.react }}
-        run: >-
-          npm install --no-save --package-lock=false
-          react@${{ matrix.react-version }}
-          react-dom@${{ matrix.react-version }}
-          @types/react@${{ matrix.types-version }}
-      - run: npm run test:unit
       - run: npm run build:dist
+      - name: Test packed package with React ${{ matrix.react }}
+        run: npm run test:package
+        env:
+          REACT_VERSION: ${{ matrix.react-version }}

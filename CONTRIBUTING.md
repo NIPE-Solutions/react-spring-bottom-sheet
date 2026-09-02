@@ -33,7 +33,7 @@ npm run test:package
 ## Compatibility
 
 The v4 line preserves the existing public API and supports React 16.14 through
-React 19. Bug fixes should include a regression test. Changes to exports, types,
+React 18. Bug fixes should include a regression test. Changes to exports, types,
 focus behavior, gestures, transitions, or accessibility semantics should also be
 covered by the packed-package or browser test suite where appropriate.
 

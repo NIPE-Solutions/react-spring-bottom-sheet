@@ -16,7 +16,7 @@ not need a migration.
 ### Testing
 
 - Add unit, accessibility, browser, and packed-package consumer coverage.
-- Verify compatibility with React 18 and React 19.
+- Verify compatibility with React 16.14, 17, and 18.
 
 ### Build
 

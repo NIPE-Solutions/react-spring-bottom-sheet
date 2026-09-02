@@ -8,7 +8,7 @@
 
 ## About this package
 
-This maintained package supports React 16.14 through React 19 and uses XState 5. It continues the work originally created by Cody Olsen and later maintained by Jasmine GH.
+This maintained package supports React 16.14 through React 18 and uses XState 5. It continues the work originally created by Cody Olsen and later maintained by Jasmine GH.
 
 ## Project history
 

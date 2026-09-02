@@ -1,17 +1,13 @@
 import assert from 'node:assert/strict'
 import { execFileSync } from 'node:child_process'
-import {
-  copyFileSync,
-  mkdtempSync,
-  readFileSync,
-  rmSync,
-} from 'node:fs'
+import { copyFileSync, mkdtempSync, readFileSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const packageRoot = resolve(dirname(fileURLToPath(import.meta.url)), '../..')
 const temporaryDirectory = mkdtempSync(join(tmpdir(), 'rsbs-package-'))
+const expectedReactVersion = process.env.REACT_VERSION || '18.3.1'
 let tarball
 
 try {
@@ -34,7 +30,13 @@ try {
   })
   execFileSync(
     'npm',
-    ['install', '--ignore-scripts', 'react@18.3.1', 'react-dom@18.3.1', tarball],
+    [
+      'install',
+      '--ignore-scripts',
+      `react@${expectedReactVersion}`,
+      `react-dom@${expectedReactVersion}`,
+      tarball,
+    ],
     {
       cwd: temporaryDirectory,
       stdio: 'inherit',
@@ -42,12 +44,22 @@ try {
   )
 
   for (const filename of ['consumer-cjs.cjs', 'consumer-esm.mjs']) {
-    copyFileSync(join(packageRoot, 'test/package', filename), join(temporaryDirectory, filename))
+    copyFileSync(
+      join(packageRoot, 'test/package', filename),
+      join(temporaryDirectory, filename)
+    )
     execFileSync('node', [filename], {
       cwd: temporaryDirectory,
       stdio: 'inherit',
     })
   }
+
+  const installedReactVersion = execFileSync(
+    'node',
+    ['-p', "require('react/package.json').version"],
+    { cwd: temporaryDirectory, encoding: 'utf8' }
+  ).trim()
+  assert.equal(installedReactVersion, expectedReactVersion)
 
   JSON.parse(readFileSync(join(temporaryDirectory, 'package.json'), 'utf8'))
 } finally {
