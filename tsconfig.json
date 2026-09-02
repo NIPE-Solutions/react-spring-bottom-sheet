@@ -29,6 +29,10 @@
     "src/composition/**/*.tsx",
     "src/context/**/*.ts",
     "src/gestures/**/*.ts",
+    "src/hooks/use-reduced-motion.ts",
+    "src/hooks/use-sheet-interactions.ts",
+    "src/hooks/use-sheet-layout.ts",
+    "src/hooks/use-sheet-motion.ts",
     "src/motion/**/*.ts",
     "vite.config.ts",
     "vitest.config.ts"

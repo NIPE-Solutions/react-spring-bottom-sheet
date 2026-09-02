@@ -1,4 +1,5 @@
 import { createContext, useContext } from 'react'
+import type { PointerEventHandler } from 'react'
 import type { OpenChangeReason } from '../public-types.js'
 
 export interface SheetContextValue {
@@ -10,6 +11,16 @@ export interface SheetContextValue {
   requestOpenChange(open: boolean, reason: OpenChangeReason): void
   registerTitle(id: string): () => void
   registerDescription(id: string): () => void
+  registerViewport(element: HTMLElement | null): void
+  registerContent(element: HTMLElement | null): void
+  interactionHandlers: {
+    onPointerDown: PointerEventHandler<HTMLElement>
+    onPointerMove: PointerEventHandler<HTMLElement>
+    onPointerUp: PointerEventHandler<HTMLElement>
+    onPointerCancel: PointerEventHandler<HTMLElement>
+  }
+  position: number
+  dragging: boolean
 }
 
 export const SheetContext = createContext<SheetContextValue | null>(null)

@@ -3,6 +3,7 @@ import type {
   CSSProperties,
   HTMLAttributes,
   MouseEventHandler,
+  PointerEventHandler,
   ReactElement,
   Ref,
 } from 'react'
@@ -17,7 +18,17 @@ export interface SlotProps extends HTMLAttributes<HTMLElement> {
 }
 
 export const Slot = forwardRef<HTMLElement, SlotProps>(function Slot(
-  { children, className, onClick, style, ...props },
+  {
+    children,
+    className,
+    onClick,
+    onPointerCancel,
+    onPointerDown,
+    onPointerMove,
+    onPointerUp,
+    style,
+    ...props
+  },
   forwardedRef,
 ) {
   const child = Children.only(children)
@@ -31,6 +42,15 @@ export const Slot = forwardRef<HTMLElement, SlotProps>(function Slot(
     childClick?.(event)
     if (!event.defaultPrevented) onClick?.(event)
   }
+  const mergePointerHandler =
+    (
+      childHandler: PointerEventHandler<HTMLElement> | undefined,
+      slotHandler: PointerEventHandler<HTMLElement> | undefined,
+    ): PointerEventHandler<HTMLElement> =>
+    (event) => {
+      childHandler?.(event)
+      if (!event.defaultPrevented) slotHandler?.(event)
+    }
   const mergedStyle: CSSProperties = { ...style, ...child.props.style }
 
   return cloneElement(child, {
@@ -39,6 +59,19 @@ export const Slot = forwardRef<HTMLElement, SlotProps>(function Slot(
     className:
       [className, child.props.className].filter(Boolean).join(' ') || undefined,
     onClick: mergedClick,
+    onPointerCancel: mergePointerHandler(
+      child.props.onPointerCancel,
+      onPointerCancel,
+    ),
+    onPointerDown: mergePointerHandler(
+      child.props.onPointerDown,
+      onPointerDown,
+    ),
+    onPointerMove: mergePointerHandler(
+      child.props.onPointerMove,
+      onPointerMove,
+    ),
+    onPointerUp: mergePointerHandler(child.props.onPointerUp, onPointerUp),
     ref: mergeRefs(forwardedRef, child.props.ref),
     style: mergedStyle,
   })

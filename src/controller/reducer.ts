@@ -8,6 +8,7 @@ export function createInitialState(): SheetState {
     activeSnapPoint: null,
     position: 0,
     targetPosition: 0,
+    velocity: 0,
     dismissReason: null,
   }
 }
@@ -35,6 +36,7 @@ export function reduceSheetState(
         open: true,
         activeSnapPoint: event.snapPoint,
         targetPosition: event.targetPosition,
+        velocity: 0,
         dismissReason: null,
       },
       diagnostic: null,
@@ -48,14 +50,23 @@ export function reduceSheetState(
         phase: 'closing',
         open: false,
         dismissReason: event.reason,
+        velocity: event.velocity ?? 0,
       },
       diagnostic: null,
     }
   }
 
-  if (event.type === 'DRAG_STARTED' && state.phase === 'open') {
+  if (
+    event.type === 'DRAG_STARTED' &&
+    ['open', 'opening', 'settling'].includes(state.phase)
+  ) {
     return {
-      state: { ...state, phase: 'dragging', position: event.position },
+      state: {
+        ...state,
+        phase: 'dragging',
+        position: event.position,
+        velocity: 0,
+      },
       diagnostic: null,
     }
   }
@@ -74,6 +85,7 @@ export function reduceSheetState(
         phase: 'settling',
         position: event.position,
         targetPosition: event.targetPosition,
+        velocity: event.velocity,
         activeSnapPoint: event.snapPoint,
       },
       diagnostic: null,
@@ -105,6 +117,7 @@ export function reduceSheetState(
         phase: state.phase === 'dragging' ? 'dragging' : 'settling',
         activeSnapPoint: snapPoint.id,
         targetPosition: snapPoint.position,
+        velocity: state.phase === 'dragging' ? state.velocity : 0,
       },
       diagnostic: null,
     }
@@ -116,6 +129,7 @@ export function reduceSheetState(
         ...createInitialState(),
         position: event.position,
         targetPosition: event.position,
+        velocity: 0,
       },
       diagnostic: null,
     }
@@ -131,6 +145,7 @@ export function reduceSheetState(
         phase: 'open',
         position: event.position,
         targetPosition: event.position,
+        velocity: 0,
       },
       diagnostic: null,
     }

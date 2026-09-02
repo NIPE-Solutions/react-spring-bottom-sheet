@@ -37,7 +37,12 @@ export function findScrollableAncestor(
   let element = target instanceof HTMLElement ? target : null
 
   while (element && element !== boundary) {
-    if (element.scrollHeight > element.clientHeight) return element
+    const overflowY = getComputedStyle(element).overflowY
+    if (
+      element.scrollHeight > element.clientHeight &&
+      ['auto', 'scroll', 'overlay'].includes(overflowY)
+    )
+      return element
     element = element.parentElement
   }
 

@@ -88,6 +88,7 @@ describe('findScrollableAncestor', () => {
       clientHeight: { value: 200 },
       scrollHeight: { value: 500 },
     })
+    inner.style.overflowY = 'auto'
 
     expect(findScrollableAncestor(target, sheet)).toBe(inner)
   })
@@ -99,6 +100,21 @@ describe('findScrollableAncestor', () => {
     outside.append(sheet)
     sheet.append(target)
     Object.defineProperties(outside, {
+      clientHeight: { value: 200 },
+      scrollHeight: { value: 500 },
+    })
+
+    expect(findScrollableAncestor(target, sheet)).toBeNull()
+  })
+
+  it('ignores clipped descendants with scroll geometry', () => {
+    const sheet = document.createElement('div')
+    const clipped = document.createElement('div')
+    const target = document.createElement('button')
+    sheet.append(clipped)
+    clipped.append(target)
+    clipped.style.overflowY = 'hidden'
+    Object.defineProperties(clipped, {
       clientHeight: { value: 200 },
       scrollHeight: { value: 500 },
     })
