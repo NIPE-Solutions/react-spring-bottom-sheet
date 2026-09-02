@@ -93,6 +93,15 @@ export function validateReadinessWorkflows({ ciWorkflow, releaseWorkflow }) {
       if (!publish || !dependsOn(jobs, publish.name, 'quality')) {
         errors.push('release publish must depend on quality readiness')
       }
+      if (
+        publish &&
+        (!dependsOn(jobs, publish.name, 'browsers') ||
+          !dependsOn(jobs, publish.name, 'chromium-touch'))
+      ) {
+        errors.push(
+          'release publish must depend on desktop and touch browser readiness',
+        )
+      }
     }
   }
 
@@ -142,17 +151,34 @@ export function validateReadinessScriptGraph({
       errors.push(`reachable script ${name} contains a release mutation`)
     }
 
-    const dependencies = referencedScripts(command)
+    const npmRunTargets = referencedScripts(command)
     if (name === 'release:check') {
-      dependencies.push(...manifestScripts, ...packHooks)
+      npmRunTargets.push(...manifestScripts)
     }
-    for (const dependency of dependencies) {
-      visit(dependency, [...path, name])
+    for (const target of npmRunTargets) {
+      const lifecycleScripts = [
+        scripts[`pre${target}`] ? `pre${target}` : null,
+        target,
+        scripts[`post${target}`] ? `post${target}` : null,
+      ].filter(Boolean)
+
+      for (const dependency of lifecycleScripts) {
+        visit(dependency, [...path, name])
+      }
+    }
+    if (name === 'release:check') {
+      for (const hook of packHooks) visit(hook, [...path, name])
     }
     states.set(name, 'visited')
   }
 
-  visit('release:check', [])
+  for (const root of [
+    scripts['prerelease:check'] ? 'prerelease:check' : null,
+    'release:check',
+    scripts['postrelease:check'] ? 'postrelease:check' : null,
+  ].filter(Boolean)) {
+    visit(root, [])
+  }
   return [...new Set(errors)]
 }
 

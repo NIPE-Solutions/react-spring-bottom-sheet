@@ -198,6 +198,47 @@ test('rejects release mutations in pack lifecycle hooks', () => {
   }
 })
 
+test('rejects release mutations in reachable npm run lifecycle hooks', () => {
+  for (const hook of [
+    'prerelease:check',
+    'precheck',
+    'postcheck',
+    'pretest:browser-matrix',
+  ]) {
+    const scripts = {
+      ...packageJson.scripts,
+      [hook]: 'npm publish',
+    }
+
+    assert.match(
+      validateReadinessScriptGraph({ scripts }).join('\n'),
+      new RegExp(`reachable script ${hook} contains a release mutation`),
+    )
+  }
+})
+
+test('rejects recursion through a reachable npm run lifecycle hook', () => {
+  const scripts = {
+    ...packageJson.scripts,
+    precheck: 'npm run release:check',
+  }
+
+  assert.match(
+    validateReadinessScriptGraph({ scripts }).join('\n'),
+    /readiness package-script cycle: release:check -> precheck -> release:check/,
+  )
+})
+
+test('does not treat arbitrary unused lifecycle scripts as reachable', () => {
+  const scripts = {
+    ...packageJson.scripts,
+    'preunused-command': 'npm publish',
+    'postunused-command': 'git tag unexpected',
+  }
+
+  assert.deepEqual(validateReadinessScriptGraph({ scripts }), [])
+})
+
 test('package scripts expose readiness and keep its policy tests in check', () => {
   assert.equal(
     packageJson.scripts['release:check'],
@@ -358,5 +399,21 @@ test('rejects a publish graph disconnected from readiness quality', () => {
       releaseWorkflow: disconnectedRelease,
     }).join('\n'),
     /release publish must depend on quality readiness/,
+  )
+})
+
+test('rejects publication that keeps quality but bypasses browser jobs', () => {
+  const releaseWithoutBrowserFanIn = replaceOnce(
+    releaseWorkflow,
+    '    needs: [quality, browsers, chromium-touch]',
+    '    needs: quality',
+  )
+
+  assert.match(
+    validateReadinessWorkflows({
+      ciWorkflow,
+      releaseWorkflow: releaseWithoutBrowserFanIn,
+    }).join('\n'),
+    /release publish must depend on desktop and touch browser readiness/,
   )
 })
