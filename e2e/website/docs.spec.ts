@@ -69,6 +69,67 @@ test('styling guide documents replacement hooks and working themes', async ({
   ).toHaveAttribute('href', '/examples/dark-theme/')
 })
 
+test('API reference documents the generated surface and maintained guidance', async ({
+  page,
+}) => {
+  await page.goto('/docs/api/')
+
+  await expect(
+    page.getByRole('heading', { level: 2, name: 'Composition' }),
+  ).toBeVisible()
+
+  const rootProps = page.getByRole('table', { name: 'Sheet.Root props' })
+  await expect(rootProps).toBeVisible()
+  await expect(
+    rootProps.getByRole('columnheader', { name: 'Prop' }),
+  ).toBeVisible()
+  await expect(rootProps).toContainText('onOpenChange')
+  await expect(rootProps).toContainText('Optional')
+  await expect(rootProps).toContainText('false')
+
+  await expect(
+    page.getByRole('heading', {
+      level: 3,
+      name: 'BottomSheet',
+      exact: true,
+    }),
+  ).toBeVisible()
+  await expect(
+    page
+      .locator('#public-types')
+      .getByText(
+        "'trigger' | 'close' | 'escape' | 'backdrop' | 'drag' | 'imperative'",
+        { exact: true },
+      ),
+  ).toBeVisible()
+  await expect(
+    page.getByRole('link', { name: 'View Sheet.Root source' }),
+  ).toHaveAttribute(
+    'href',
+    'https://github.com/NIPE-Solutions/react-spring-bottom-sheet/blob/v5/src/components/Root.tsx',
+  )
+  await expect(
+    page.getByRole('link', { name: 'Run the controlled-state recipe' }),
+  ).toHaveAttribute('href', '/examples/controlled/')
+})
+
+test('API reference contains dense signatures at 320 pixels', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 320, height: 720 })
+  await page.goto('/docs/api/')
+
+  await expect(
+    page.getByRole('table', { name: 'Sheet.Root props' }),
+  ).toBeVisible()
+
+  const dimensions = await page.evaluate(() => ({
+    viewport: window.innerWidth,
+    document: document.documentElement.scrollWidth,
+  }))
+  expect(dimensions.document).toBe(dimensions.viewport)
+})
+
 test('documentation navigation becomes compact on a narrow viewport', async ({
   page,
 }) => {
@@ -131,7 +192,7 @@ test('skip link moves keyboard focus to the main content', async ({ page }) => {
   await expect(page.locator('main#content')).toBeFocused()
 })
 
-for (const route of ['/', '/docs/accessibility/', '/examples/']) {
+for (const route of ['/', '/docs/accessibility/', '/docs/api/', '/examples/']) {
   test(`${route} has no detectable accessibility violations`, async ({
     page,
   }) => {
