@@ -95,7 +95,22 @@ test('the website keeps the generated public API reference inputs available', ()
   assert.ok(
     check.indexOf('npm run build:dist') < check.indexOf('npm run test:api'),
   )
-  assert.match(packageJson.scripts['build:website'], /npm run generate:api/)
+
+  const websiteBuild = packageJson.scripts['build:website']
+  const declarations = websiteBuild.indexOf('npm run build:dist')
+  const manifest = websiteBuild.indexOf('npm run generate:api')
+  const evidence = websiteBuild.indexOf(
+    'node scripts/write-website-evidence.mjs',
+  )
+  const nextBuild = websiteBuild.indexOf('next build website')
+
+  assert.ok(declarations >= 0, 'build:website builds declarations')
+  assert.ok(manifest >= 0, 'build:website regenerates the API manifest')
+  assert.ok(evidence >= 0, 'build:website writes website evidence')
+  assert.ok(nextBuild >= 0, 'build:website builds the website')
+  assert.ok(declarations < manifest, 'declarations build before the manifest')
+  assert.ok(manifest < evidence, 'the manifest regenerates before evidence')
+  assert.ok(evidence < nextBuild, 'evidence writes before the Next.js build')
 })
 
 test('Vercel serves the exported website as static files', () => {
