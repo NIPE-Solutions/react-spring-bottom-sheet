@@ -1,0 +1,40 @@
+.catalog-backdrop {
+  background: rgb(17 24 39 / 55%);
+  backdrop-filter: blur(3px);
+}
+
+.catalog-sheet {
+  color: #172554;
+  background: #eff6ff;
+  border: 2px solid #93c5fd;
+  border-bottom: 0;
+  border-radius: 2rem 2rem 0 0;
+  box-shadow: 0 -1rem 3rem rgb(30 64 175 / 22%);
+}
+
+.catalog-handle {
+  padding: 1.25rem;
+  color: #1e40af;
+  font:
+    600 0.875rem/1.2 system-ui,
+    sans-serif;
+  text-align: center;
+}
+
+.catalog-close,
+.catalog-trigger {
+  padding: 0.625rem 1rem;
+  color: white;
+  font:
+    600 0.875rem/1 system-ui,
+    sans-serif;
+  background: #1d4ed8;
+  border: 0;
+  border-radius: 999px;
+}
+
+.catalog-close:focus-visible,
+.catalog-trigger:focus-visible {
+  outline: 3px solid #f59e0b;
+  outline-offset: 3px;
+}

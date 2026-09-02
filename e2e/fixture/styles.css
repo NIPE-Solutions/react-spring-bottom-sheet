@@ -5,34 +5,6 @@ body,
   margin: 0;
 }
 
-.rsbs-viewport {
-  position: fixed;
-  inset: 0;
-  overflow: hidden;
-}
-
-.rsbs-viewport[data-rsbs-state='closed'] {
-  visibility: hidden;
-  pointer-events: none;
-}
-
-.rsbs-content {
-  position: absolute;
-  inset: 0;
-  transform: translateY(var(--rsbs-position));
-  background: white;
-  border-radius: 20px 20px 0 0;
-  box-shadow: 0 -8px 30px rgb(0 0 0 / 14%);
-  will-change: transform;
-}
-
-.rsbs-handle {
-  padding: 24px;
-  text-align: center;
-  touch-action: none;
-  user-select: none;
-}
-
 .scroll-region {
   height: 180px;
   overflow-y: auto;

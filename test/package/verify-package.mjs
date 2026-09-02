@@ -26,6 +26,7 @@ try {
     'dist/index.d.ts',
     'dist/core.css',
     'dist/theme.css',
+    'dist/tokens.css',
     'dist/styles.css',
   ]) {
     assert.ok(paths.includes(path), `packed package must include ${path}`)
@@ -37,6 +38,19 @@ try {
     'packed library must not include website assets',
   )
   assert.ok(!paths.some((path) => path.endsWith('.tsbuildinfo')))
+
+  const coreCss = readFileSync(join(packageRoot, 'dist/core.css'), 'utf8')
+  const themeCss = readFileSync(join(packageRoot, 'dist/theme.css'), 'utf8')
+  const combinedCss = readFileSync(join(packageRoot, 'dist/styles.css'), 'utf8')
+  assert.match(coreCss, /@layer rsbs\.core/)
+  assert.doesNotMatch(coreCss, /--rsbs-content-background|box-shadow/)
+  assert.match(themeCss, /@import ['"]\.\/tokens\.css['"]/)
+  assert.ok(
+    combinedCss.indexOf("@import './core.css'") <
+      combinedCss.indexOf("@import './theme.css'"),
+    'combined styles must load core mechanics before the theme',
+  )
+  assert.doesNotMatch(`${coreCss}${themeCss}`, /!important/)
 
   execFileSync('npm', ['init', '--yes'], {
     cwd: temporaryDirectory,

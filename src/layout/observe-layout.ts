@@ -55,9 +55,10 @@ export function observeLayout({
   const measure = () => {
     if (disposed) return
     const safeArea = getSafeArea()
+    const contentBoxHeight = content.getBoundingClientRect().height
     onChange({
       viewportHeight: visualViewport?.height ?? viewport.clientHeight,
-      contentHeight: content.scrollHeight,
+      contentHeight: contentBoxHeight || content.scrollHeight,
       safeAreaTop: safeArea.top,
       safeAreaBottom: safeArea.bottom,
     })

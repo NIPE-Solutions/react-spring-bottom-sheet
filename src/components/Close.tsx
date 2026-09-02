@@ -10,12 +10,20 @@ export type SheetCloseProps = ButtonHTMLAttributes<HTMLButtonElement> & {
 
 export const Close = forwardRef<HTMLButtonElement, SheetCloseProps>(
   function Close(
-    { asChild = false, children, onClick, type = 'button', ...props },
+    {
+      asChild = false,
+      children,
+      className,
+      onClick,
+      type = 'button',
+      ...props
+    },
     ref,
   ) {
     const { requestOpenChange } = useSheetContext('Sheet.Close')
     const shared = {
       ...props,
+      className: ['rsbs-close', className].filter(Boolean).join(' '),
       'data-rsbs-close': '',
       onClick: (event: MouseEvent<HTMLElement>) => {
         onClick?.(event as MouseEvent<HTMLButtonElement>)
