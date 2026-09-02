@@ -65,7 +65,7 @@
     "test:release": "node --test scripts/check-bundle-size.test.mjs scripts/verify-release.test.mjs",
     "test:size": "node scripts/check-bundle-size.mjs",
     "test:unit": "vitest run --passWithNoTests",
-    "test:website": "node --test scripts/verify-website.test.mjs",
+    "test:website": "node --test scripts/check-website-css.test.mjs scripts/verify-website.test.mjs && node scripts/check-website-css.mjs website/app/site.css",
     "test:website:e2e": "playwright test --config playwright.website.config.ts",
     "typecheck": "tsc --noEmit"
   },

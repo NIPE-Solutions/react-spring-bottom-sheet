@@ -15,10 +15,10 @@ export function Examples() {
   const portal = useRef<HTMLDivElement>(null)
   return (
     <section
-      className="example-workbench"
+      className="docs-example-workbench"
       aria-label="Interactive configuration"
     >
-      <div className="controls">
+      <div className="docs-controls">
         <label>
           <input
             type="checkbox"
@@ -41,7 +41,7 @@ export function Examples() {
           Open example
         </button>
       </div>
-      <div ref={portal} className="portal-target">
+      <div ref={portal} className="docs-portal-target">
         <p>Custom portal target</p>
       </div>
       <Sheet.Root
@@ -55,7 +55,7 @@ export function Examples() {
         <Sheet.Portal container={portal.current}>
           <Sheet.Backdrop />
           <Sheet.Viewport>
-            <Sheet.Content className="example-sheet">
+            <Sheet.Content className="docs-example-sheet">
               <Sheet.Handle />
               <Sheet.Title>
                 {modal ? 'Modal sheet' : 'Non-modal sheet'}
@@ -63,7 +63,7 @@ export function Examples() {
               <Sheet.Description>
                 Controlled state and named snap points in a custom portal.
               </Sheet.Description>
-              <div className="scroll-sample" tabIndex={0}>
+              <div className="docs-scroll-sample" tabIndex={0}>
                 {Array.from({ length: 8 }, (_, index) => (
                   <p key={index}>Scrollable item {index + 1}</p>
                 ))}

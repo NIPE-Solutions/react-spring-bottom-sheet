@@ -3,32 +3,35 @@ import { LiveSheet } from '../components/LiveSheet'
 
 export default function Home() {
   return (
-    <main id="content" className="home">
-      <section className="hero">
-        <div className="hero-copy">
-          <p className="status">
+    <main id="content" className="docs-home" tabIndex={-1}>
+      <section className="docs-hero">
+        <div className="docs-hero-copy">
+          <p className="docs-status">
             <span /> Version 5 alpha · React 19
           </p>
           <h1>A bottom sheet with boundaries you can trust.</h1>
-          <p className="lede">
+          <p className="docs-lede">
             Accessible composition, predictable gestures, and a styling contract
             that stays out of your application’s way.
           </p>
-          <div className="actions">
-            <Link className="button primary" href="/docs/installation/">
+          <div className="docs-actions">
+            <Link
+              className="docs-button docs-button-primary"
+              href="/docs/installation/"
+            >
               Get started
             </Link>
-            <Link className="button" href="/docs/api/">
+            <Link className="docs-button" href="/docs/api/">
               Read the API
             </Link>
           </div>
-          <pre className="install" tabIndex={0}>
+          <pre className="docs-install" tabIndex={0}>
             <code>npm install @nipe-solutions/react-spring-bottom-sheet</code>
           </pre>
         </div>
         <LiveSheet />
       </section>
-      <section className="principles" aria-labelledby="principles-title">
+      <section className="docs-principles" aria-labelledby="principles-title">
         <h2 id="principles-title">Designed as a system</h2>
         <div>
           <article>
