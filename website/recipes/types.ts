@@ -7,5 +7,7 @@ export interface RecipeDefinition {
   component: ComponentType
   source: string
   relatedDocs: readonly string[]
+  prerequisites: readonly string[]
+  behavior: readonly string[]
   accessibility: readonly string[]
 }
