@@ -17,7 +17,8 @@ export function assertSheetState(state: SheetState): void {
 
   if (
     !Number.isFinite(state.position) ||
-    !Number.isFinite(state.targetPosition)
+    !Number.isFinite(state.targetPosition) ||
+    !Number.isFinite(state.velocity)
   ) {
     throw new Error('sheet positions must be finite')
   }

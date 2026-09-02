@@ -18,6 +18,9 @@
     "types": ["node", "vitest/globals", "@testing-library/jest-dom"]
   },
   "include": [
+    "e2e/**/*.ts",
+    "e2e/**/*.tsx",
+    "playwright.config.ts",
     "src/index.ts",
     "src/public-types.ts",
     "src/controller/**/*.ts",
@@ -28,6 +31,12 @@
     "src/composition/**/*.ts",
     "src/composition/**/*.tsx",
     "src/context/**/*.ts",
+    "src/gestures/**/*.ts",
+    "src/hooks/use-reduced-motion.ts",
+    "src/hooks/use-sheet-interactions.ts",
+    "src/hooks/use-sheet-layout.ts",
+    "src/hooks/use-sheet-motion.ts",
+    "src/motion/**/*.ts",
     "vite.config.ts",
     "vitest.config.ts"
   ]

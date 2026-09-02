@@ -1,5 +1,10 @@
 import { forwardRef, useEffect, useRef } from 'react'
-import type { HTMLAttributes, Ref } from 'react'
+import type {
+  CSSProperties,
+  HTMLAttributes,
+  PointerEventHandler,
+  Ref,
+} from 'react'
 import { containTabFocus, focusInitialElement } from '../accessibility/focus.js'
 import { isolateBackground } from '../accessibility/isolation.js'
 import { mergeRefs } from '../composition/merge-refs.js'
@@ -12,13 +17,30 @@ export type SheetContentProps = HTMLAttributes<HTMLDivElement> & {
 }
 
 export const Content = forwardRef<HTMLDivElement, SheetContentProps>(
-  function Content({ asChild = false, children, className, ...props }, ref) {
+  function Content(
+    {
+      asChild = false,
+      children,
+      className,
+      onPointerCancel,
+      onPointerDown,
+      onPointerMove,
+      onPointerUp,
+      style,
+      ...props
+    },
+    ref,
+  ) {
     const {
       descriptionId,
       dismissible,
       modal,
       open,
       requestOpenChange,
+      registerContent,
+      interactionHandlers,
+      position,
+      dragging,
       titleId,
     } = useSheetContext('Sheet.Content')
     const internalRef = useRef<HTMLElement>(null)
@@ -80,6 +102,19 @@ export const Content = forwardRef<HTMLDivElement, SheetContentProps>(
     }, [open, titleId])
 
     const classes = ['rsbs-content', className].filter(Boolean).join(' ')
+    const composePointerHandler =
+      (
+        consumer: PointerEventHandler<HTMLElement> | undefined,
+        internal: PointerEventHandler<HTMLElement>,
+      ): PointerEventHandler<HTMLElement> =>
+      (event) => {
+        consumer?.(event)
+        if (!event.defaultPrevented) internal(event)
+      }
+    const positionStyle = {
+      ...style,
+      '--rsbs-position': `${position}px`,
+    } as CSSProperties
     const shared = {
       ...props,
       role: 'dialog',
@@ -90,9 +125,30 @@ export const Content = forwardRef<HTMLDivElement, SheetContentProps>(
       className: classes,
       'data-rsbs-content': '',
       'data-rsbs-state': open ? 'open' : 'closed',
+      'data-rsbs-dragging': dragging || undefined,
+      onPointerDown: composePointerHandler(
+        onPointerDown,
+        interactionHandlers.onPointerDown,
+      ),
+      onPointerMove: composePointerHandler(
+        onPointerMove,
+        interactionHandlers.onPointerMove,
+      ),
+      onPointerUp: composePointerHandler(
+        onPointerUp,
+        interactionHandlers.onPointerUp,
+      ),
+      onPointerCancel: composePointerHandler(
+        onPointerCancel,
+        interactionHandlers.onPointerCancel,
+      ),
+      style: positionStyle,
     }
     return asChild ? (
-      <Slot {...shared} ref={mergeRefs(internalRef, ref as Ref<HTMLElement>)}>
+      <Slot
+        {...shared}
+        ref={mergeRefs(internalRef, registerContent, ref as Ref<HTMLElement>)}
+      >
         {children as SlotProps['children']}
       </Slot>
     ) : (
@@ -100,6 +156,7 @@ export const Content = forwardRef<HTMLDivElement, SheetContentProps>(
         {...shared}
         ref={mergeRefs(ref, (value) => {
           internalRef.current = value
+          registerContent(value)
         })}
       >
         {children}

@@ -10,6 +10,7 @@ export interface SheetState {
   activeSnapPoint: string | null
   position: number
   targetPosition: number
+  velocity: number
   dismissReason: OpenChangeReason | null
 }
 
@@ -20,7 +21,7 @@ export type SheetEvent =
       snapPoint: string
       targetPosition: number
     }
-  | { type: 'CLOSE_REQUESTED'; reason: OpenChangeReason }
+  | { type: 'CLOSE_REQUESTED'; reason: OpenChangeReason; velocity?: number }
   | { type: 'DRAG_STARTED'; position: number }
   | { type: 'DRAG_MOVED'; position: number }
   | {

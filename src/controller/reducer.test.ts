@@ -36,6 +36,7 @@ describe('sheet controller reducer', () => {
         activeSnapPoint: 'half',
         position: 400,
         targetPosition: 400,
+        velocity: 0,
         dismissReason: null,
       }
 
@@ -56,6 +57,7 @@ describe('sheet controller reducer', () => {
       activeSnapPoint: 'half',
       position: 400,
       targetPosition: 400,
+      velocity: 0,
       dismissReason: null,
     }
 
@@ -80,6 +82,24 @@ describe('sheet controller reducer', () => {
     })
   })
 
+  it('lets a drag interrupt opening or settling motion', () => {
+    for (const phase of ['opening', 'settling'] as const) {
+      const moving: SheetState = {
+        phase,
+        open: true,
+        activeSnapPoint: 'half',
+        position: 500,
+        targetPosition: 400,
+        velocity: 0,
+        dismissReason: null,
+      }
+
+      expect(
+        transition(moving, { type: 'DRAG_STARTED', position: 475 }),
+      ).toMatchObject({ phase: 'dragging', position: 475 })
+    }
+  })
+
   it('ignores impossible events and reports a diagnostic', () => {
     const result = reduceSheetState(createInitialState(), {
       type: 'DRAG_MOVED',
@@ -101,6 +121,7 @@ describe('sheet controller reducer', () => {
       activeSnapPoint: 'half',
       position: 300,
       targetPosition: 800,
+      velocity: 0,
       dismissReason: 'backdrop',
     }
 
@@ -118,6 +139,7 @@ describe('sheet controller reducer', () => {
       activeSnapPoint: 'removed',
       position: 430,
       targetPosition: 430,
+      velocity: 0,
       dismissReason: null,
     }
 

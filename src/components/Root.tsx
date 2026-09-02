@@ -1,6 +1,20 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from 'react'
 import type { ReactNode } from 'react'
 import { SheetContext } from '../context/sheet-context.js'
+import { createSheetController } from '../controller/create-controller.js'
+import { useReducedMotion } from '../hooks/use-reduced-motion.js'
+import { useSheetInteractions } from '../hooks/use-sheet-interactions.js'
+import { useSheetLayout } from '../hooks/use-sheet-layout.js'
+import { useSheetMotion } from '../hooks/use-sheet-motion.js'
+import type { ResolvedLayout } from '../layout/types.js'
+import { motionAdapter } from '../motion/motion-adapter.js'
 import type {
   OpenChangeDetails,
   OpenChangeReason,
@@ -20,19 +34,45 @@ export interface SheetRootProps {
   dismissible?: boolean
 }
 
+const DEFAULT_SNAP_POINTS: readonly SnapPoint[] = [
+  { id: 'content', value: 'content' },
+]
+
 export function Root({
   children,
   open: controlledOpen,
   defaultOpen,
   onOpenChange,
+  snapPoints = DEFAULT_SNAP_POINTS,
+  activeSnapPoint: controlledSnapPoint,
+  defaultSnapPoint,
+  onSnapPointChange,
   modal = true,
   dismissible = true,
 }: SheetRootProps) {
   const [uncontrolledOpen, setUncontrolledOpen] = useState(defaultOpen ?? false)
   const [titleId, setTitleId] = useState<string>()
   const [descriptionId, setDescriptionId] = useState<string>()
+  const [viewport, setViewport] = useState<HTMLElement | null>(null)
+  const [content, setContent] = useState<HTMLElement | null>(null)
+  const [layout, setLayout] = useState<ResolvedLayout | null>(null)
+  const [uncontrolledSnapPoint, setUncontrolledSnapPoint] = useState(
+    defaultSnapPoint ?? snapPoints[0]?.id,
+  )
+  const controllerRef = useRef<ReturnType<typeof createSheetController>>(null)
+  if (!controllerRef.current) controllerRef.current = createSheetController()
+  const controller = controllerRef.current
+  const controllerState = useSyncExternalStore(
+    controller.subscribe,
+    controller.getState,
+    controller.getState,
+  )
+  const layoutRef = useRef(layout)
+  layoutRef.current = layout
   const open = controlledOpen ?? uncontrolledOpen
   const controlled = controlledOpen !== undefined
+  const activeSnapPoint = controlledSnapPoint ?? uncontrolledSnapPoint
+  const reducedMotion = useReducedMotion()
 
   useEffect(() => {
     if (
@@ -66,6 +106,80 @@ export function Root({
       setDescriptionId((current) => (current === id ? undefined : current))
   }, [])
 
+  const updatePosition = useCallback(
+    (position: number) => {
+      content?.style.setProperty('--rsbs-position', `${position}px`)
+    },
+    [content],
+  )
+
+  const handleLayout = useCallback(
+    (nextLayout: ResolvedLayout) => {
+      layoutRef.current = nextLayout
+      setLayout(nextLayout)
+      controller.dispatch({ type: 'LAYOUT_CHANGED', layout: nextLayout })
+    },
+    [controller],
+  )
+
+  useSheetLayout({ viewport, content, snapPoints, onLayout: handleLayout })
+
+  useEffect(() => {
+    const current = controller.getState()
+    const currentLayout = layoutRef.current
+    if (open && currentLayout) {
+      const point =
+        currentLayout.snapPoints.find(({ id }) => id === activeSnapPoint) ??
+        currentLayout.snapPoints[0]
+      if (
+        point &&
+        (current.phase === 'closed' ||
+          (current.phase === 'open' && current.activeSnapPoint !== point.id))
+      ) {
+        controller.dispatch({
+          type: 'OPEN_REQUESTED',
+          reason: 'imperative',
+          snapPoint: point.id,
+          targetPosition: point.position,
+        })
+      }
+    } else if (!open && !['closed', 'closing'].includes(current.phase)) {
+      controller.dispatch({ type: 'CLOSE_REQUESTED', reason: 'imperative' })
+    }
+  }, [activeSnapPoint, controller, layout, open])
+
+  useSheetMotion({
+    controller,
+    state: controllerState,
+    closedPosition: layout?.closedPosition ?? controllerState.position,
+    reducedMotion,
+    adapter: motionAdapter,
+    onUpdate: updatePosition,
+  })
+
+  const handleSnapPointChange = useCallback(
+    (id: string) => {
+      if (controlledSnapPoint === undefined) setUncontrolledSnapPoint(id)
+      onSnapPointChange?.(id)
+    },
+    [controlledSnapPoint, onSnapPointChange],
+  )
+
+  const handleDragDismiss = useCallback(() => {
+    requestOpenChange(false, 'drag')
+  }, [requestOpenChange])
+
+  const interactionHandlers = useSheetInteractions({
+    content,
+    controller,
+    state: controllerState,
+    layout,
+    dismissible,
+    onDismiss: handleDragDismiss,
+    onSnapPointChange: handleSnapPointChange,
+    onPositionChange: updatePosition,
+  })
+
   const value = useMemo(
     () => ({
       open,
@@ -76,15 +190,25 @@ export function Root({
       requestOpenChange,
       registerTitle,
       registerDescription,
+      registerViewport: setViewport,
+      registerContent: setContent,
+      interactionHandlers,
+      position: controllerState.position,
+      dragging: controllerState.phase === 'dragging',
     }),
     [
       descriptionId,
       dismissible,
       modal,
       open,
+      controllerState.phase,
+      controllerState.position,
+      interactionHandlers,
       registerDescription,
       registerTitle,
       requestOpenChange,
+      setContent,
+      setViewport,
       titleId,
     ],
   )
