@@ -58,7 +58,7 @@ const rootMembers = {
   },
   onSnapPointChange: {
     description:
-      'Called with the destination id after a drag settles on a snap point.',
+      'Called with the destination id when a drag selects a snap point.',
   },
   modal: {
     description:
