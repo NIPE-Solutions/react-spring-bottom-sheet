@@ -37,6 +37,7 @@
     "src/hooks/use-sheet-layout.ts",
     "src/hooks/use-sheet-motion.ts",
     "src/motion/**/*.ts",
+    "test/types/**/*.tsx",
     "vite.config.ts",
     "vitest.config.ts"
   ]

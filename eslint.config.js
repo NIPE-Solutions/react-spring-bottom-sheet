@@ -5,7 +5,14 @@ import globals from 'globals'
 
 export default [
   {
-    ignores: ['.next/**', 'coverage/**', 'dist/**', 'node_modules/**'],
+    ignores: [
+      '.next/**',
+      'coverage/**',
+      'dist/**',
+      'node_modules/**',
+      'website/.next/**',
+      'website/out/**',
+    ],
   },
   eslint.configs.recommended,
   {
