@@ -25,15 +25,16 @@
 
 | PR | Branch | Deliverable | Depends on |
 | --- | --- | --- | --- |
-| 1 | `feat/v5-foundation` | Modern toolchain, package exports, React 19 baseline | Architecture PR |
+| 1 | `feat/v5-foundation` | Modern toolchain, package exports, React 19 baseline | `v5` integration branch |
 | 2 | `feat/v5-controller-layout` | Pure controller, snap-point and layout contracts | PR 1 |
 | 3 | `feat/v5-components-accessibility` | Compound React API and accessible modal behavior | PR 2 |
 | 4 | `feat/v5-gestures-motion` | Dragging, scroll arbitration, settling, interruption | PR 3 |
 | 5 | `feat/v5-styling` | Namespaced mechanical CSS and optional default theme | PR 4 |
 | 6 | `feat/v5-docs-site` | README, migration guide, documentation site | PR 5 |
 | 7 | `release/v5-beta` | Cross-browser hardening, prerelease, deployment | PR 6 |
+| 8 | `v5` to `main` | Stable release integration | PR 7 and stable release approval |
 
-Each PR is cut from the updated `main` branch after its dependency has merged. Do not stack the complete program into one branch.
+The `v5` integration branch is created from `main` before implementation. Each implementation branch is cut from the updated `v5` branch after its dependency has merged, and each implementation PR targets `v5`. The stable v4 code remains on `main` throughout development. After prerelease validation, one final reviewed PR merges the complete `v5` branch into `main`. Do not stack the complete program into one implementation branch or merge partial v5 subsystems into `main`.
 
 ## PR 1: Modern foundation and package contract
 
@@ -77,7 +78,7 @@ export interface SnapPoint {
 
 ### Tasks
 
-- [ ] Create a worktree from current `main` on `feat/v5-foundation` and run the existing test suite to record the baseline.
+- [ ] Create a worktree from the current `v5` integration branch on `feat/v5-foundation` and run the existing test suite to record the baseline.
 - [ ] Add package tests that assert React 19 peer metadata, the new export map, CSS entry points, ESM import, CommonJS loading where supported, and declaration availability; run them and confirm they fail against v4.
 - [ ] Replace Microbundle and legacy ESLint configuration with Vite library mode, strict TypeScript build configuration, and flat ESLint configuration.
 - [ ] Upgrade the development baseline to React 19 and Node 24; remove React 16-18 compatibility jobs from the v5 branch.
@@ -329,6 +330,14 @@ export interface MotionAdapter {
 - [ ] Publish beta candidates after API stability, then run manual VoiceOver, keyboard, iOS Safari, and Android Chrome checks before the stable decision.
 - [ ] Verify the production Vercel deployment, canonical domain, sitemap, social metadata, examples, and displayed package version.
 - [ ] Finalize the changelog and migration guide, publish `5.0.0`, move the npm `latest` tag only after registry verification, create the GitHub release, and verify a clean consumer installation.
+
+## Final integration PR
+
+- [ ] Update `v5` from `main` and resolve any maintenance changes without weakening v5 checks.
+- [ ] Run the complete local verification suite from a clean checkout with `npm ci`.
+- [ ] Open the final `v5` to `main` pull request with the stable release notes, migration guide, package report, browser matrix, and production website preview.
+- [ ] Require successful CI and explicit maintainer approval before merge.
+- [ ] Merge without bypassing branch protection, then publish the stable release from the resulting `main` commit.
 
 ## Required verification commands
 
