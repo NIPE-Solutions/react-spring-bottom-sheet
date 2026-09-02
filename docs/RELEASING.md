@@ -29,21 +29,29 @@ Connect; it does not use a long-lived npm write token.
 
    ```sh
    npm ci
-   npm run check
+   npm run release:check
    npm run test:e2e
    npm run test:website:e2e
-   npm audit --omit=dev
-   npm pack --dry-run
    ```
 
-4. Confirm CI and the Vercel preview are green. Test keyboard operation and run
-   VoiceOver on macOS or iOS. Exercise the sheet in iOS Safari and Android
-   Chrome on physical devices.
-5. Merge the reviewed release commit. Do not bypass branch protection.
-6. Run the `Release` workflow from the release commit with channel `next` and
+   The readiness command runs the repository checks, browser-matrix inventory,
+   blocking production audit, and package dry run in a fixed order. Run
+   `npm audit --json` separately, triage every development advisory in the pull
+   request, and do not treat tooling-only findings as published runtime risk.
+
+4. Confirm CI and the Vercel preview are green. Successful Ubuntu WebKit is the
+   final browser integration evidence; the checked scenario inventory does not
+   replace browser execution.
+5. Complete every manual sign-off in
+   [`docs/releases/v5-alpha-readiness.md`](releases/v5-alpha-readiness.md),
+   including the physical-device, accessibility, production-domain, and
+   external protection checks.
+6. Merge the reviewed release commit. Do not bypass branch protection.
+7. After merge, and only when a maintainer explicitly authorizes publication,
+   run the `Release` workflow from the release commit with channel `next` and
    the exact confirmation phrase requested by the form.
-7. Approve the protected `npm` environment deployment.
-8. Verify the package and provenance on npm, then install it into a clean React
+8. Approve the protected `npm` environment deployment.
+9. Verify the package and provenance on npm, then install it into a clean React
    19 application:
 
    ```sh

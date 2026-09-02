@@ -37,10 +37,7 @@ jobs:
           node-version-file: .nvmrc
           cache: npm
       - run: npm ci
-      - run: npm run check
-      - run: npm run test:browser-matrix
-      - run: npm audit --omit=dev
-      - run: npm pack --dry-run
+      - run: npm run release:check
 
   browsers:
     name: Browser (${{ matrix.project }})
