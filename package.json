@@ -69,6 +69,7 @@
     "@typescript-eslint/eslint-plugin": "^7.7.0",
     "@typescript-eslint/parser": "^7.7.0",
     "@use-it/interval": "^1.0.0",
+    "@vitejs/plugin-react": "^5.1.4",
     "autoprefixer": "^10.0.4",
     "babel-eslint": "^10.1.0",
     "babel-plugin-transform-remove-console": "^6.9.4",
