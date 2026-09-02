@@ -112,6 +112,8 @@ dist
 
 # testing
 /coverage
+/playwright-report/
+/test-results/
 
 # next.js
 /.next/
@@ -137,3 +139,6 @@ yarn-error.log*
 
 # vercel
 .vercel
+
+# Local worktrees
+.worktrees/

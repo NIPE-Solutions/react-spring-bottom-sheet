@@ -32,8 +32,9 @@ import type {
   RefHandles,
   ResizeSource,
   SnapPointProps,
+  SpringConfig,
+  SpringEvent,
 } from './types'
-import { debugging } from './utils'
 import { fromPromise } from 'xstate'
 
 const { tension, friction } = config.default
@@ -71,6 +72,9 @@ export const BottomSheet = React.forwardRef<
     onSpringEnd,
     reserveScrollBarGap = blocking,
     expandOnContentDrag = false,
+    'aria-label': ariaLabel,
+    'aria-labelledby': ariaLabelledBy,
+    'aria-describedby': ariaDescribedBy,
     ...props
   },
   forwardRef
@@ -163,27 +167,19 @@ export const BottomSheet = React.forwardRef<
       new Promise((resolve) =>
         set({
           ...opts,
-          config: {
+          config: createSpringConfig(
+            { tension, friction },
             velocity,
-            ...config,
-            // @see https://springs.pomb.us
-            mass: 1,
-            // "stiffness"
-            tension,
-            // "damping"
-            friction: Math.max(
-              friction,
-              friction + (friction - friction * velocity)
-            ),
-            ...springConfig,
-          },
+            springConfig,
+            config
+          ),
           onRest: (...args) => {
             resolve(...args)
             onRest?.(...args)
           },
         })
       ),
-    [set]
+    [set, springConfig]
   )
   const [current, send] = useMachine(
     overlayMachine.provide({
@@ -236,38 +232,37 @@ export const BottomSheet = React.forwardRef<
 
       actors: {
         onSnapStart: fromPromise(async ({ input }) => {
-          onSpringStartRef.current?.({
+          await runSpringCallback(onSpringStartRef.current, {
             type: 'SNAP',
             source: input.snapSource || 'custom',
           })
         }),
-        onOpenStart: fromPromise(async (props) => {
-          onSpringStartRef.current?.({ type: 'OPEN' })
-          console.log('props:', props)
+        onOpenStart: fromPromise(async () => {
+          await runSpringCallback(onSpringStartRef.current, { type: 'OPEN' })
         }),
         onCloseStart: fromPromise(async () =>
-          onSpringStartRef.current?.({ type: 'CLOSE' })
+          runSpringCallback(onSpringStartRef.current, { type: 'CLOSE' })
         ),
         onResizeStart: fromPromise(async () =>
-          onSpringStartRef.current?.({
+          runSpringCallback(onSpringStartRef.current, {
             type: 'RESIZE',
             source: resizeSourceRef.current,
           })
         ),
         onSnapEnd: fromPromise(async () => {
-          onSpringEndRef.current?.({
+          await runSpringCallback(onSpringEndRef.current, {
             type: 'SNAP',
             source: current.context.snapSource,
           })
         }),
         onOpenEnd: fromPromise(async () =>
-          onSpringEndRef.current?.({ type: 'OPEN' })
+          runSpringCallback(onSpringEndRef.current, { type: 'OPEN' })
         ),
         onCloseEnd: fromPromise(async () =>
-          onSpringEndRef.current?.({ type: 'CLOSE' })
+          runSpringCallback(onSpringEndRef.current, { type: 'CLOSE' })
         ),
         onResizeEnd: fromPromise(async () =>
-          onSpringEndRef.current?.({
+          runSpringCallback(onSpringEndRef.current, {
             type: 'RESIZE',
             source: resizeSourceRef.current,
           })
@@ -477,7 +472,6 @@ export const BottomSheet = React.forwardRef<
 
     // Cancel the drag operation if the canDrag state changed
     if (!canDragRef.current) {
-      console.log('handleDrag cancelled dragging because canDragRef is false')
       cancel()
       return memo
     }
@@ -597,14 +591,11 @@ export const BottomSheet = React.forwardRef<
 
   const interpolations = useSpringInterpolations({ spring })
 
-  console.log('publicStates', publicStates)
-  console.log('current', current)
-
   return (
     <animated.div
       {...props}
       data-rsbs-root
-      data-rsbs-state={publicStates.find((state) => current?.value === state)}
+      data-rsbs-state={getPublicState(current)}
       data-rsbs-is-blocking={blocking}
       data-rsbs-is-dismissable={!!onDismiss}
       data-rsbs-has-header={!!header}
@@ -634,7 +625,10 @@ export const BottomSheet = React.forwardRef<
       )}
       <div
         key="overlay"
-        aria-modal="true"
+        aria-describedby={ariaDescribedBy}
+        aria-label={ariaLabel}
+        aria-labelledby={ariaLabelledBy}
+        aria-modal={blocking ? true : undefined}
         role="dialog"
         data-rsbs-overlay
         tabIndex={-1}
@@ -682,6 +676,38 @@ const publicStates = [
   'snapping',
   'resizing',
 ]
+
+export function getPublicState(snapshot: {
+  matches: (state: string) => boolean
+}) {
+  return publicStates.find((state) => snapshot.matches(state))
+}
+
+export async function runSpringCallback(
+  callback: ((event: SpringEvent) => void | Promise<void>) | undefined,
+  event: SpringEvent
+) {
+  await callback?.(event)
+}
+
+export function createSpringConfig(
+  defaults: { tension: number; friction: number },
+  velocity: number,
+  override?: SpringConfig,
+  animationConfig: Record<string, unknown> = {}
+) {
+  return {
+    velocity,
+    ...animationConfig,
+    mass: 1,
+    tension: defaults.tension,
+    friction: Math.max(
+      defaults.friction,
+      defaults.friction + (defaults.friction - defaults.friction * velocity)
+    ),
+    ...override,
+  }
+}
 
 // Default prop values that are callbacks, and it's nice to save some memory and reuse their instances since they're pure
 function _defaultSnap({ snapPoints, lastSnap }: defaultSnapProps) {

@@ -221,9 +221,10 @@ function useMaxHeight(
 ) {
   const setReady = useMemo(() => registerReady('maxHeight'), [registerReady])
   const [maxHeight, setMaxHeight] = useState(() =>
-    roundAndCheckForNaN(controlledMaxHeight) || typeof window !== 'undefined'
-      ? window.innerHeight
-      : 0
+    getInitialMaxHeight(
+      controlledMaxHeight,
+      typeof window === 'undefined' ? 0 : window.innerHeight
+    )
   )
   const ready = maxHeight > 0
   const raf = useRef(0)
@@ -271,4 +272,13 @@ function useMaxHeight(
   }, [controlledMaxHeight, setReady, resizeSourceRef])
 
   return maxHeight
+}
+
+export function getInitialMaxHeight(
+  controlledMaxHeight: number | undefined,
+  viewportHeight: number
+) {
+  return controlledMaxHeight === undefined
+    ? viewportHeight
+    : roundAndCheckForNaN(controlledMaxHeight)
 }

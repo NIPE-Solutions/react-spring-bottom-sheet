@@ -3,6 +3,6 @@
     "allowSyntheticDefaultImports": true,
     "module": "ESNext",
     "target": "ESNext",
-    "declaration": false
+    "declaration": true
   }
 }

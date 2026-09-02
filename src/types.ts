@@ -74,7 +74,7 @@ export type Props = {
    * Start a transition from closed to open, open to closed, or snap to snap.
    * Return a promise or async to delay the start of the transition, just remember it can be cancelled.
    */
-  onSpringStart?: (event: SpringEvent) => void
+  onSpringStart?: (event: SpringEvent) => void | Promise<void>
   /**
    * A running transition didn't finish or got stopped, this event isn't awaited on and might happen
    * after the sheet is unmounted (if it were in the middle of something).
@@ -85,7 +85,7 @@ export type Props = {
    * the sheet without interrupting the closing animation.
    * Return a promise or async to delay the start of the transition, just remember it can be cancelled.
    */
-  onSpringEnd?: (event: SpringEvent) => void
+  onSpringEnd?: (event: SpringEvent) => void | Promise<void>
 
   /** Whether the bottom sheet is open or not. */
   open: boolean
