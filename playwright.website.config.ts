@@ -16,7 +16,8 @@ export default defineConfig({
     { name: 'webkit', use: { ...devices['Desktop Safari'] } },
   ],
   webServer: {
-    command: 'next dev website --hostname 127.0.0.1 --port 4174',
+    command:
+      'npm run build:website && serve -l tcp://127.0.0.1:4174 -n -L website/out',
     url: 'http://127.0.0.1:4174',
     reuseExistingServer: !process.env.CI,
   },

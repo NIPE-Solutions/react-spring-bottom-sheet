@@ -82,3 +82,28 @@ test('reconciles position after a viewport resize', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 700 })
   await expect(page.getByRole('dialog')).toHaveCSS('--rsbs-position', '350px')
 })
+
+test('reconciles position when the visual viewport contracts', async ({
+  page,
+}) => {
+  await page.addInitScript(() => {
+    const viewport = new EventTarget() as EventTarget & { height: number }
+    viewport.height = 800
+    Object.defineProperty(window, 'visualViewport', {
+      configurable: true,
+      value: viewport,
+    })
+  })
+  await page.goto('')
+  await expect(page.getByRole('dialog')).toHaveCSS('--rsbs-position', '400px')
+
+  await page.evaluate(() => {
+    const viewport = window.visualViewport as VisualViewport & {
+      height: number
+    }
+    viewport.height = 600
+    viewport.dispatchEvent(new Event('resize'))
+  })
+
+  await expect(page.getByRole('dialog')).toHaveCSS('--rsbs-position', '300px')
+})
