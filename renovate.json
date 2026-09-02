@@ -1,8 +1,29 @@
 {
-  "extends": ["github>JasGH/renovate-presets:auto"],
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:recommended"],
+  "dependencyDashboard": true,
+  "schedule": ["before 6am on Monday"],
+  "vulnerabilityAlerts": {
+    "enabled": true,
+    "schedule": ["at any time"]
+  },
   "packageRules": [
     {
-      "depTypeList": ["dependencies", "peerDependencies"],
+      "description": "Group compatible development dependency updates",
+      "matchDepTypes": ["devDependencies"],
+      "matchUpdateTypes": ["minor", "patch"],
+      "groupName": "development dependencies",
+      "automerge": false
+    },
+    {
+      "description": "Review runtime and peer dependency updates individually",
+      "matchDepTypes": ["dependencies", "peerDependencies"],
+      "automerge": false
+    },
+    {
+      "description": "Review all major updates individually",
+      "matchUpdateTypes": ["major"],
+      "groupName": null,
       "automerge": false
     }
   ]
