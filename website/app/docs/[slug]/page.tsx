@@ -7,6 +7,7 @@ import {
   getDoc,
   getDocHeadings,
 } from '../../../content/navigation'
+import { getLearnGuide } from '../../../content/learn'
 
 export const dynamicParams = false
 
@@ -40,6 +41,7 @@ export default async function Doc({
   if (!page) notFound()
   const headings = getDocHeadings(page)
   const { previous, next } = getAdjacentDocs(slug)
+  const LearnGuide = getLearnGuide(slug)
 
   return (
     <DocsShell
@@ -53,17 +55,21 @@ export default async function Doc({
         <h1>{page.title}</h1>
         <p>{page.description}</p>
       </header>
-      {page.sections.map((section) => (
-        <section id={section.id} key={section.id}>
-          <h2>{section.title}</h2>
-          <p>{section.body}</p>
-          {section.code ? (
-            <pre>
-              <code>{section.code}</code>
-            </pre>
-          ) : null}
-        </section>
-      ))}
+      {LearnGuide ? (
+        <LearnGuide />
+      ) : (
+        page.sections.map((section) => (
+          <section id={section.id} key={section.id}>
+            <h2>{section.title}</h2>
+            <p>{section.body}</p>
+            {section.code ? (
+              <pre>
+                <code>{section.code}</code>
+              </pre>
+            ) : null}
+          </section>
+        ))
+      )}
       {slug === 'migration' ? (
         <p>
           <a href="https://github.com/NIPE-Solutions/react-spring-bottom-sheet/blob/v5/docs/migration-v4-to-v5.md">

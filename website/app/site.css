@@ -485,7 +485,8 @@
   }
   .docs-recipe-preview,
   .docs-recipe-source,
-  .docs-recipe-notes {
+  .docs-recipe-notes,
+  .docs-recipe-guidance {
     padding-block: clamp(2.5rem, 5vw, 4rem);
     border-top: 1px solid var(--docs-rule);
   }
@@ -513,6 +514,7 @@
   .docs-recipe-control {
     display: grid;
     justify-items: start;
+    gap: 0.75rem;
   }
   .docs-recipe-actions {
     display: flex;
@@ -527,6 +529,51 @@
   .docs-recipe-notes ul {
     max-width: 60rem;
     padding-left: 1.2rem;
+  }
+  .docs-recipe-guidance {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: clamp(2rem, 6vw, 6rem);
+  }
+  .docs-recipe-guidance ul {
+    padding-left: 1.2rem;
+  }
+  .docs-recipe-guidance > section {
+    padding: 0;
+    border: 0;
+  }
+  .docs-recipe-form {
+    display: grid;
+    gap: 1rem;
+    margin-top: 1.25rem;
+  }
+  .docs-recipe-form label {
+    display: grid;
+    gap: 0.4rem;
+  }
+  .docs-recipe-form input {
+    min-height: 2.75rem;
+    border: 1px solid var(--docs-rule);
+    border-radius: 0.35rem;
+    background: var(--docs-surface);
+    color: var(--docs-ink);
+    padding: 0.5rem 0.7rem;
+  }
+  .docs-recipe-scroll {
+    max-height: min(19rem, 48vh);
+    margin-block: 1rem;
+    overflow: auto;
+    border-block: 1px solid var(--docs-rule);
+  }
+  .docs-custom-portal-target {
+    position: relative;
+    width: min(100%, 42rem);
+    min-height: 24rem;
+    overflow: hidden;
+    transform: translateZ(0);
+    border: 1px solid var(--docs-rule);
+    background: var(--docs-panel);
+    padding: 1rem;
   }
   .docs-recipe-source details {
     margin-top: 1.5rem;
@@ -638,6 +685,7 @@
   }
   .docs-evidence dl,
   .docs-quick-start,
+  .docs-recipe-guidance,
   .docs-recipe-grid {
     grid-template-columns: 1fr;
   }

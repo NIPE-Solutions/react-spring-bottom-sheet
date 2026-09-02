@@ -43,6 +43,24 @@ export default async function RecipePage({
         <Link href="/examples/">All recipes</Link>
       </header>
       <RecipePreview component={recipe.component} />
+      <div className="docs-recipe-guidance">
+        <section>
+          <h2>Prerequisites</h2>
+          <ul>
+            {recipe.prerequisites.map((note) => (
+              <li key={note}>{note}</li>
+            ))}
+          </ul>
+        </section>
+        <section>
+          <h2>Behavior</h2>
+          <ul>
+            {recipe.behavior.map((note) => (
+              <li key={note}>{note}</li>
+            ))}
+          </ul>
+        </section>
+      </div>
       <section
         className="docs-recipe-notes"
         aria-labelledby="recipe-notes-title"

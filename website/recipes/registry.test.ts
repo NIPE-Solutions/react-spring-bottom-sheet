@@ -7,6 +7,18 @@ describe('recipe registry', () => {
   it('uses unique slugs and resolves every registered recipe', () => {
     const slugs = recipes.map(({ slug }) => slug)
 
+    expect(slugs).toEqual([
+      'basic',
+      'controlled',
+      'snap-points',
+      'content-height',
+      'scrolling',
+      'form',
+      'custom-portal',
+      'non-modal',
+      'reduced-motion',
+      'confirmation',
+    ])
     expect(new Set(slugs).size).toBe(slugs.length)
     for (const recipe of recipes) {
       expect(getRecipe(recipe.slug)).toBe(recipe)
@@ -28,6 +40,13 @@ describe('recipe registry', () => {
       'basic/BasicSheet.tsx',
       'controlled/ControlledSheet.tsx',
       'snap-points/SnapPointSheet.tsx',
+      'content-height/ContentHeightSheet.tsx',
+      'scrolling/ScrollingSheet.tsx',
+      'form/FormSheet.tsx',
+      'custom-portal/CustomPortalSheet.tsx',
+      'non-modal/NonModalSheet.tsx',
+      'reduced-motion/ReducedMotionSheet.tsx',
+      'confirmation/ConfirmationSheet.tsx',
     ]) {
       const component = readFileSync(new URL(file, import.meta.url), 'utf8')
       expect(component).toContain("from '@library'")
@@ -47,7 +66,11 @@ describe('recipe registry', () => {
 
   it('includes concrete accessibility guidance', () => {
     for (const recipe of recipes) {
+      expect(recipe.prerequisites.length).toBeGreaterThan(0)
+      expect(recipe.behavior.length).toBeGreaterThan(0)
       expect(recipe.accessibility.length).toBeGreaterThan(0)
+      for (const note of recipe.prerequisites) expect(note.trim()).not.toBe('')
+      for (const note of recipe.behavior) expect(note.trim()).not.toBe('')
       for (const note of recipe.accessibility) expect(note.trim()).not.toBe('')
     }
   })

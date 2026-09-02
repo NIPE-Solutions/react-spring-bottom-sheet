@@ -4,7 +4,7 @@ import AxeBuilder from '@axe-core/playwright'
 test('recipe index links to every core pattern', async ({ page }) => {
   await page.goto('/examples/')
 
-  await expect(page.locator('.docs-recipe-grid article')).toHaveCount(3)
+  await expect(page.locator('.docs-recipe-grid article')).toHaveCount(10)
   await expect(
     page.getByRole('link', { name: 'Open basic sheet recipe' }),
   ).toHaveAttribute('href', '/examples/basic/')
@@ -69,6 +69,83 @@ test('snap-point recipe exposes and changes its named destination', async ({
   )
 })
 
+test('content-height recipe sizes to changing content', async ({ page }) => {
+  await page.goto('/examples/content-height/')
+  await page.getByRole('button', { name: 'Open content-height sheet' }).click()
+  await page.getByRole('button', { name: 'Show another detail' }).click()
+  await expect(page.getByText('Detail 2')).toBeVisible()
+})
+
+test('scrolling recipe keeps long content operable', async ({ page }) => {
+  await page.goto('/examples/scrolling/')
+  await page.getByRole('button', { name: 'Open scrolling sheet' }).click()
+  const region = page.getByRole('region', { name: 'Scrollable results' })
+  await region.evaluate((element) => {
+    element.scrollTop = element.scrollHeight
+  })
+  await expect(
+    page.getByRole('button', { name: 'Load more results' }),
+  ).toBeVisible()
+})
+
+test('form recipe preserves entered values and submits explicitly', async ({
+  page,
+}) => {
+  await page.goto('/examples/form/')
+  await page.getByRole('button', { name: 'Open profile form' }).click()
+  await page.getByLabel('Display name').fill('Ada')
+  await page.getByRole('button', { name: 'Save profile' }).click()
+  await expect(page.getByText('Saved for Ada')).toBeVisible()
+})
+
+test('custom portal recipe renders within its owned container', async ({
+  page,
+}) => {
+  await page.goto('/examples/custom-portal/')
+  await page.getByRole('button', { name: 'Open contained sheet' }).click()
+  await expect(
+    page.locator('.docs-custom-portal-target [role="dialog"]'),
+  ).toBeVisible()
+})
+
+test('non-modal recipe leaves the page controls interactive', async ({
+  page,
+}) => {
+  await page.goto('/examples/non-modal/')
+  await page.getByRole('button', { name: 'Open non-modal sheet' }).click()
+  await expect(
+    page.getByRole('dialog', { name: 'Persistent filters' }),
+  ).not.toHaveAttribute('aria-modal')
+  await page.getByRole('button', { name: 'Update page counter' }).click()
+  await expect(page.getByText('Page updates: 1')).toBeVisible()
+})
+
+test('reduced-motion recipe remains functional with reduced motion requested', async ({
+  page,
+}) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' })
+  await page.goto('/examples/reduced-motion/')
+  await page.getByRole('button', { name: 'Open reduced-motion sheet' }).click()
+  await expect(
+    page.getByRole('dialog', { name: 'Motion preference' }),
+  ).toBeVisible()
+  await page.keyboard.press('Escape')
+  await expect(page.getByRole('dialog')).toHaveCount(0)
+})
+
+test('confirmation recipe cannot dismiss without an explicit choice', async ({
+  page,
+}) => {
+  await page.goto('/examples/confirmation/')
+  await page.getByRole('button', { name: 'Delete workspace' }).click()
+  await page.keyboard.press('Escape')
+  await expect(
+    page.getByRole('dialog', { name: 'Delete this workspace?' }),
+  ).toBeVisible()
+  await page.getByRole('button', { name: 'Keep workspace' }).click()
+  await expect(page.getByRole('dialog')).toHaveCount(0)
+})
+
 test('source remains available as native disclosure content', async ({
   page,
 }) => {
@@ -86,6 +163,9 @@ for (const route of [
   '/examples/basic/',
   '/examples/controlled/',
   '/examples/snap-points/',
+  '/examples/form/',
+  '/examples/non-modal/',
+  '/examples/confirmation/',
 ]) {
   test(`${route} has no detectable accessibility violations`, async ({
     page,
