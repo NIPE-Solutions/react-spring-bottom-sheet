@@ -7,5 +7,15 @@
     "outDir": "dist",
     "rootDir": "src"
   },
-  "include": ["src/index.ts", "src/public-types.ts"]
+  "include": [
+    "src/index.ts",
+    "src/public-types.ts",
+    "src/accessibility/**/*.ts",
+    "src/components/**/*.ts",
+    "src/components/**/*.tsx",
+    "src/composition/**/*.ts",
+    "src/composition/**/*.tsx",
+    "src/context/**/*.ts"
+  ],
+  "exclude": ["src/**/*.test.ts", "src/**/*.test.tsx"]
 }

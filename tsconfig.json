@@ -15,13 +15,19 @@
     "skipLibCheck": true,
     "strict": true,
     "target": "ES2022",
-    "types": ["node", "vitest/globals"]
+    "types": ["node", "vitest/globals", "@testing-library/jest-dom"]
   },
   "include": [
     "src/index.ts",
     "src/public-types.ts",
     "src/controller/**/*.ts",
     "src/layout/**/*.ts",
+    "src/accessibility/**/*.ts",
+    "src/components/**/*.ts",
+    "src/components/**/*.tsx",
+    "src/composition/**/*.ts",
+    "src/composition/**/*.tsx",
+    "src/context/**/*.ts",
     "vite.config.ts",
     "vitest.config.ts"
   ]
