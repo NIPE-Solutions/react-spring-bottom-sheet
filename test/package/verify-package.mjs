@@ -85,26 +85,18 @@ try {
   }
 
   copyFileSync(
-    join(packageRoot, 'test/package', 'consumer-types.ts'),
-    join(temporaryDirectory, 'consumer-types.ts'),
+    join(packageRoot, 'test/package', 'consumer-types.tsx'),
+    join(temporaryDirectory, 'consumer-types.tsx'),
+  )
+  copyFileSync(
+    join(packageRoot, 'test/package', 'tsconfig.json'),
+    join(temporaryDirectory, 'tsconfig.json'),
   )
 
-  execFileSync(
-    'npx',
-    [
-      'tsc',
-      '--noEmit',
-      '--strict',
-      '--module',
-      'NodeNext',
-      '--moduleResolution',
-      'NodeNext',
-      '--target',
-      'ES2022',
-      'consumer-types.ts',
-    ],
-    { cwd: temporaryDirectory, stdio: 'inherit' },
-  )
+  execFileSync('npm', ['exec', '--', 'tsc', '--project', 'tsconfig.json'], {
+    cwd: temporaryDirectory,
+    stdio: 'inherit',
+  })
 
   const installedReactVersion = execFileSync(
     'node',

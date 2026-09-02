@@ -15,8 +15,8 @@ import type {
   SheetViewportProps,
   SnapPoint,
   SnapPointValue,
-} from '../../src/index.js'
-import { BottomSheet, Sheet } from '../../src/index.js'
+} from '@nipe-solutions/react-spring-bottom-sheet'
+import { BottomSheet, Sheet } from '@nipe-solutions/react-spring-bottom-sheet'
 
 const reasons: readonly OpenChangeReason[] = [
   'trigger',
