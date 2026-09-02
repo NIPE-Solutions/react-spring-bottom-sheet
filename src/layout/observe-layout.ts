@@ -51,13 +51,17 @@ export function observeLayout({
     typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(callback),
 }: LayoutObservationOptions): LayoutObservation {
   let disposed = false
+  const activeVisualViewport =
+    typeof document !== 'undefined' && viewport.parentElement === document.body
+      ? visualViewport
+      : null
 
   const measure = () => {
     if (disposed) return
     const safeArea = getSafeArea()
     const contentBoxHeight = content.getBoundingClientRect().height
     onChange({
-      viewportHeight: visualViewport?.height ?? viewport.clientHeight,
+      viewportHeight: activeVisualViewport?.height ?? viewport.clientHeight,
       contentHeight: contentBoxHeight || content.scrollHeight,
       safeAreaTop: safeArea.top,
       safeAreaBottom: safeArea.bottom,
@@ -67,7 +71,7 @@ export function observeLayout({
   const resizeObserver = createResizeObserver(measure)
   resizeObserver?.observe(viewport)
   resizeObserver?.observe(content)
-  visualViewport?.addEventListener('resize', measure)
+  activeVisualViewport?.addEventListener('resize', measure)
   measure()
 
   return {
@@ -76,7 +80,7 @@ export function observeLayout({
       if (disposed) return
       disposed = true
       resizeObserver?.disconnect()
-      visualViewport?.removeEventListener('resize', measure)
+      activeVisualViewport?.removeEventListener('resize', measure)
     },
   }
 }

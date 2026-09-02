@@ -241,7 +241,7 @@
   }
   .docs-demo-stage {
     position: relative;
-    min-height: 33rem;
+    min-height: 40rem;
     display: grid;
     place-items: center;
     border: 1px solid var(--docs-rule);
@@ -250,19 +250,62 @@
       linear-gradient(90deg, var(--docs-rule) 1px, transparent 1px);
     background-size: 2.2rem 2.2rem;
   }
-  .docs-trajectory {
-    position: absolute;
-    inset: 1rem;
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-    border-left: 2px solid var(--docs-signal);
-    color: var(--docs-muted);
-    font-size: 0.75rem;
-    pointer-events: none;
+  .docs-phone {
+    width: min(21rem, calc(100% - 2rem));
+    padding: 0.55rem;
+    border: 1px solid var(--docs-ink);
+    border-radius: 2.4rem;
+    background: var(--docs-ink);
+    box-shadow: 0 1.5rem 3rem rgb(15 23 42 / 18%);
   }
-  .docs-trajectory span {
-    padding-left: 0.6rem;
+  .docs-phone-screen {
+    position: relative;
+    height: 37rem;
+    overflow: hidden;
+    transform: translateZ(0);
+    border-radius: 1.9rem;
+    background: #eef1f7;
+    color: #172033;
+  }
+  .docs-phone-status {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.8rem 1.15rem 0.5rem;
+    font-size: 0.7rem;
+    font-weight: 700;
+  }
+  .docs-phone-app {
+    padding: 1.4rem;
+  }
+  .docs-phone-place {
+    margin: 0;
+    color: #5d6677;
+    font-size: 0.78rem;
+  }
+  .docs-phone-app h2 {
+    margin: 0.25rem 0 1.4rem;
+    font-size: 1.8rem;
+  }
+  .docs-phone-route {
+    display: grid;
+    gap: 0;
+    margin: 0 0 1.5rem;
+    padding: 0;
+    list-style: none;
+  }
+  .docs-phone-route li {
+    display: grid;
+    grid-template-columns: 3.5rem 1fr;
+    gap: 0.8rem;
+    padding: 0.85rem 0;
+    border-top: 1px solid #c9cfda;
+  }
+  .docs-phone-route time {
+    color: #566174;
+    font-variant-numeric: tabular-nums;
+  }
+  .docs-phone-backdrop {
+    position: absolute;
   }
   .docs-demo-sheet,
   .docs-recipe-sheet {
@@ -273,6 +316,15 @@
     flex-wrap: wrap;
     gap: 0.75rem;
     margin-top: 1.3rem;
+  }
+  .docs-demo-sheet {
+    font-size: 0.88rem;
+  }
+  .docs-demo-sheet h2 {
+    font-size: 1.25rem;
+  }
+  .docs-demo-actions button {
+    padding: 0.55rem 0.7rem;
   }
   .docs-demo-state {
     color: var(--docs-muted);
@@ -712,7 +764,7 @@
     overflow-wrap: anywhere;
   }
   .docs-demo-stage {
-    min-height: 24rem;
+    min-height: 39rem;
   }
   .docs-evidence dl,
   .docs-quick-start,

@@ -6,7 +6,7 @@ import { Sheet } from '@library'
 export function CustomPortalSheet() {
   const [container, setContainer] = useState<HTMLDivElement | null>(null)
   return (
-    <div ref={setContainer}>
+    <div className="sheet-boundary" ref={setContainer}>
       <Sheet.Root>
         <Sheet.Trigger>Open contained sheet</Sheet.Trigger>
         <Sheet.Portal container={container}>
@@ -23,4 +23,12 @@ export function CustomPortalSheet() {
       </Sheet.Root>
     </div>
   )
+}
+
+/* The transform establishes the containing block for fixed sheet layers. */
+.sheet-boundary {
+  position: relative;
+  height: 24rem;
+  overflow: hidden;
+  transform: translateZ(0);
 }`

@@ -125,9 +125,11 @@ export const recipes = [
     component: CustomPortalSheet,
     source: customPortalSource,
     relatedDocs: ['anatomy', 'styling'],
-    prerequisites: ['A mounted application-owned container element.'],
+    prerequisites: [
+      'A mounted application-owned container that establishes a fixed-position containing block.',
+    ],
     behavior: [
-      'Portal mounts every sheet layer inside the supplied container.',
+      'Portal measures and mounts every sheet layer inside the supplied container.',
     ],
     accessibility: [
       'Portalling does not change the dialog name or keyboard behavior.',
