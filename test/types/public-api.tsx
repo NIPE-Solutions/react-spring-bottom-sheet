@@ -75,7 +75,9 @@ const bottomSheetProps: BottomSheetProps = {
   description: 'Description',
   defaultOpen: true,
   snapPoints,
+  backdropProps,
   contentProps,
+  viewportProps,
 }
 
 void controlledRootProps
@@ -101,36 +103,24 @@ const divRef = createRef<HTMLDivElement>()
 
 export const primitives = (
   <Sheet.Root {...controlledRootProps}>
-    <Sheet.Trigger {...triggerProps} ref={triggerRef} asChild>
-      <button type="button">Open</button>
+    <Sheet.Trigger {...triggerProps} ref={triggerRef}>
+      Open
     </Sheet.Trigger>
     <Sheet.Portal {...portalProps}>
-      <Sheet.Backdrop {...backdropProps} ref={divRef} asChild>
-        <aside />
-      </Sheet.Backdrop>
-      <Sheet.Viewport {...viewportProps} ref={divRef} asChild>
-        <main>
-          <Sheet.Content {...contentProps} ref={divRef} asChild>
-            <section>
-              <Sheet.Handle {...handleProps} ref={divRef} asChild>
-                <span />
-              </Sheet.Handle>
-              <Sheet.Title {...titleProps} ref={titleRef} asChild>
-                <h1>Title</h1>
-              </Sheet.Title>
-              <Sheet.Description
-                {...descriptionProps}
-                ref={descriptionRef}
-                asChild
-              >
-                <div>Description</div>
-              </Sheet.Description>
-              <Sheet.Close {...closeProps} ref={closeRef} asChild>
-                <button type="button">Close</button>
-              </Sheet.Close>
-            </section>
-          </Sheet.Content>
-        </main>
+      <Sheet.Backdrop {...backdropProps} ref={divRef} />
+      <Sheet.Viewport {...viewportProps} ref={divRef}>
+        <Sheet.Content {...contentProps} ref={divRef}>
+          <Sheet.Handle {...handleProps} ref={divRef} />
+          <Sheet.Title {...titleProps} ref={titleRef}>
+            Title
+          </Sheet.Title>
+          <Sheet.Description {...descriptionProps} ref={descriptionRef}>
+            Description
+          </Sheet.Description>
+          <Sheet.Close {...closeProps} ref={closeRef}>
+            Close
+          </Sheet.Close>
+        </Sheet.Content>
       </Sheet.Viewport>
     </Sheet.Portal>
   </Sheet.Root>
@@ -139,6 +129,39 @@ export const primitives = (
 export const uncontrolled = <Sheet.Root {...uncontrolledRootProps} />
 
 export const convenience = <BottomSheet {...bottomSheetProps} />
+
+export const asChild = (
+  <Sheet.Root {...uncontrolledRootProps}>
+    <Sheet.Trigger asChild>
+      <a href="#open">Open</a>
+    </Sheet.Trigger>
+    <Sheet.Portal {...portalProps}>
+      <Sheet.Backdrop asChild>
+        <aside />
+      </Sheet.Backdrop>
+      <Sheet.Viewport asChild>
+        <main>
+          <Sheet.Content asChild>
+            <section>
+              <Sheet.Handle asChild>
+                <span />
+              </Sheet.Handle>
+              <Sheet.Title asChild>
+                <h1>Title</h1>
+              </Sheet.Title>
+              <Sheet.Description asChild>
+                <div>Description</div>
+              </Sheet.Description>
+              <Sheet.Close asChild>
+                <a href="#close">Close</a>
+              </Sheet.Close>
+            </section>
+          </Sheet.Content>
+        </main>
+      </Sheet.Viewport>
+    </Sheet.Portal>
+  </Sheet.Root>
+)
 
 // @ts-expect-error Snap point strings require px, %, or content.
 const invalidSnapValue: SnapPointValue = '320'
@@ -157,6 +180,10 @@ const invalidTriggerRef = (
   // @ts-expect-error Trigger refs resolve to buttons.
   <Sheet.Trigger ref={rootRef}>Open</Sheet.Trigger>
 )
+const invalidBackdropRef = (
+  // @ts-expect-error Backdrop refs resolve to divs.
+  <Sheet.Backdrop ref={triggerRef} />
+)
 const removedLifecycle = (
   // @ts-expect-error Removed v4 lifecycle props are not supported.
   <BottomSheet title="Title" onSpringStart={() => {}}>
@@ -173,5 +200,6 @@ void invalidSnapPoint
 void invalidReason
 void invalidRootCallback
 void invalidTriggerRef
+void invalidBackdropRef
 void removedLifecycle
 void invalidBottomSheet
