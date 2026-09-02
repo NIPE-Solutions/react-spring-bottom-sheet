@@ -1,27 +1,19 @@
-# React Spring Bottom Sheet (React 18)
+# React Spring Bottom Sheet
 
 [![npm stat](https://img.shields.io/npm/dm/@nipe-solutions/react-spring-bottom-sheet.svg?style=flat-square)](https://npm-stat.com/charts.html?package=@nipe-solutions/react-spring-bottom-sheet)
 [![npm version](https://img.shields.io/npm/v/@nipe-solutions/react-spring-bottom-sheet.svg?style=flat-square)](https://www.npmjs.com/package/@nipe-solutions/react-spring-bottom-sheet)
-[![Netlify Status](https://api.netlify.com/api/v1/badges/6348db32-4930-4fca-a11d-c3098c9fda4f/deploy-status)](https://app.netlify.com/sites/react-spring-bottom-sheet-updated/deploys)
 [![module formats: cjs, es, and modern][module-formats-badge]][unpkg-dist]
- 
 
 ![Logo with the text Accessible, Delightful and Performant](https://react-spring-bottom-sheet.nipesolutions.com/readme.svg)
 
-## 🌟 About This Version
+## About this package
 
-### ✨ Updated Version
+This maintained package supports React 16.14 through React 19 and uses XState 5. It continues the work originally created by Cody Olsen and later maintained by Jasmine GH.
 
-This project is an updated version of the original, which was authored by Cody Olsen. I have forked this repository from Jasmine GH to include significant updates and enhancements. Notably, this version has been updated to fully support React 18 and incorporates the latest features and improvements from XState v5.
+## Project history
 
-### 📝 Attribution
-
-I am not the original author of this software. The original creation was by Cody Olsen, and my fork is based on the work maintained by Jasmine GH. Please refer to the original repositories for historical context and previous versions of the software. My contributions are focused on compatibility enhancements and feature updates to keep the project aligned with current development practices and library versions.
-
-## 🔗 Repository Links
-
-- Original Author's Repository: [Cody Olsen's GitHub](https://github.com/stipsan/react-spring-bottom-sheet)
-- Forked Version I Based My Work On: [Jasmine GH's GitHub](https://github.com/JasGH/react-spring-bottom-sheet)
+- [Original repository](https://github.com/stipsan/react-spring-bottom-sheet)
+- [Intermediate fork](https://github.com/JasGH/react-spring-bottom-sheet)
 
 **react-spring-bottom-sheet** is built on top of **[react-spring]** and **[react-use-gesture]**. It busts the myth that accessibility and supporting keyboard navigation and screen readers are allegedly at odds with delightful, beautiful, and highly animated UIs. Every animation and transition use CSS custom properties instead of manipulating them directly, allowing complete control over the experience from CSS alone.
 
@@ -39,20 +31,29 @@ npm i @nipe-solutions/react-spring-bottom-sheet
 import { useState } from 'react'
 import { BottomSheet } from '@nipe-solutions/react-spring-bottom-sheet'
 
-// if setting up the CSS is tricky, you can add this to your page somewhere:
-// <link rel="stylesheet" href="https://unpkg.com/@nipe-solutions/react-spring-bottom-sheet/dist/style.css" crossorigin="anonymous">
-import '@nipe-solutions/react-spring-bottom-sheet/dist/style.css'
+import '@nipe-solutions/react-spring-bottom-sheet/style.css'
 
 export default function Example() {
   const [open, setOpen] = useState(false)
   return (
     <>
       <button onClick={() => setOpen(true)}>Open</button>
-      <BottomSheet open={open}>My awesome content here</BottomSheet>
+      <BottomSheet
+        open={open}
+        onDismiss={() => setOpen(false)}
+        aria-label="Example sheet"
+      >
+        My awesome content here
+      </BottomSheet>
     </>
   )
 }
 ```
+
+Every blocking sheet is exposed as a modal dialog. Give it an accessible name with
+`aria-label` or `aria-labelledby`. The former
+`@nipe-solutions/react-spring-bottom-sheet/dist/style.css` import remains available
+for compatibility, but `/style.css` is the preferred export.
 
 ### TypeScript
 
@@ -60,7 +61,10 @@ TS support is baked in, and if you're using the `snapTo` API use `BottomSheetRef
 
 ```tsx
 import { useRef } from 'react'
-import { BottomSheet, BottomSheetRef } from '@nipe-solutions/react-spring-bottom-sheet'
+import {
+  BottomSheet,
+  BottomSheetRef,
+} from '@nipe-solutions/react-spring-bottom-sheet'
 
 export default function Example() {
   const sheetRef = useRef<BottomSheetRef>()
@@ -106,7 +110,9 @@ module.exports = {
   plugins: {
     // Ensures the default variables are available
     'postcss-custom-properties-fallback': {
-      importFrom: require.resolve('@nipe-solutions/react-spring-bottom-sheet/defaults.json'),
+      importFrom: require.resolve(
+        '@nipe-solutions/react-spring-bottom-sheet/defaults.json'
+      ),
     },
   },
 }
@@ -137,7 +143,6 @@ If you provide either a `header` or `footer` prop you'll enable the special beha
 > [View demo code](/pages/fixtures/aside.tsx#L41-L53)
 
 In most cases you use a bottom sheet the same way you do with a dialog: you want it to overlay the page and block out distractions. But there are times when you want a bottom sheet but without it taking all the attention and overlaying the entire page. Providing `blocking={false}` helps this use case. By doing so you disable a couple of behaviors that are there for accessibility (focus-locking and more) that prevents a screen reader or a keyboard user from accidentally leaving the bottom sheet.
-
 
 ## API
 
@@ -252,7 +257,7 @@ Helps you to customize the movement and speed of the animations.
 ```jsx
 <BottomSheet
   // Animation faster than the default
-  springConfig={{mass: 0.1, tension: 370, friction: 26}}
+  springConfig={{ mass: 0.1, tension: 370, friction: 26 }}
 />
 ```
 
@@ -395,11 +400,20 @@ Type: `(numberOrCallback: number | (state => number)) => void, options?: {source
 Same signature as the `defaultSnap` prop, calling it will animate the sheet to the new snap point you return. You can either call it with a number, which is the height in px (it'll select the closest snap point that matches your value): `ref.current.snapTo(200)`. Or:
 
 ```js
-ref.current.snapTo(({ // Showing all the available props
-  headerHeight, footerHeight, height, minHeight, maxHeight, snapPoints, lastSnap }) =>
-  // Selecting the largest snap point, if you give it a number that doesn't match a snap point then it'll
-  // select whichever snap point is nearest the value you gave
-  Math.max(...snapPoints)
+ref.current.snapTo(
+  ({
+    // Showing all the available props
+    headerHeight,
+    footerHeight,
+    height,
+    minHeight,
+    maxHeight,
+    snapPoints,
+    lastSnap,
+  }) =>
+    // Selecting the largest snap point, if you give it a number that doesn't match a snap point then it'll
+    // select whichever snap point is nearest the value you gave
+    Math.max(...snapPoints)
 )
 ```
 

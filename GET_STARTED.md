@@ -3,25 +3,29 @@
 ## Installation
 
 ```bash
-npm i react-spring-bottom-sheet
+npm i @nipe-solutions/react-spring-bottom-sheet
 ```
 
 ## Basic usage
 
 ```jsx
 import { useState } from 'react'
-import { BottomSheet } from 'react-spring-bottom-sheet'
+import { BottomSheet } from '@nipe-solutions/react-spring-bottom-sheet'
 
-// if setting up the CSS is tricky, you can add this to your page somewhere:
-// <link rel="stylesheet" href="https://unpkg.com/react-spring-bottom-sheet/dist/style.css" crossorigin="anonymous">
-import 'react-spring-bottom-sheet/dist/style.css'
+import '@nipe-solutions/react-spring-bottom-sheet/style.css'
 
 export default function Example() {
   const [open, setOpen] = useState(false)
   return (
     <>
       <button onClick={() => setOpen(true)}>Open</button>
-      <BottomSheet open={open}>My awesome content here</BottomSheet>
+      <BottomSheet
+        open={open}
+        onDismiss={() => setOpen(false)}
+        aria-label="Example sheet"
+      >
+        My awesome content here
+      </BottomSheet>
     </>
   )
 }
@@ -33,7 +37,10 @@ TS support is baked in, and if you're using the `snapTo` API use `BottomSheetRef
 
 ```tsx
 import { useRef } from 'react'
-import { BottomSheet, BottomSheetRef } from 'react-spring-bottom-sheet'
+import {
+  BottomSheet,
+  BottomSheetRef,
+} from '@nipe-solutions/react-spring-bottom-sheet'
 
 export default function Example() {
   const sheetRef = useRef<BottomSheetRef>()
@@ -79,7 +86,9 @@ module.exports = {
   plugins: {
     // Ensures the default variables are available
     'postcss-custom-properties-fallback': {
-      importFrom: require.resolve('react-spring-bottom-sheet/defaults.json'),
+      importFrom: require.resolve(
+        '@nipe-solutions/react-spring-bottom-sheet/defaults.json'
+      ),
     },
   },
 }
