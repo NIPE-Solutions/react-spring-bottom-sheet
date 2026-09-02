@@ -1,16 +1,25 @@
 import assert from 'node:assert/strict'
 import {
+  existsSync,
   mkdtempSync,
   mkdirSync,
+  readdirSync,
+  readFileSync,
   realpathSync,
   rmSync,
   writeFileSync,
 } from 'node:fs'
+import { spawnSync } from 'node:child_process'
 import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { dirname, join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import test from 'node:test'
 
 import { extractPublicApi, serializePublicApi } from './extract-public-api.mjs'
+
+const extractorPath = fileURLToPath(
+  new URL('./extract-public-api.mjs', import.meta.url),
+)
 
 function writeFixture(files) {
   const projectRoot = mkdtempSync(join(tmpdir(), 'public-api-extractor-'))
@@ -101,6 +110,111 @@ export interface OpenChangeDetails {
     'src/public-types.ts': '',
   }
 }
+
+function cliFixture() {
+  return {
+    'dist/index.d.ts':
+      "export type { OpenChangeReason } from './public-types.js'\n",
+    'dist/public-types.d.ts':
+      "export type OpenChangeReason = 'open' | 'close'\n",
+    'src/public-types.ts': '',
+  }
+}
+
+function runExtractorCli(projectRoot, ...args) {
+  return spawnSync(process.execPath, [extractorPath, ...args], {
+    cwd: projectRoot,
+    encoding: 'utf8',
+  })
+}
+
+test('CLI writes a serialized manifest from a supplied declaration root', () => {
+  const projectRoot = writeFixture(cliFixture())
+  const declarationFile = join(projectRoot, 'dist/index.d.ts')
+  const outputFile = join(projectRoot, 'website/generated/public-api.json')
+
+  try {
+    const result = runExtractorCli(
+      projectRoot,
+      '--declaration',
+      declarationFile,
+      '--write',
+      outputFile,
+    )
+
+    assert.equal(result.status, 0, result.stderr)
+    assert.equal(existsSync(outputFile), true)
+    assert.equal(
+      readFileSync(outputFile, 'utf8'),
+      `[
+  {
+    "id": "open-change-reason",
+    "name": "OpenChangeReason",
+    "kind": "type",
+    "signature": "'open' | 'close'",
+    "source": "src/public-types.ts"
+  }
+]
+`,
+    )
+    assert.deepEqual(
+      readdirSync(dirname(outputFile)).filter((name) => name.endsWith('.tmp')),
+      [],
+    )
+  } finally {
+    removeFixture(projectRoot)
+  }
+})
+
+test('CLI check rejects an outdated manifest from a supplied declaration root', () => {
+  const projectRoot = writeFixture(cliFixture())
+  const declarationFile = join(projectRoot, 'dist/index.d.ts')
+  const outputFile = join(projectRoot, 'website/generated/public-api.json')
+  mkdirSync(dirname(outputFile), { recursive: true })
+  writeFileSync(outputFile, 'outdated artifact\n')
+
+  try {
+    const result = runExtractorCli(
+      projectRoot,
+      '--declaration',
+      declarationFile,
+      '--check',
+      outputFile,
+    )
+
+    assert.notEqual(result.status, 0)
+    assert.match(result.stderr, /Generated public API manifest is outdated/)
+  } finally {
+    removeFixture(projectRoot)
+  }
+})
+
+test('CLI cleans up its temporary file when an atomic write fails', () => {
+  const projectRoot = writeFixture(cliFixture())
+  const declarationFile = join(projectRoot, 'dist/index.d.ts')
+  const outputDirectory = join(projectRoot, 'website/generated/public-api.json')
+  mkdirSync(outputDirectory, { recursive: true })
+
+  try {
+    const result = runExtractorCli(
+      projectRoot,
+      '--declaration',
+      declarationFile,
+      '--write',
+      outputDirectory,
+    )
+
+    assert.notEqual(result.status, 0)
+    assert.deepEqual(
+      readdirSync(dirname(outputDirectory)).filter((name) =>
+        name.endsWith('.tmp'),
+      ),
+      [],
+    )
+  } finally {
+    removeFixture(projectRoot)
+  }
+})
 
 test('extracts aliases, compound members, owned interface members, and unions', () => {
   const projectRoot = writeFixture(publicApiFixture())

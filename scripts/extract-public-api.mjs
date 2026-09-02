@@ -1,5 +1,14 @@
-import { existsSync } from 'node:fs'
+import {
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  renameSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs'
+import { randomUUID } from 'node:crypto'
 import path from 'node:path'
+import { fileURLToPath } from 'node:url'
 import ts from 'typescript'
 
 const SHEET_MEMBER_ORDER = [
@@ -354,4 +363,100 @@ export function extractPublicApi({ declarationFile, projectRoot }) {
 
 export function serializePublicApi(entries) {
   return `${JSON.stringify(entries, null, 2)}\n`
+}
+
+function parseCliArguments(argumentsList) {
+  const options = {
+    declarationFile: path.resolve('dist/index.d.ts'),
+  }
+
+  for (let index = 0; index < argumentsList.length; index += 1) {
+    const argument = argumentsList[index]
+
+    if (!['--declaration', '--write', '--check'].includes(argument)) {
+      throw new Error(`Unknown argument: ${argument}`)
+    }
+
+    const value = argumentsList[index + 1]
+    if (!value || value.startsWith('--')) {
+      throw new Error(`Missing path for ${argument}`)
+    }
+
+    index += 1
+    if (argument === '--declaration') {
+      options.declarationFile = path.resolve(value)
+    } else if (argument === '--write') {
+      options.writeFile = path.resolve(value)
+    } else {
+      options.checkFile = path.resolve(value)
+    }
+  }
+
+  if (!options.writeFile && !options.checkFile) {
+    throw new Error('Specify either --write <path> or --check <path>')
+  }
+
+  if (options.writeFile && options.checkFile) {
+    throw new Error('--write <path> and --check <path> cannot be used together')
+  }
+
+  return options
+}
+
+function projectRootForDeclaration(declarationFile) {
+  return path.dirname(path.dirname(declarationFile))
+}
+
+function writeFileAtomically(outputFile, contents) {
+  const outputDirectory = path.dirname(outputFile)
+  const temporaryFile = path.join(
+    outputDirectory,
+    `.${path.basename(outputFile)}.${randomUUID()}.tmp`,
+  )
+
+  mkdirSync(outputDirectory, { recursive: true })
+
+  try {
+    writeFileSync(temporaryFile, contents)
+    renameSync(temporaryFile, outputFile)
+  } finally {
+    rmSync(temporaryFile, { force: true })
+  }
+}
+
+function runCli() {
+  const options = parseCliArguments(process.argv.slice(2))
+  const contents = serializePublicApi(
+    extractPublicApi({
+      declarationFile: options.declarationFile,
+      projectRoot: projectRootForDeclaration(options.declarationFile),
+    }),
+  )
+
+  if (options.writeFile) {
+    writeFileAtomically(options.writeFile, contents)
+    return
+  }
+
+  const currentContents = existsSync(options.checkFile)
+    ? readFileSync(options.checkFile, 'utf8')
+    : undefined
+
+  if (currentContents !== contents) {
+    throw new Error(
+      `Generated public API manifest is outdated: ${options.checkFile}. Run npm run generate:api.`,
+    )
+  }
+}
+
+if (
+  process.argv[1] &&
+  path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)
+) {
+  try {
+    runCli()
+  } catch (error) {
+    console.error(error.message)
+    process.exitCode = 1
+  }
 }

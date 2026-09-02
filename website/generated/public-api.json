@@ -1,0 +1,389 @@
+[
+  {
+    "id": "sheet",
+    "name": "Sheet",
+    "kind": "namespace",
+    "signature": "Sheet",
+    "source": "src/components/Sheet.ts",
+    "members": [
+      {
+        "name": "Root",
+        "signature": "({ children, open: controlledOpen, defaultOpen, onOpenChange, snapPoints, activeSnapPoint: controlledSnapPoint, defaultSnapPoint, onSnapPointChange, modal, dismissible, }: SheetRootProps) => import(\"react\").JSX.Element",
+        "required": true
+      },
+      {
+        "name": "Trigger",
+        "signature": "React.ForwardRefExoticComponent<SheetTriggerProps & React.RefAttributes<HTMLButtonElement>>",
+        "required": true
+      },
+      {
+        "name": "Portal",
+        "signature": "({ children, container }: SheetPortalProps) => import(\"react\").ReactPortal | null",
+        "required": true
+      },
+      {
+        "name": "Backdrop",
+        "signature": "React.ForwardRefExoticComponent<React.HTMLAttributes<HTMLDivElement> & { asChild?: boolean; } & React.RefAttributes<HTMLDivElement>>",
+        "required": true
+      },
+      {
+        "name": "Viewport",
+        "signature": "React.ForwardRefExoticComponent<React.HTMLAttributes<HTMLDivElement> & { asChild?: boolean; } & React.RefAttributes<HTMLDivElement>>",
+        "required": true
+      },
+      {
+        "name": "Content",
+        "signature": "React.ForwardRefExoticComponent<React.HTMLAttributes<HTMLDivElement> & { asChild?: boolean; } & React.RefAttributes<HTMLDivElement>>",
+        "required": true
+      },
+      {
+        "name": "Handle",
+        "signature": "React.ForwardRefExoticComponent<React.HTMLAttributes<HTMLDivElement> & { asChild?: boolean; } & React.RefAttributes<HTMLDivElement>>",
+        "required": true
+      },
+      {
+        "name": "Title",
+        "signature": "React.ForwardRefExoticComponent<React.HTMLAttributes<HTMLHeadingElement> & { asChild?: boolean; } & React.RefAttributes<HTMLHeadingElement>>",
+        "required": true
+      },
+      {
+        "name": "Description",
+        "signature": "React.ForwardRefExoticComponent<React.HTMLAttributes<HTMLParagraphElement> & { asChild?: boolean; } & React.RefAttributes<HTMLParagraphElement>>",
+        "required": true
+      },
+      {
+        "name": "Close",
+        "signature": "React.ForwardRefExoticComponent<React.ButtonHTMLAttributes<HTMLButtonElement> & { asChild?: boolean; } & React.RefAttributes<HTMLButtonElement>>",
+        "required": true
+      }
+    ]
+  },
+  {
+    "id": "bottom-sheet",
+    "name": "BottomSheet",
+    "kind": "component",
+    "signature": "({ backdropProps, children, contentProps, description, title, viewportProps, ...rootProps }: BottomSheetProps) => import(\"react\").JSX.Element",
+    "source": "src/components/BottomSheet.tsx"
+  },
+  {
+    "id": "bottom-sheet-props",
+    "name": "BottomSheetProps",
+    "kind": "type",
+    "signature": "interface BottomSheetProps extends Omit<SheetRootProps, 'children'>",
+    "source": "src/components/BottomSheet.tsx",
+    "members": [
+      {
+        "name": "children",
+        "signature": "ReactNode",
+        "required": true
+      },
+      {
+        "name": "title",
+        "signature": "ReactNode",
+        "required": true
+      },
+      {
+        "name": "description",
+        "signature": "ReactNode",
+        "required": false
+      },
+      {
+        "name": "backdropProps",
+        "signature": "SheetBackdropProps",
+        "required": false
+      },
+      {
+        "name": "contentProps",
+        "signature": "SheetContentProps",
+        "required": false
+      },
+      {
+        "name": "viewportProps",
+        "signature": "SheetViewportProps",
+        "required": false
+      },
+      {
+        "name": "open",
+        "signature": "boolean",
+        "required": false
+      },
+      {
+        "name": "defaultOpen",
+        "signature": "boolean",
+        "required": false
+      },
+      {
+        "name": "onOpenChange",
+        "signature": "(open: boolean, details: OpenChangeDetails) => void",
+        "required": false
+      },
+      {
+        "name": "snapPoints",
+        "signature": "readonly SnapPoint[]",
+        "required": false
+      },
+      {
+        "name": "activeSnapPoint",
+        "signature": "string",
+        "required": false
+      },
+      {
+        "name": "defaultSnapPoint",
+        "signature": "string",
+        "required": false
+      },
+      {
+        "name": "onSnapPointChange",
+        "signature": "(id: string) => void",
+        "required": false
+      },
+      {
+        "name": "modal",
+        "signature": "boolean",
+        "required": false
+      },
+      {
+        "name": "dismissible",
+        "signature": "boolean",
+        "required": false
+      }
+    ]
+  },
+  {
+    "id": "sheet-root-props",
+    "name": "SheetRootProps",
+    "kind": "type",
+    "signature": "interface SheetRootProps",
+    "source": "src/components/Root.tsx",
+    "members": [
+      {
+        "name": "children",
+        "signature": "ReactNode",
+        "required": true
+      },
+      {
+        "name": "open",
+        "signature": "boolean",
+        "required": false
+      },
+      {
+        "name": "defaultOpen",
+        "signature": "boolean",
+        "required": false
+      },
+      {
+        "name": "onOpenChange",
+        "signature": "(open: boolean, details: OpenChangeDetails) => void",
+        "required": false
+      },
+      {
+        "name": "snapPoints",
+        "signature": "readonly SnapPoint[]",
+        "required": false
+      },
+      {
+        "name": "activeSnapPoint",
+        "signature": "string",
+        "required": false
+      },
+      {
+        "name": "defaultSnapPoint",
+        "signature": "string",
+        "required": false
+      },
+      {
+        "name": "onSnapPointChange",
+        "signature": "(id: string) => void",
+        "required": false
+      },
+      {
+        "name": "modal",
+        "signature": "boolean",
+        "required": false
+      },
+      {
+        "name": "dismissible",
+        "signature": "boolean",
+        "required": false
+      }
+    ]
+  },
+  {
+    "id": "sheet-trigger-props",
+    "name": "SheetTriggerProps",
+    "kind": "type",
+    "signature": "interface SheetTriggerProps extends ButtonHTMLAttributes<HTMLButtonElement>",
+    "source": "src/components/Trigger.tsx",
+    "members": [
+      {
+        "name": "asChild",
+        "signature": "boolean",
+        "required": false
+      }
+    ]
+  },
+  {
+    "id": "sheet-portal-props",
+    "name": "SheetPortalProps",
+    "kind": "type",
+    "signature": "interface SheetPortalProps",
+    "source": "src/components/Portal.tsx",
+    "members": [
+      {
+        "name": "children",
+        "signature": "ReactNode",
+        "required": true
+      },
+      {
+        "name": "container",
+        "signature": "Element | DocumentFragment | null",
+        "required": false
+      }
+    ]
+  },
+  {
+    "id": "sheet-backdrop-props",
+    "name": "SheetBackdropProps",
+    "kind": "type",
+    "signature": "HTMLAttributes<HTMLDivElement> & { asChild?: boolean; }",
+    "source": "src/components/Backdrop.tsx",
+    "members": [
+      {
+        "name": "asChild",
+        "signature": "boolean",
+        "required": false
+      }
+    ]
+  },
+  {
+    "id": "sheet-viewport-props",
+    "name": "SheetViewportProps",
+    "kind": "type",
+    "signature": "HTMLAttributes<HTMLDivElement> & { asChild?: boolean; }",
+    "source": "src/components/Viewport.tsx",
+    "members": [
+      {
+        "name": "asChild",
+        "signature": "boolean",
+        "required": false
+      }
+    ]
+  },
+  {
+    "id": "sheet-content-props",
+    "name": "SheetContentProps",
+    "kind": "type",
+    "signature": "HTMLAttributes<HTMLDivElement> & { asChild?: boolean; }",
+    "source": "src/components/Content.tsx",
+    "members": [
+      {
+        "name": "asChild",
+        "signature": "boolean",
+        "required": false
+      }
+    ]
+  },
+  {
+    "id": "sheet-handle-props",
+    "name": "SheetHandleProps",
+    "kind": "type",
+    "signature": "HTMLAttributes<HTMLDivElement> & { asChild?: boolean; }",
+    "source": "src/components/Handle.tsx",
+    "members": [
+      {
+        "name": "asChild",
+        "signature": "boolean",
+        "required": false
+      }
+    ]
+  },
+  {
+    "id": "sheet-title-props",
+    "name": "SheetTitleProps",
+    "kind": "type",
+    "signature": "HTMLAttributes<HTMLHeadingElement> & { asChild?: boolean; }",
+    "source": "src/components/Title.tsx",
+    "members": [
+      {
+        "name": "asChild",
+        "signature": "boolean",
+        "required": false
+      }
+    ]
+  },
+  {
+    "id": "sheet-description-props",
+    "name": "SheetDescriptionProps",
+    "kind": "type",
+    "signature": "HTMLAttributes<HTMLParagraphElement> & { asChild?: boolean; }",
+    "source": "src/components/Description.tsx",
+    "members": [
+      {
+        "name": "asChild",
+        "signature": "boolean",
+        "required": false
+      }
+    ]
+  },
+  {
+    "id": "sheet-close-props",
+    "name": "SheetCloseProps",
+    "kind": "type",
+    "signature": "ButtonHTMLAttributes<HTMLButtonElement> & { asChild?: boolean; }",
+    "source": "src/components/Close.tsx",
+    "members": [
+      {
+        "name": "asChild",
+        "signature": "boolean",
+        "required": false
+      }
+    ]
+  },
+  {
+    "id": "open-change-details",
+    "name": "OpenChangeDetails",
+    "kind": "type",
+    "signature": "interface OpenChangeDetails",
+    "source": "src/public-types.ts",
+    "members": [
+      {
+        "name": "reason",
+        "signature": "OpenChangeReason",
+        "required": true
+      }
+    ]
+  },
+  {
+    "id": "open-change-reason",
+    "name": "OpenChangeReason",
+    "kind": "type",
+    "signature": "'trigger' | 'close' | 'escape' | 'backdrop' | 'drag' | 'imperative'",
+    "source": "src/public-types.ts"
+  },
+  {
+    "id": "snap-point",
+    "name": "SnapPoint",
+    "kind": "type",
+    "signature": "interface SnapPoint",
+    "source": "src/public-types.ts",
+    "members": [
+      {
+        "name": "id",
+        "signature": "string",
+        "required": true
+      },
+      {
+        "name": "value",
+        "signature": "SnapPointValue",
+        "required": true
+      }
+    ]
+  },
+  {
+    "id": "snap-point-value",
+    "name": "SnapPointValue",
+    "kind": "type",
+    "signature": "number | `${number}px` | `${number}%` | 'content'",
+    "source": "src/public-types.ts"
+  }
+]
