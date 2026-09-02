@@ -17,6 +17,8 @@ describe('recipe registry', () => {
       'custom-portal',
       'non-modal',
       'reduced-motion',
+      'custom-theme',
+      'dark-theme',
       'confirmation',
     ])
     expect(new Set(slugs).size).toBe(slugs.length)
@@ -47,6 +49,8 @@ describe('recipe registry', () => {
       'non-modal/NonModalSheet.tsx',
       'reduced-motion/ReducedMotionSheet.tsx',
       'confirmation/ConfirmationSheet.tsx',
+      'custom-theme/CustomThemeSheet.tsx',
+      'dark-theme/DarkThemeSheet.tsx',
     ]) {
       const component = readFileSync(new URL(file, import.meta.url), 'utf8')
       expect(component).toContain("from '@library'")

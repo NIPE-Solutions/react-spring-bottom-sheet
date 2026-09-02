@@ -60,7 +60,7 @@
     "test": "npm run test:unit",
     "test:e2e": "playwright test",
     "test:e2e:serve": "vite --host 127.0.0.1",
-    "test:css": "node --test scripts/check-css-namespace.test.mjs && node scripts/check-css-namespace.mjs src/styles/core.css src/styles/theme.css src/styles/tokens.css",
+    "test:css": "node --test scripts/check-css-namespace.test.mjs && node scripts/check-css-namespace.mjs src/styles/core.css src/styles/theme.css src/styles/tokens.css website/recipes/custom-theme/theme.css website/recipes/dark-theme/theme.css",
     "test:package": "node test/package/verify-package.mjs",
     "test:release": "node --test scripts/check-bundle-size.test.mjs scripts/verify-release.test.mjs",
     "test:size": "node scripts/check-bundle-size.mjs",

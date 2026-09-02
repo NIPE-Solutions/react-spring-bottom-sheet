@@ -52,6 +52,23 @@ test('documentation shell exposes location and adjacent routes', async ({
   await expect(page.locator('section#package')).toBeVisible()
 })
 
+test('styling guide documents replacement hooks and working themes', async ({
+  page,
+}) => {
+  await page.goto('/docs/styling/')
+
+  await expect(
+    page.getByRole('heading', { name: 'Stable class hooks' }),
+  ).toBeVisible()
+  await expect(page.locator('.docs-reference-table')).toHaveCount(3)
+  await expect(
+    page.getByRole('link', { name: 'field-note theme' }),
+  ).toHaveAttribute('href', '/examples/custom-theme/')
+  await expect(
+    page.getByRole('link', { name: 'dark instrument theme' }),
+  ).toHaveAttribute('href', '/examples/dark-theme/')
+})
+
 test('documentation navigation becomes compact on a narrow viewport', async ({
   page,
 }) => {
