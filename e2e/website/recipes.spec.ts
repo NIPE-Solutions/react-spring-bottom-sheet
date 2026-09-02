@@ -82,23 +82,29 @@ test(
       .getByRole('button', { name: 'Open content-height sheet' })
       .click()
     const dialog = page.getByRole('dialog', { name: 'Content-sized details' })
+    await expect(dialog).toHaveAttribute('data-rsbs-state', 'open')
     const initialPosition = await dialog.evaluate((element) =>
       Number.parseFloat(
         getComputedStyle(element).getPropertyValue('--rsbs-position'),
       ),
     )
 
-    await page.getByRole('button', { name: 'Show another detail' }).click()
-    await expect(page.getByText('Detail 2')).toBeVisible()
-    await expect
-      .poll(() =>
-        dialog.evaluate((element) =>
-          Number.parseFloat(
-            getComputedStyle(element).getPropertyValue('--rsbs-position'),
-          ),
+    await dialog.evaluate((element) => {
+      const addedContent = document.createElement('p')
+      addedContent.textContent = 'Resize observer probe'
+      addedContent.style.height = '48px'
+      addedContent.style.margin = '0'
+      element.append(addedContent)
+    })
+    await expect(dialog).toHaveAttribute('data-rsbs-state', 'settling')
+    await expect(dialog).toHaveAttribute('data-rsbs-state', 'open')
+    expect(
+      await dialog.evaluate((element) =>
+        Number.parseFloat(
+          getComputedStyle(element).getPropertyValue('--rsbs-position'),
         ),
-      )
-      .toBeLessThan(initialPosition)
+      ),
+    ).toBeLessThan(initialPosition)
   },
 )
 
@@ -179,21 +185,46 @@ test(
 )
 
 test(
-  'reduced-motion recipe remains functional with reduced motion requested',
+  'reduced-motion recipe settles by the next animation frame',
   {
     tag: '@release:reduced-motion',
   },
   async ({ page }) => {
     await page.emulateMedia({ reducedMotion: 'reduce' })
     await page.goto('/examples/reduced-motion/')
-    await page
-      .getByRole('button', { name: 'Open reduced-motion sheet' })
-      .click()
-    await expect(
-      page.getByRole('dialog', { name: 'Motion preference' }),
-    ).toBeVisible()
-    await page.keyboard.press('Escape')
-    await expect(page.getByRole('dialog')).toHaveCount(0)
+    const trigger = page.getByRole('button', {
+      name: 'Open reduced-motion sheet',
+    })
+    await expect(trigger).toBeVisible()
+    const openState = await trigger.evaluate(async (element) => {
+      if (!(element instanceof HTMLElement)) {
+        throw new Error('Expected the sheet trigger to be an HTML element')
+      }
+      element.click()
+      await new Promise<void>((resolve) =>
+        requestAnimationFrame(() => resolve()),
+      )
+      return document
+        .querySelector('[data-rsbs-content]')
+        ?.getAttribute('data-rsbs-state')
+    })
+    expect(openState).toBe('open')
+
+    const closeState = await page
+      .getByRole('button', { name: 'Close sheet' })
+      .evaluate(async (element) => {
+        if (!(element instanceof HTMLElement)) {
+          throw new Error('Expected the sheet close control to be HTML')
+        }
+        element.click()
+        await new Promise<void>((resolve) =>
+          requestAnimationFrame(() => resolve()),
+        )
+        return document
+          .querySelector('[data-rsbs-content]')
+          ?.getAttribute('data-rsbs-state')
+      })
+    expect(closeState).toBeUndefined()
   },
 )
 

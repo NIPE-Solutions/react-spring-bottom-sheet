@@ -28,20 +28,29 @@ test('accepts the configured browser projects and release scenario inventory', (
 })
 
 for (const project of ['chromium', 'firefox', 'webkit']) {
-  test(`requires ${project} in both browser suites`, () => {
-    const withoutProject = (projects) =>
-      projects.filter((candidate) => candidate !== project)
-
+  test(`requires ${project} in the library browser suite`, () => {
     assert.deepEqual(
       validateBrowserMatrix({
-        libraryProjects: withoutProject(libraryProjects),
-        websiteProjects: withoutProject(websiteProjects),
+        libraryProjects: libraryProjects.filter(
+          (candidate) => candidate !== project,
+        ),
+        websiteProjects,
         scenarios,
       }),
-      [
-        `library projects missing: ${project}`,
-        `website projects missing: ${project}`,
-      ],
+      [`library projects missing: ${project}`],
+    )
+  })
+
+  test(`requires ${project} in the website browser suite`, () => {
+    assert.deepEqual(
+      validateBrowserMatrix({
+        libraryProjects,
+        websiteProjects: websiteProjects.filter(
+          (candidate) => candidate !== project,
+        ),
+        scenarios,
+      }),
+      [`website projects missing: ${project}`],
     )
   })
 }

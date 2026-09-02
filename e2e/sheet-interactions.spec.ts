@@ -74,10 +74,12 @@ test(
   'interrupts settling motion with a new handle drag',
   { tag: '@release:motion-interruption' },
   async ({ page }) => {
+    await page.clock.install()
     await page.goto('')
     const dialog = page.getByRole('dialog')
     const handle = page.getByText('Drag sheet')
     await expect(dialog).toHaveCSS('--rsbs-position', '400px')
+    await page.clock.pauseAt(await page.evaluate(() => Date.now()))
 
     await handle.dispatchEvent('pointerdown', {
       bubbles: true,
@@ -97,29 +99,32 @@ test(
       pointerType: 'mouse',
       clientY: 330,
     })
+    await expect(dialog).toHaveAttribute('data-rsbs-state', 'settling')
 
     await handle.dispatchEvent('pointerdown', {
       bubbles: true,
       pointerId: 22,
       pointerType: 'mouse',
-      clientY: 330,
+      clientY: 1_000,
     })
     await expect(dialog).toHaveAttribute('data-rsbs-dragging', 'true')
-    const interruptedPosition = await sheetPosition(page)
 
     await dialog.dispatchEvent('pointermove', {
       bubbles: true,
       pointerId: 22,
       pointerType: 'mouse',
-      clientY: 380,
+      clientY: 1_120,
     })
-    expect(await sheetPosition(page)).toBeGreaterThan(interruptedPosition)
+    await expect(dialog).toHaveCSS('--rsbs-position', '450px')
     await dialog.dispatchEvent('pointercancel', {
       bubbles: true,
       pointerId: 22,
       pointerType: 'mouse',
-      clientY: 380,
+      clientY: 1_120,
     })
+    await expect(dialog).toHaveAttribute('data-rsbs-state', 'settling')
+    await page.clock.runFor(2_000)
+    await expect(dialog).toHaveAttribute('data-rsbs-state', 'open')
     await expect(dialog).toHaveCSS('--rsbs-position', '400px')
   },
 )
