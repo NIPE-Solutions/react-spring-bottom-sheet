@@ -241,17 +241,12 @@
   }
   .docs-demo-stage {
     position: relative;
-    min-height: 40rem;
+    min-height: 43rem;
     display: grid;
     place-items: center;
-    border: 1px solid var(--docs-rule);
-    background:
-      linear-gradient(var(--docs-rule) 1px, transparent 1px),
-      linear-gradient(90deg, var(--docs-rule) 1px, transparent 1px);
-    background-size: 2.2rem 2.2rem;
   }
   .docs-phone {
-    width: min(21rem, calc(100% - 2rem));
+    width: min(23rem, calc(100% - 2rem));
     padding: 0.55rem;
     border: 1px solid var(--docs-ink);
     border-radius: 2.4rem;
@@ -260,7 +255,7 @@
   }
   .docs-phone-screen {
     position: relative;
-    height: 37rem;
+    height: 40rem;
     overflow: hidden;
     transform: translateZ(0);
     border-radius: 1.9rem;
@@ -764,7 +759,7 @@
     overflow-wrap: anywhere;
   }
   .docs-demo-stage {
-    min-height: 39rem;
+    min-height: 42rem;
   }
   .docs-evidence dl,
   .docs-quick-start,
