@@ -213,9 +213,12 @@
   }
   .docs-button,
   .docs-demo-trigger,
-  .docs-controls button,
   .docs-demo-actions button,
-  .docs-example-sheet button {
+  .docs-recipe-trigger,
+  .docs-recipe-control button,
+  .docs-recipe-actions button,
+  .docs-recipe-source button,
+  .docs-recipe-sheet button {
     appearance: none;
     border: 1px solid var(--docs-rule);
     background: transparent;
@@ -227,7 +230,8 @@
   }
   .docs-button-primary,
   .docs-demo-trigger,
-  .docs-controls button {
+  .docs-recipe-trigger,
+  .docs-recipe-control > button {
     background: var(--docs-signal);
     border-color: var(--docs-signal);
     color: white;
@@ -261,7 +265,7 @@
     padding-left: 0.6rem;
   }
   .docs-demo-sheet,
-  .docs-example-sheet {
+  .docs-recipe-sheet {
     padding: 1rem 1.4rem 2rem;
   }
   .docs-demo-actions {
@@ -359,36 +363,109 @@
   .docs-page-navigation strong {
     overflow-wrap: anywhere;
   }
-  .docs-example-workbench {
+  .docs-recipe-grid {
     display: grid;
-    grid-template-columns: minmax(12rem, 0.65fr) minmax(17rem, 1.35fr);
-    gap: 1.5rem;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    max-width: 76rem;
+    margin-top: clamp(3rem, 7vw, 6rem);
+    border-top: 1px solid var(--docs-rule);
   }
-  .docs-controls {
-    display: grid;
-    align-content: start;
-    gap: 1rem;
+  .docs-recipe-grid article {
+    min-width: 0;
+    padding: 1.5rem;
+    border-right: 1px solid var(--docs-rule);
+    border-bottom: 1px solid var(--docs-rule);
   }
-  .docs-controls label {
-    display: grid;
-    gap: 0.4rem;
+  .docs-recipe-grid article:first-child {
+    border-left: 1px solid var(--docs-rule);
   }
-  .docs-portal-target {
-    position: relative;
-    min-height: 30rem;
-    overflow: hidden;
-    border: 1px solid var(--docs-rule);
-    background: var(--docs-panel);
-  }
-  .docs-portal-target > p {
-    padding: 1rem;
+  .docs-recipe-grid article > p:not(.docs-recipe-index) {
     color: var(--docs-muted);
   }
-  .docs-scroll-sample {
-    max-height: 11rem;
-    overflow: auto;
-    border-block: 1px solid var(--docs-rule);
-    margin: 1rem 0;
+  .docs-recipe-index,
+  .docs-recipe-section-heading > p,
+  .docs-recipe-section-heading > div > p,
+  .docs-related-docs > p {
+    color: var(--docs-muted);
+    font-size: 0.78rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  .docs-recipe-page {
+    max-width: 88rem;
+  }
+  .docs-recipe-page > header {
+    max-width: 62rem;
+    padding-bottom: clamp(2.5rem, 6vw, 5rem);
+  }
+  .docs-recipe-page > header h1 {
+    font-size: clamp(2.8rem, 7vw, 6rem);
+  }
+  .docs-recipe-preview,
+  .docs-recipe-source,
+  .docs-recipe-notes {
+    padding-block: clamp(2.5rem, 5vw, 4rem);
+    border-top: 1px solid var(--docs-rule);
+  }
+  .docs-recipe-section-heading {
+    display: flex;
+    align-items: end;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+  .docs-recipe-section-heading h2,
+  .docs-recipe-section-heading p {
+    margin-bottom: 0;
+  }
+  .docs-recipe-stage {
+    min-height: 20rem;
+    display: grid;
+    place-items: center;
+    margin-top: 1.5rem;
+    border: 1px solid var(--docs-rule);
+    background:
+      linear-gradient(var(--docs-rule) 1px, transparent 1px),
+      linear-gradient(90deg, var(--docs-rule) 1px, transparent 1px);
+    background-size: 2.2rem 2.2rem;
+  }
+  .docs-recipe-control {
+    display: grid;
+    justify-items: start;
+  }
+  .docs-recipe-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-top: 1.25rem;
+  }
+  .docs-recipe-actions button[aria-pressed='true'] {
+    border-color: var(--docs-signal);
+    box-shadow: inset 0 -3px var(--docs-signal);
+  }
+  .docs-recipe-notes ul {
+    max-width: 60rem;
+    padding-left: 1.2rem;
+  }
+  .docs-recipe-source details {
+    margin-top: 1.5rem;
+  }
+  .docs-recipe-source summary {
+    cursor: pointer;
+    font-weight: 650;
+  }
+  .docs-recipe-source pre {
+    max-height: 36rem;
+  }
+  .docs-related-docs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.8rem 1.5rem;
+    padding-top: 2rem;
+    border-top: 1px solid var(--docs-rule);
+  }
+  .docs-related-docs > p {
+    flex-basis: 100%;
+    margin: 0;
   }
   .docs-footer {
     display: flex;
@@ -478,8 +555,12 @@
     min-height: 24rem;
   }
   .docs-principles > div,
-  .docs-example-workbench {
+  .docs-recipe-grid {
     grid-template-columns: 1fr;
+  }
+  .docs-recipe-grid article,
+  .docs-recipe-grid article:first-child {
+    border-left: 1px solid var(--docs-rule);
   }
   .docs-principles article,
   .docs-principles article + article {

@@ -79,17 +79,6 @@ test('documentation navigation becomes compact on a narrow viewport', async ({
   expect(dimensions.document).toBe(dimensions.viewport)
 })
 
-test('example sheet renders inside its custom portal target', async ({
-  page,
-}) => {
-  await page.goto('/examples/')
-  await page.getByRole('button', { name: 'Open example' }).click()
-
-  await expect(
-    page.locator('.docs-portal-target [role="dialog"]'),
-  ).toBeVisible()
-})
-
 test('home page does not overflow a mobile viewport', async ({ page }) => {
   await page.setViewportSize({ width: 320, height: 720 })
   await page.goto('/')
