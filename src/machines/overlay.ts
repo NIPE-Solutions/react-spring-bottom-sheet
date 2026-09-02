@@ -9,10 +9,6 @@ interface OverlayContext {
   y?: number
   velocity?: number
 }
-function sleep(ms = 1000) {
-  return new Promise((resolve) => setTimeout(resolve, ms))
-}
-
 const cancelOpen = {
   CLOSE: { target: '#overlay.closing', actions: 'onOpenCancel' },
 }
@@ -237,101 +233,31 @@ export const overlayMachine = createMachine(
   },
   {
     actions: {
-      onOpenCancel: (context, event) => {
-        console.log('onOpenCancel', { context, event })
-      },
-      onSnapCancel: (context, event) => {
-        console.log('onSnapCancel', { context, event })
-      },
-      onResizeCancel: (context, event) => {
-        console.log('onResizeCancel', { context, event })
-      },
-      onCloseCancel: (context, event) => {
-        console.log('onCloseCancel', { context, event })
-      },
-      onOpenEnd: (context, event) => {
-        console.log('onOpenCancel', { context, event })
-      },
-      onSnapEnd: (context, event) => {
-        console.log('onSnapEnd', { context, event })
-      },
-      onRezizeEnd: (context, event) => {
-        console.log('onRezizeEnd', { context, event })
-      },
+      onOpenCancel: () => {},
+      onSnapCancel: () => {},
+      onResizeCancel: () => {},
+      onCloseCancel: () => {},
+      onOpenEnd: () => {},
+      onSnapEnd: () => {},
+      onResizeEnd: () => {},
     },
     actors: {
-      onSnapStart: fromPromise(async () => {
-        await sleep()
-      }),
-      onOpenStart: fromPromise(async () => {
-        await sleep()
-      }),
-      onCloseStart: fromPromise(async () => {
-        await sleep()
-      }),
-      onResizeStart: fromPromise(async () => {
-        await sleep()
-      }),
-      onSnapEnd: fromPromise(async () => {
-        await sleep()
-      }),
-      onOpenEnd: fromPromise(async () => {
-        await sleep()
-      }),
-      onCloseEnd: fromPromise(async () => {
-        await sleep()
-      }),
-      onResizeEnd: fromPromise(async () => {
-        await sleep()
-      }),
-      renderVisuallyHidden: fromPromise(async ({ input, system }) => {
-        console.group('renderVisuallyHidden')
-        console.log({ input, system })
-        await sleep()
-        console.groupEnd()
-      }),
-      activate: fromPromise(async ({ input, system }) => {
-        console.group('activate')
-        console.log({ input, system })
-        await sleep()
-        console.groupEnd()
-      }),
-      deactivate: fromPromise(async ({ input, system }) => {
-        console.group('deactivate')
-        console.log({ input, system })
-        await sleep()
-        console.groupEnd()
-      }),
-      openSmoothly: fromPromise(async ({ input, system }) => {
-        console.group('openSmoothly')
-        console.log({ input, system })
-        await sleep()
-        console.groupEnd()
-      }),
-      openImmediately: fromPromise(async ({ input, system }) => {
-        console.group('openImmediately')
-        console.log({ input, system })
-        await sleep()
-        console.groupEnd()
-      }),
-      snapSmoothly: fromPromise(async ({ input, system }) => {
-        console.group('snapSmoothly')
-        console.log({ input, system })
-        await sleep()
-        console.groupEnd()
-      }),
-      resizeSmoothly: fromPromise(async ({ input, system }) => {
-        console.group('resizeSmoothly')
-        console.log({ input, system })
-        await sleep()
-        console.groupEnd()
-      }),
-      closeSmoothly: fromPromise(async ({ input, system }) => {
-        console.group('closeSmoothly')
-        console.log({ input, system })
-        await sleep()
-        console.groupEnd()
-      }),
+      onSnapStart: fromPromise(async () => {}),
+      onOpenStart: fromPromise(async () => {}),
+      onCloseStart: fromPromise(async () => {}),
+      onResizeStart: fromPromise(async () => {}),
+      onSnapEnd: fromPromise(async () => {}),
+      onOpenEnd: fromPromise(async () => {}),
+      onCloseEnd: fromPromise(async () => {}),
+      onResizeEnd: fromPromise(async () => {}),
+      renderVisuallyHidden: fromPromise(async () => {}),
+      activate: fromPromise(async () => {}),
+      deactivate: fromPromise(async () => {}),
+      openSmoothly: fromPromise(async () => {}),
+      openImmediately: fromPromise(async () => {}),
+      snapSmoothly: fromPromise(async () => {}),
+      resizeSmoothly: fromPromise(async () => {}),
+      closeSmoothly: fromPromise(async () => {}),
     },
     guards: { initiallyClosed, initiallyOpen },
   }

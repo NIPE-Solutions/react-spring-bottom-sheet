@@ -24,7 +24,8 @@
     "dist"
   ],
   "scripts": {
-    "build": "next build",
+    "build": "npm run build:dist && npm run build:docs",
+    "build:docs": "next build",
     "build:declarations": "tsc --project tsconfig.declarations.json",
     "prebuild:dist": "rimraf dist/**",
     "build:dist": "npm run build:postcss && npm run build:microbundle && npm run build:declarations",
@@ -38,7 +39,8 @@
     "test:e2e": "playwright test",
     "test:e2e:install": "playwright install chromium",
     "test:unit": "vitest run",
-    "test:unit:watch": "vitest"
+    "test:unit:watch": "vitest",
+    "typecheck": "tsc --noEmit"
   },
   "sideEffects": [
     "*.css"
@@ -78,6 +80,7 @@
     "babel-plugin-transform-remove-console": "^6.9.4",
     "classnames": "^2.2.6",
     "eslint": "^8.56.0",
+    "eslint-config-next": "^14.2.2",
     "eslint-config-react-app": "^7.0.1",
     "eslint-plugin-flowtype": "^8.0.3",
     "eslint-plugin-import": "^2.29.1",
