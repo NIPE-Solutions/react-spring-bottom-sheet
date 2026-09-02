@@ -1,5 +1,24 @@
 import { expect, test } from '@playwright/test'
 
+test(
+  'isolates background content and contains modal focus',
+  { tag: '@release:modal-focus-isolation' },
+  async ({ page }) => {
+    await page.goto('')
+    const background = page.locator('#root')
+    const firstAction = page.getByRole('button', { name: 'Dismiss sheet' })
+    const lastAction = page.getByRole('button', { name: 'Scrollable action' })
+
+    await expect(firstAction).toBeFocused()
+    await expect(background).toHaveAttribute('aria-hidden', 'true')
+    await expect(background).toHaveJSProperty('inert', true)
+
+    await lastAction.focus()
+    await page.keyboard.press('Tab')
+    await expect(firstAction).toBeFocused()
+  },
+)
+
 test('dismisses, restores focus, and reopens', async ({ page }) => {
   await page.goto('')
   const dialog = page.locator('[data-rsbs-content]')

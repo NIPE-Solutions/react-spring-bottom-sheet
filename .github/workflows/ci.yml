@@ -24,10 +24,38 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run check
+      - run: npm run test:browser-matrix
       - run: npm audit --omit=dev
 
   browsers:
-    name: Browsers
+    name: Browser (${{ matrix.project }})
+    needs: quality
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        project: [chromium, firefox, webkit]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps ${{ matrix.project }}
+      - run: npm run test:e2e -- --project=${{ matrix.project }}
+      - run: npm run test:website:e2e -- --project=${{ matrix.project }}
+      - if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-${{ matrix.project }}
+          path: |
+            playwright-report/
+            test-results/
+          if-no-files-found: ignore
+
+  chromium-touch:
+    name: Browser (chromium-touch)
     needs: quality
     runs-on: ubuntu-latest
     steps:
@@ -37,6 +65,13 @@ jobs:
           node-version-file: .nvmrc
           cache: npm
       - run: npm ci
-      - run: npx playwright install --with-deps chromium firefox webkit
-      - run: npm run test:e2e
-      - run: npm run test:website:e2e
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e -- --project=chromium-touch
+      - if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-chromium-touch
+          path: |
+            playwright-report/
+            test-results/
+          if-no-files-found: ignore
