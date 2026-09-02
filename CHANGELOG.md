@@ -1,3 +1,39 @@
+## 5.0.0-alpha.0 (unreleased)
+
+Version 5 is a breaking redesign for React 19. Test the alpha through the `next`
+distribution tag and report compatibility issues before the beta phase.
+
+### Added
+
+- Add a compound `Sheet` API with controlled and uncontrolled state, named snap
+  points, forwarded refs, and `asChild` composition.
+- Add modal focus containment, background isolation, accessible title and
+  description registration, Escape handling, and focus restoration.
+- Add owned pointer, nested-scroll, layout-observation, and motion boundaries
+  with interruption and reduced-motion handling.
+- Add separate `core.css`, `theme.css`, `tokens.css`, and `styles.css` exports
+  with a checked `rsbs` namespace.
+- Add a Next.js documentation site, interactive examples, migration guide, and
+  responsive accessible design.
+
+### Changed
+
+- Require React 19 and use Node.js 24 LTS for development, CI, and releases.
+- Replace callback snap calculations with named pixel, percentage, and
+  content-sized snap points.
+- Keep the animation implementation private instead of exposing spring types or
+  lifecycle callbacks.
+- Replace legacy `data-rsbs-*` styling contracts with stable namespaced classes
+  and low-specificity mechanical rules.
+
+### Removed
+
+- Remove the version 4 imperative ref, spring lifecycle callbacks, legacy
+  stylesheet imports, and presentation wrapper props.
+- Remove compatibility with React 16 through 18 and obsolete browser targets.
+
+See [the migration guide](docs/migration-v4-to-v5.md) for the complete mapping.
+
 ## [4.1.0](https://github.com/NIPE-Solutions/react-spring-bottom-sheet/compare/4.0.4...4.1.0) (2026-09-02)
 
 This release is a non-breaking stabilization update. Existing v4 applications do

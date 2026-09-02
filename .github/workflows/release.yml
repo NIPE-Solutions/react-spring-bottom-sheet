@@ -1,0 +1,105 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Exact package version to publish
+        required: true
+        type: string
+      channel:
+        description: npm distribution tag
+        required: true
+        type: choice
+        options:
+          - next
+          - latest
+      confirmation:
+        description: Type "publish <version> with <channel>"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: npm-release
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    name: Verify release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npm run check
+      - run: npx playwright install --with-deps chromium firefox webkit
+      - run: npm run test:e2e
+      - run: npm run test:website:e2e
+      - run: npm audit --omit=dev
+      - run: npm pack --dry-run
+
+  publish:
+    name: Publish to npm
+    needs: verify
+    runs-on: ubuntu-latest
+    environment: npm
+    permissions:
+      contents: write
+      id-token: write
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          registry-url: https://registry.npmjs.org
+          package-manager-cache: false
+      - run: npm ci
+      - name: Validate release request
+        env:
+          CHANNEL: ${{ inputs.channel }}
+          CONFIRMATION: ${{ inputs.confirmation }}
+          VERSION: ${{ inputs.version }}
+        run: |
+          PACKAGE_VERSION=$(node -p "require('./package.json').version")
+          NAME=$(node -p "require('./package.json').name")
+          test "$PACKAGE_VERSION" = "$VERSION"
+          test "$CONFIRMATION" = "publish $VERSION with $CHANNEL"
+          if test "$CHANNEL" = "latest"; then
+            test "$GITHUB_REF_NAME" = "main"
+            case "$VERSION" in *-*) exit 1 ;; esac
+          else
+            case "$VERSION" in *-*) ;; *) exit 1 ;; esac
+          fi
+          if npm view "$NAME@$VERSION" version >/dev/null 2>&1; then
+            echo "$NAME@$VERSION already exists"
+            exit 1
+          fi
+      - run: npm run build:dist
+      - name: Publish package
+        env:
+          CHANNEL: ${{ inputs.channel }}
+        run: npm publish --access public --tag "$CHANNEL"
+      - name: Verify registry
+        env:
+          CHANNEL: ${{ inputs.channel }}
+          VERSION: ${{ inputs.version }}
+        run: |
+          NAME=$(node -p "require('./package.json').name")
+          test "$(npm view "$NAME@$CHANNEL" version)" = "$VERSION"
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ inputs.version }}
+          CHANNEL: ${{ inputs.channel }}
+        run: |
+          if test "$CHANNEL" = "latest"; then
+            gh release create "v$VERSION" --target "$GITHUB_SHA" --generate-notes --latest
+          else
+            gh release create "v$VERSION" --target "$GITHUB_SHA" --generate-notes --prerelease --latest=false
+          fi

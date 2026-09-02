@@ -42,15 +42,19 @@
   "engines": {
     "node": ">=24 <25"
   },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
   "scripts": {
     "build": "npm run build:dist",
     "build:dist": "npm run clean && vite build && tsc --project tsconfig.build.json && node scripts/copy-styles.mjs",
     "build:website": "npm run build:dist && next build website",
-    "check": "npm run format:check && npm run lint && npm run test:css && npm run test:website && npm run typecheck && npm run test:unit && npm run build:dist && npm run test:package && npm run build:website",
+    "check": "npm run format:check && npm run lint && npm run test:css && npm run test:release && npm run test:website && npm run typecheck && npm run test:unit && npm run build:dist && npm run test:size && npm run test:package && npm run build:website",
     "clean": "rimraf dist",
     "dev": "next dev website",
-    "format": "prettier --write README.md docs/migration-v4-to-v5.md package.json e2e playwright.config.ts playwright.website.config.ts postcss.config.js src/index.ts src/public-types.ts src/accessibility src/components src/composition src/context src/controller src/gestures src/hooks/use-reduced-motion.ts src/hooks/use-sheet-interactions.ts src/hooks/use-sheet-layout.ts src/hooks/use-sheet-motion.ts src/layout src/motion src/styles scripts test/package test/types website vite.config.ts vitest.config.ts eslint.config.js vercel.json",
-    "format:check": "prettier --check README.md docs/migration-v4-to-v5.md package.json e2e playwright.config.ts playwright.website.config.ts postcss.config.js src/index.ts src/public-types.ts src/accessibility src/components src/composition src/context src/controller src/gestures src/hooks/use-reduced-motion.ts src/hooks/use-sheet-interactions.ts src/hooks/use-sheet-layout.ts src/hooks/use-sheet-motion.ts src/layout src/motion src/styles scripts test/package test/types website vite.config.ts vitest.config.ts eslint.config.js vercel.json",
+    "format": "prettier --write CHANGELOG.md README.md .github/workflows docs/RELEASING.md docs/migration-v4-to-v5.md package.json e2e playwright.config.ts playwright.website.config.ts postcss.config.js src/index.ts src/public-types.ts src/accessibility src/components src/composition src/context src/controller src/gestures src/hooks/use-reduced-motion.ts src/hooks/use-sheet-interactions.ts src/hooks/use-sheet-layout.ts src/hooks/use-sheet-motion.ts src/layout src/motion src/styles scripts test/package test/types website vite.config.ts vitest.config.ts eslint.config.js vercel.json",
+    "format:check": "prettier --check CHANGELOG.md README.md .github/workflows docs/RELEASING.md docs/migration-v4-to-v5.md package.json e2e playwright.config.ts playwright.website.config.ts postcss.config.js src/index.ts src/public-types.ts src/accessibility src/components src/composition src/context src/controller src/gestures src/hooks/use-reduced-motion.ts src/hooks/use-sheet-interactions.ts src/hooks/use-sheet-layout.ts src/hooks/use-sheet-motion.ts src/layout src/motion src/styles scripts test/package test/types website vite.config.ts vitest.config.ts eslint.config.js vercel.json",
     "lint": "eslint e2e playwright.config.ts playwright.website.config.ts postcss.config.js src/index.ts src/public-types.ts src/accessibility src/components src/composition src/context src/controller src/gestures src/hooks/use-reduced-motion.ts src/hooks/use-sheet-interactions.ts src/hooks/use-sheet-layout.ts src/hooks/use-sheet-motion.ts src/layout src/motion scripts test/package test/types website vite.config.ts vitest.config.ts eslint.config.js --max-warnings 0",
     "prepublishOnly": "npm run check",
     "test": "npm run test:unit",
@@ -58,6 +62,8 @@
     "test:e2e:serve": "vite --host 127.0.0.1",
     "test:css": "node --test scripts/check-css-namespace.test.mjs && node scripts/check-css-namespace.mjs src/styles/core.css src/styles/theme.css src/styles/tokens.css",
     "test:package": "node test/package/verify-package.mjs",
+    "test:release": "node --test scripts/check-bundle-size.test.mjs scripts/verify-release.test.mjs",
+    "test:size": "node scripts/check-bundle-size.mjs",
     "test:unit": "vitest run --passWithNoTests",
     "test:website": "node --test scripts/verify-website.test.mjs",
     "test:website:e2e": "playwright test --config playwright.website.config.ts",
@@ -91,6 +97,7 @@
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "rimraf": "^6.1.2",
+    "serve": "^14.2.6",
     "typescript": "^6.0.3",
     "vite": "^7.3.6",
     "vitest": "^4.1.11"
