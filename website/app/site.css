@@ -125,7 +125,7 @@
   .docs-header nav a {
     text-decoration: none;
   }
-  .docs-site-grid {
+  .docs-shell {
     display: grid;
     grid-template-columns: minmax(12rem, 17rem) minmax(0, 1fr);
   }
@@ -138,14 +138,41 @@
     border-right: 1px solid var(--docs-rule);
     overflow: auto;
   }
-  .docs-sidebar p {
+  .docs-version,
+  .docs-navigation-group > p,
+  .docs-table-of-contents > p {
     color: var(--docs-muted);
     font-size: 0.82rem;
   }
-  .docs-sidebar a {
+  .docs-navigation-group + .docs-navigation-group {
+    margin-top: 1.6rem;
+  }
+  .docs-navigation-group > p,
+  .docs-table-of-contents > p {
+    margin-bottom: 0.45rem;
+    font-weight: 650;
+  }
+  .docs-navigation ul,
+  .docs-table-of-contents ul {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .docs-navigation a,
+  .docs-table-of-contents a {
     display: block;
     padding: 0.34rem 0;
     text-decoration: none;
+  }
+  .docs-navigation a[aria-current='page'] {
+    color: var(--docs-signal);
+    font-weight: 650;
+  }
+  .docs-mobile-nav {
+    display: none;
+  }
+  .docs-mobile-toc {
+    display: none;
   }
   .docs-home,
   .docs-page {
@@ -267,17 +294,27 @@
     color: var(--docs-muted);
   }
   .docs-page {
-    width: min(100%, 58rem);
+    width: 100%;
     padding: clamp(3rem, 7vw, 7rem);
   }
-  .docs-page > header {
+  .docs-reading-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 48rem) minmax(9rem, 13rem);
+    justify-content: space-between;
+    gap: clamp(3rem, 6vw, 6rem);
+    max-width: 76rem;
+  }
+  .docs-article {
+    min-width: 0;
+  }
+  .docs-article > header {
     padding-bottom: 3rem;
     border-bottom: 1px solid var(--docs-rule);
   }
-  .docs-page > header h1 {
+  .docs-article > header h1 {
     font-size: clamp(2.5rem, 6vw, 5rem);
   }
-  .docs-page > header > p:last-child,
+  .docs-article > header > p:last-child,
   .docs-page section p {
     max-width: 68ch;
     color: var(--docs-muted);
@@ -285,6 +322,42 @@
   .docs-page section {
     padding: 2.5rem 0;
     border-bottom: 1px solid var(--docs-rule);
+    scroll-margin-top: 2rem;
+  }
+  .docs-table-of-contents {
+    position: sticky;
+    top: 2rem;
+    align-self: start;
+    padding-left: 1.2rem;
+    border-left: 1px solid var(--docs-rule);
+  }
+  .docs-table-of-contents a {
+    color: var(--docs-muted);
+    font-size: 0.86rem;
+  }
+  .docs-page-navigation {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem;
+    padding-top: 3rem;
+  }
+  .docs-page-navigation a {
+    display: grid;
+    gap: 0.2rem;
+    min-width: 0;
+    padding: 1rem;
+    border: 1px solid var(--docs-rule);
+    text-decoration: none;
+  }
+  .docs-page-navigation a:last-child {
+    text-align: right;
+  }
+  .docs-page-navigation span {
+    color: var(--docs-muted);
+    font-size: 0.78rem;
+  }
+  .docs-page-navigation strong {
+    overflow-wrap: anywhere;
   }
   .docs-example-workbench {
     display: grid;
@@ -342,23 +415,54 @@
     width: 100%;
     justify-content: space-between;
   }
-  .docs-site-grid {
+  .docs-shell {
     display: block;
   }
   .docs-sidebar {
-    position: static;
-    display: flex;
-    height: auto;
-    gap: 1rem;
-    border-right: 0;
-    border-bottom: 1px solid var(--docs-rule);
-    overflow-x: auto;
-  }
-  .docs-sidebar p {
     display: none;
   }
-  .docs-sidebar a {
-    white-space: nowrap;
+  .docs-mobile-nav {
+    display: block;
+    border-bottom: 1px solid var(--docs-rule);
+  }
+  .docs-mobile-nav > summary {
+    padding: 0.9rem clamp(1.2rem, 4vw, 4rem);
+    cursor: pointer;
+    font-weight: 650;
+  }
+  .docs-mobile-nav .docs-navigation {
+    max-height: min(65vh, 32rem);
+    overflow: auto;
+    padding: 0.5rem clamp(1.2rem, 4vw, 4rem) 1.5rem;
+    border-top: 1px solid var(--docs-rule);
+  }
+  .docs-reading-layout {
+    display: block;
+  }
+  .docs-reading-layout > .docs-table-of-contents {
+    display: none;
+  }
+  .docs-mobile-toc {
+    display: block;
+    margin-bottom: 2rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--docs-rule);
+  }
+  .docs-mobile-toc > summary {
+    cursor: pointer;
+    font-weight: 650;
+  }
+  .docs-mobile-toc .docs-table-of-contents {
+    position: static;
+    margin-top: 0.75rem;
+    padding: 0;
+    border-left: 0;
+  }
+  .docs-mobile-toc .docs-table-of-contents > p {
+    display: none;
+  }
+  .docs-page-navigation {
+    grid-template-columns: 1fr;
   }
   .docs-hero {
     grid-template-columns: minmax(0, 1fr);

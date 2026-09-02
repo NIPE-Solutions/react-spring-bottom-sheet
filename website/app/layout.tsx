@@ -1,9 +1,7 @@
 import type { Metadata } from 'next'
 import type { ReactNode } from 'react'
-import Link from 'next/link'
 import { SiteFooter } from '../components/SiteFooter'
 import { SiteHeader } from '../components/SiteHeader'
-import { docs } from '../content/docs.mjs'
 import '../../src/styles/styles.css'
 import './site.css'
 
@@ -34,17 +32,7 @@ export default function Layout({ children }: { children: ReactNode }) {
           Skip to content
         </a>
         <SiteHeader />
-        <div className="docs-site-grid">
-          <aside className="docs-sidebar" aria-label="Documentation">
-            <p>Version 5 alpha</p>
-            {docs.map((page) => (
-              <Link key={page.slug} href={`/docs/${page.slug}/`}>
-                {page.title}
-              </Link>
-            ))}
-          </aside>
-          {children}
-        </div>
+        {children}
         <SiteFooter />
       </body>
     </html>

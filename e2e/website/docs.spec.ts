@@ -31,6 +31,54 @@ test('every documentation link resolves', async ({ page }) => {
   }
 })
 
+test('documentation shell exposes location and adjacent routes', async ({
+  page,
+}) => {
+  await page.goto('/docs/installation/')
+
+  const current = page
+    .locator('.docs-sidebar')
+    .getByRole('link', { name: 'Installation', exact: true })
+  await expect(current).toHaveAttribute('aria-current', 'page')
+  await expect(
+    page.getByRole('navigation', { name: 'On this page' }),
+  ).toContainText('Package')
+  await expect(
+    page.getByRole('link', { name: 'Previous: Introduction' }),
+  ).toHaveAttribute('href', '/docs/introduction/')
+  await expect(
+    page.getByRole('link', { name: 'Next: Component anatomy' }),
+  ).toHaveAttribute('href', '/docs/anatomy/')
+  await expect(page.locator('section#package')).toBeVisible()
+})
+
+test('documentation navigation becomes compact on a narrow viewport', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 320, height: 720 })
+  await page.goto('/docs/installation/')
+
+  await expect(page.locator('.docs-sidebar')).toBeHidden()
+  await expect(page.locator('.docs-mobile-nav')).toBeVisible()
+  await expect(
+    page.locator('.docs-mobile-nav').getByText('Browse documentation'),
+  ).toBeVisible()
+  await expect(page.locator('.docs-mobile-toc')).toBeVisible()
+
+  const pageLinks = page.locator('.docs-page-navigation a')
+  await expect(pageLinks).toHaveCount(2)
+  const linkPositions = await pageLinks.evaluateAll((links) =>
+    links.map((link) => link.getBoundingClientRect().left),
+  )
+  expect(linkPositions[0]).toBe(linkPositions[1])
+
+  const dimensions = await page.evaluate(() => ({
+    viewport: window.innerWidth,
+    document: document.documentElement.scrollWidth,
+  }))
+  expect(dimensions.document).toBe(dimensions.viewport)
+})
+
 test('example sheet renders inside its custom portal target', async ({
   page,
 }) => {

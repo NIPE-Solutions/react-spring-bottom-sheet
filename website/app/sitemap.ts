@@ -1,5 +1,5 @@
 import type { MetadataRoute } from 'next'
-import { docs } from '../content/docs.mjs'
+import { docs } from '../content/docs'
 
 const base = 'https://react-spring-bottom-sheet.nipesolutions.com'
 

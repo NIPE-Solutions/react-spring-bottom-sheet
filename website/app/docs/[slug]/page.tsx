@@ -1,6 +1,12 @@
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
-import { docs, getDoc } from '../../../content/docs.mjs'
+import { DocsShell } from '../../../components/DocsShell'
+import { docs } from '../../../content/docs'
+import {
+  getAdjacentDocs,
+  getDoc,
+  getDocHeadings,
+} from '../../../content/navigation'
 
 export const dynamicParams = false
 
@@ -32,16 +38,23 @@ export default async function Doc({
   const { slug } = await params
   const page = getDoc(slug)
   if (!page) notFound()
+  const headings = getDocHeadings(page)
+  const { previous, next } = getAdjacentDocs(slug)
 
   return (
-    <main id="content" className="docs-page" tabIndex={-1}>
+    <DocsShell
+      currentPage={page}
+      headings={headings}
+      previous={previous}
+      next={next}
+    >
       <header>
         <p className="docs-route">docs / {page.slug}</p>
         <h1>{page.title}</h1>
         <p>{page.description}</p>
       </header>
       {page.sections.map((section) => (
-        <section key={section.title}>
+        <section id={section.id} key={section.id}>
           <h2>{section.title}</h2>
           <p>{section.body}</p>
           {section.code ? (
@@ -58,6 +71,6 @@ export default async function Doc({
           </a>
         </p>
       ) : null}
-    </main>
+    </DocsShell>
   )
 }
