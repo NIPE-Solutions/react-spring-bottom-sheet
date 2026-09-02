@@ -1,9 +1,12 @@
 import { createContext, useContext } from 'react'
 import type { PointerEventHandler } from 'react'
+import type { TransitionPhase } from '../controller/types.js'
 import type { OpenChangeReason } from '../public-types.js'
 
 export interface SheetContextValue {
   open: boolean
+  present: boolean
+  transitionPhase: TransitionPhase
   modal: boolean
   dismissible: boolean
   titleId: string | undefined

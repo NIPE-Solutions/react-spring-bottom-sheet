@@ -27,19 +27,19 @@ describe('Sheet', () => {
     const onOpenChange = vi.fn()
     render(<Example onOpenChange={onOpenChange} />)
 
-    expect(screen.getByRole('dialog')).toHaveAttribute(
+    expect(screen.getByRole('dialog', { hidden: true })).toHaveAttribute(
       'data-rsbs-state',
       'closed',
     )
     fireEvent.click(screen.getByRole('button', { name: 'Open filters' }))
-    expect(screen.getByRole('dialog')).toHaveAttribute(
+    expect(screen.getByRole('dialog', { hidden: true })).toHaveAttribute(
       'data-rsbs-state',
       'open',
     )
     expect(onOpenChange).toHaveBeenLastCalledWith(true, { reason: 'trigger' })
 
     fireEvent.click(screen.getByRole('button', { name: 'Apply' }))
-    expect(screen.getByRole('dialog')).toHaveAttribute(
+    expect(screen.getByRole('dialog', { hidden: true })).toHaveAttribute(
       'data-rsbs-state',
       'closed',
     )
@@ -58,7 +58,7 @@ describe('Sheet', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Open' }))
 
     expect(onOpenChange).toHaveBeenCalledWith(true, { reason: 'trigger' })
-    expect(screen.getByRole('dialog')).toHaveAttribute(
+    expect(screen.getByRole('dialog', { hidden: true })).toHaveAttribute(
       'data-rsbs-state',
       'closed',
     )

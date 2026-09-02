@@ -12,6 +12,10 @@
     pointer-events: none;
   }
 
+  :where(.rsbs-backdrop)[data-rsbs-state='closing'] {
+    pointer-events: none;
+  }
+
   :where(.rsbs-viewport) {
     position: fixed;
     inset: 0;
@@ -40,6 +44,10 @@
   }
 
   :where(.rsbs-content)[data-rsbs-state='closed'] {
+    pointer-events: none;
+  }
+
+  :where(.rsbs-content)[data-rsbs-state='closing'] {
     pointer-events: none;
   }
 

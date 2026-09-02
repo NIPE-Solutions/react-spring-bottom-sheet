@@ -42,6 +42,7 @@ export const Content = forwardRef<HTMLDivElement, SheetContentProps>(
       position,
       dragging,
       titleId,
+      transitionPhase,
     } = useSheetContext('Sheet.Content')
     const internalRef = useRef<HTMLElement>(null)
 
@@ -119,12 +120,14 @@ export const Content = forwardRef<HTMLDivElement, SheetContentProps>(
       ...props,
       role: 'dialog',
       tabIndex: props.tabIndex ?? -1,
+      inert: !open,
       'aria-modal': modal || undefined,
+      'aria-hidden': !open || undefined,
       'aria-labelledby': props['aria-label'] ? undefined : titleId,
       'aria-describedby': descriptionId,
       className: classes,
       'data-rsbs-content': '',
-      'data-rsbs-state': open ? 'open' : 'closed',
+      'data-rsbs-state': transitionPhase,
       'data-rsbs-dragging': dragging || undefined,
       onPointerDown: composePointerHandler(
         onPointerDown,

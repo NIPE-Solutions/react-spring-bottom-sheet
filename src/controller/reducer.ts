@@ -104,6 +104,16 @@ export function reduceSheetState(
       }
     }
 
+    if (state.phase === 'closing') {
+      return {
+        state: {
+          ...state,
+          targetPosition: event.layout.closedPosition,
+        },
+        diagnostic: null,
+      }
+    }
+
     const snapPoint = reconcileActiveSnapPoint(
       state.activeSnapPoint,
       state.position,

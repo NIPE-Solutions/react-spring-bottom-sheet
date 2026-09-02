@@ -9,7 +9,7 @@ export interface SheetPortalProps {
 }
 
 export function Portal({ children, container }: SheetPortalProps) {
-  const { open } = useSheetContext('Sheet.Portal')
+  const { present } = useSheetContext('Sheet.Portal')
   const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
@@ -17,6 +17,6 @@ export function Portal({ children, container }: SheetPortalProps) {
     return () => setMounted(false)
   }, [])
 
-  if (!mounted || !open) return null
+  if (!mounted || !present) return null
   return createPortal(children, container ?? document.body)
 }
