@@ -1,4 +1,4 @@
-# Unreleased
+## [4.1.0](https://github.com/NIPE-Solutions/react-spring-bottom-sheet/compare/4.0.4...4.1.0) (2026-09-02)
 
 This release is a non-breaking stabilization update. Existing v4 applications do
 not need a migration.
