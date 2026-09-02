@@ -137,3 +137,6 @@ yarn-error.log*
 
 # vercel
 .vercel
+
+# Local worktrees
+.worktrees/
