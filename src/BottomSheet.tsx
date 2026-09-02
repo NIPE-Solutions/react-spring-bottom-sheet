@@ -72,6 +72,9 @@ export const BottomSheet = React.forwardRef<
     onSpringEnd,
     reserveScrollBarGap = blocking,
     expandOnContentDrag = false,
+    'aria-label': ariaLabel,
+    'aria-labelledby': ariaLabelledBy,
+    'aria-describedby': ariaDescribedBy,
     ...props
   },
   forwardRef
@@ -623,7 +626,10 @@ export const BottomSheet = React.forwardRef<
       )}
       <div
         key="overlay"
-        aria-modal="true"
+        aria-describedby={ariaDescribedBy}
+        aria-label={ariaLabel}
+        aria-labelledby={ariaLabelledBy}
+        aria-modal={blocking ? true : undefined}
         role="dialog"
         data-rsbs-overlay
         tabIndex={-1}
