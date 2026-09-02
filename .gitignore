@@ -118,6 +118,10 @@ dist
 # next.js
 /.next/
 /out/
+/website/.next/
+/website/out/
+/website/AGENTS.md
+/website/CLAUDE.md
 
 # production
 /build
