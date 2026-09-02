@@ -9,6 +9,19 @@ export interface PublicApiContent {
   notes?: readonly string[]
 }
 
+export const publicApiBehaviorKeys = [
+  'controlled-state',
+  'dismissal',
+  'focus',
+  'portals',
+  'reduced-motion',
+] as const
+
+export type PublicApiBehaviorKey = (typeof publicApiBehaviorKeys)[number]
+export type PublicApiBehaviorMap = Readonly<
+  Partial<Record<PublicApiBehaviorKey, string>>
+>
+
 export interface PublicApiMember {
   name: string
   signature: string
@@ -25,6 +38,41 @@ export interface PublicApiEntry {
 }
 
 export type PublicApiContentMap = Readonly<Record<string, PublicApiContent>>
+
+export const publicApiSectionIds = [
+  'composition',
+  'primitives',
+  'convenience-api',
+  'public-types',
+] as const
+
+export type PublicApiSectionId = (typeof publicApiSectionIds)[number]
+
+export interface PublicApiPresentation {
+  section: PublicApiSectionId
+  title: string
+  caption?: string
+  sourceLabel?: string
+}
+
+export type PublicApiPresentationMap = Readonly<
+  Record<string, PublicApiPresentation>
+>
+
+export interface PublicApiReferenceItem {
+  entry: PublicApiEntry
+  content: PublicApiContent
+  presentation: PublicApiPresentation
+}
+
+export type PublicApiReference = Readonly<
+  Record<PublicApiSectionId, readonly PublicApiReferenceItem[]>
+>
+
+const requiredDefaults = {
+  'bottom-sheet-props': new Set(['open', 'snapPoints', 'modal', 'dismissible']),
+  'sheet-root-props': new Set(['open', 'snapPoints', 'modal', 'dismissible']),
+} as const
 
 const rootMembers = {
   children: {
@@ -126,14 +174,6 @@ export const publicApiContent = {
           'Renders a button that requests closing; preventing its click event cancels the request.',
       },
     },
-    notes: [
-      'Controlled open and activeSnapPoint values remain authoritative; update them from their callbacks.',
-      'onOpenChange identifies trigger, close, Escape, backdrop, or drag requests. Controlled prop updates apply directly without calling it.',
-      'Setting dismissible to false blocks Escape, backdrop, and drag dismissal; Sheet.Close remains available for an explicit action.',
-      'Modal content moves focus inside, contains focus, isolates the background, and restores the previously focused element when it closes.',
-      'Portal defaults to document.body and keeps content mounted until the closing motion finishes.',
-      'Transitions settle immediately when prefers-reduced-motion requests reduced motion.',
-    ],
   },
   'bottom-sheet': {
     summary:
@@ -267,9 +307,116 @@ export const publicApiContent = {
   },
 } as const satisfies PublicApiContentMap
 
+export const publicApiBehavior = {
+  'controlled-state':
+    'Controlled open and activeSnapPoint values remain authoritative; update them from their callbacks.',
+  dismissal:
+    'onOpenChange identifies trigger, close, Escape, backdrop, or drag requests. Setting dismissible to false blocks passive dismissal while Sheet.Close remains available.',
+  focus:
+    'Modal content moves focus inside, contains focus, isolates the background, and restores the previously focused element when it closes.',
+  portals:
+    'Portal defaults to document.body and keeps content mounted until the closing motion finishes.',
+  'reduced-motion':
+    'Transitions settle immediately when prefers-reduced-motion requests reduced motion.',
+} as const satisfies Readonly<Record<PublicApiBehaviorKey, string>>
+
+export const publicApiPresentation = {
+  sheet: {
+    section: 'primitives',
+    title: 'Sheet',
+    caption: 'Sheet namespace members',
+  },
+  'bottom-sheet': {
+    section: 'convenience-api',
+    title: 'BottomSheet',
+  },
+  'bottom-sheet-props': {
+    section: 'convenience-api',
+    title: 'BottomSheetProps',
+    caption: 'BottomSheet props',
+  },
+  'sheet-root-props': {
+    section: 'composition',
+    title: 'Sheet.Root',
+    caption: 'Sheet.Root props',
+    sourceLabel: 'Sheet.Root',
+  },
+  'sheet-trigger-props': {
+    section: 'primitives',
+    title: 'Sheet.Trigger',
+    caption: 'Sheet.Trigger props',
+    sourceLabel: 'Sheet.Trigger',
+  },
+  'sheet-portal-props': {
+    section: 'primitives',
+    title: 'Sheet.Portal',
+    caption: 'Sheet.Portal props',
+    sourceLabel: 'Sheet.Portal',
+  },
+  'sheet-backdrop-props': {
+    section: 'primitives',
+    title: 'Sheet.Backdrop',
+    caption: 'Sheet.Backdrop props',
+    sourceLabel: 'Sheet.Backdrop',
+  },
+  'sheet-viewport-props': {
+    section: 'primitives',
+    title: 'Sheet.Viewport',
+    caption: 'Sheet.Viewport props',
+    sourceLabel: 'Sheet.Viewport',
+  },
+  'sheet-content-props': {
+    section: 'primitives',
+    title: 'Sheet.Content',
+    caption: 'Sheet.Content props',
+    sourceLabel: 'Sheet.Content',
+  },
+  'sheet-handle-props': {
+    section: 'primitives',
+    title: 'Sheet.Handle',
+    caption: 'Sheet.Handle props',
+    sourceLabel: 'Sheet.Handle',
+  },
+  'sheet-title-props': {
+    section: 'primitives',
+    title: 'Sheet.Title',
+    caption: 'Sheet.Title props',
+    sourceLabel: 'Sheet.Title',
+  },
+  'sheet-description-props': {
+    section: 'primitives',
+    title: 'Sheet.Description',
+    caption: 'Sheet.Description props',
+    sourceLabel: 'Sheet.Description',
+  },
+  'sheet-close-props': {
+    section: 'primitives',
+    title: 'Sheet.Close',
+    caption: 'Sheet.Close props',
+    sourceLabel: 'Sheet.Close',
+  },
+  'open-change-details': {
+    section: 'public-types',
+    title: 'OpenChangeDetails',
+  },
+  'open-change-reason': {
+    section: 'public-types',
+    title: 'OpenChangeReason',
+  },
+  'snap-point': {
+    section: 'public-types',
+    title: 'SnapPoint',
+  },
+  'snap-point-value': {
+    section: 'public-types',
+    title: 'SnapPointValue',
+  },
+} as const satisfies PublicApiPresentationMap
+
 export function validatePublicApiContent(
   entries: readonly PublicApiEntry[],
   content: PublicApiContentMap,
+  behavior: PublicApiBehaviorMap,
 ): readonly string[] {
   const errors: string[] = []
   const entriesById = new Map(entries.map((entry) => [entry.id, entry]))
@@ -286,15 +433,31 @@ export function validatePublicApiContent(
       continue
     }
 
+    if (!entryContent.summary?.trim()) {
+      errors.push(
+        `Missing summary for public API entry "${entry.name}" (${entry.id}).`,
+      )
+    }
+
     const generatedMemberNames = new Set(
       entry.members?.map((member) => member.name) ?? [],
     )
+    const requiredEntryDefaults =
+      requiredDefaults[entry.id as keyof typeof requiredDefaults]
 
     for (const member of entry.members ?? []) {
       const memberContent = entryContent.members?.[member.name]
       if (!memberContent?.description?.trim()) {
         errors.push(
           `Missing content for public API member "${entry.name}.${member.name}".`,
+        )
+      }
+      if (
+        requiredEntryDefaults?.has(member.name) &&
+        !memberContent?.defaultValue?.trim()
+      ) {
+        errors.push(
+          `Missing default for public API member "${entry.name}.${member.name}".`,
         )
       }
     }
@@ -314,5 +477,83 @@ export function validatePublicApiContent(
     }
   }
 
+  for (const behaviorKey of publicApiBehaviorKeys) {
+    if (!behavior[behaviorKey]?.trim()) {
+      errors.push(`Missing behavioral guidance for "${behaviorKey}".`)
+    }
+  }
+
+  const knownBehaviorKeys = new Set<string>(publicApiBehaviorKeys)
+  for (const behaviorKey of Object.keys(behavior)) {
+    if (!knownBehaviorKeys.has(behaviorKey)) {
+      errors.push(`Unknown behavioral guidance for "${behaviorKey}".`)
+    }
+  }
+
   return errors
+}
+
+export function validatePublicApiPresentation(
+  entries: readonly PublicApiEntry[],
+  presentation: PublicApiPresentationMap,
+): readonly string[] {
+  const errors: string[] = []
+  const entriesById = new Map(entries.map((entry) => [entry.id, entry]))
+
+  for (const entry of entries) {
+    if (!Object.hasOwn(presentation, entry.id)) {
+      errors.push(
+        `Missing presentation for public API entry "${entry.name}" (${entry.id}).`,
+      )
+    }
+  }
+
+  for (const presentationId of Object.keys(presentation)) {
+    if (!entriesById.has(presentationId)) {
+      errors.push(
+        `Unknown presentation for public API entry "${presentationId}".`,
+      )
+    }
+  }
+
+  return errors
+}
+
+export function createPublicApiReference(
+  entries: readonly PublicApiEntry[],
+  content: PublicApiContentMap,
+  behavior: PublicApiBehaviorMap,
+  presentation: PublicApiPresentationMap,
+): PublicApiReference {
+  const errors = [
+    ...validatePublicApiContent(entries, content, behavior),
+    ...validatePublicApiPresentation(entries, presentation),
+  ]
+
+  if (errors.length > 0) {
+    throw new Error(
+      [
+        'Public API reference validation failed:',
+        ...errors.map((error) => `- ${error}`),
+      ].join('\n'),
+    )
+  }
+
+  const reference: Record<PublicApiSectionId, PublicApiReferenceItem[]> = {
+    composition: [],
+    primitives: [],
+    'convenience-api': [],
+    'public-types': [],
+  }
+
+  for (const entry of entries) {
+    const entryPresentation = presentation[entry.id]!
+    reference[entryPresentation.section].push({
+      entry,
+      content: content[entry.id]!,
+      presentation: entryPresentation,
+    })
+  }
+
+  return reference
 }

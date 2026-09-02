@@ -1,5 +1,13 @@
 import { expect, test } from '@playwright/test'
 import AxeBuilder from '@axe-core/playwright'
+import { readFileSync } from 'node:fs'
+
+const generatedPublicApi = JSON.parse(
+  readFileSync(
+    new URL('../../website/generated/public-api.json', import.meta.url),
+    'utf8',
+  ),
+) as readonly { id: string }[]
 
 test('home page exposes navigation and a working sheet', async ({ page }) => {
   await page.goto('/')
@@ -111,6 +119,41 @@ test('API reference documents the generated surface and maintained guidance', as
   await expect(
     page.getByRole('link', { name: 'Run the controlled-state recipe' }),
   ).toHaveAttribute('href', '/examples/controlled/')
+})
+
+test('API reference renders every generated entry exactly once', async ({
+  page,
+}) => {
+  await page.goto('/docs/api/')
+
+  const renderedIds = await page
+    .locator('[data-api-id]')
+    .evaluateAll((nodes) =>
+      nodes.map((node) => node.getAttribute('data-api-id')),
+    )
+  const generatedIds = generatedPublicApi.map(({ id }) => id)
+
+  expect(renderedIds).toHaveLength(generatedIds.length)
+  expect(new Set(renderedIds).size).toBe(generatedIds.length)
+  expect(renderedIds.toSorted()).toEqual(generatedIds.toSorted())
+})
+
+test('API signatures stay out of keyboard order while links remain reachable', async ({
+  page,
+}) => {
+  await page.goto('/docs/api/')
+
+  const source = page.getByRole('link', { name: 'View Sheet.Root source' })
+  const controlledRecipe = page.getByRole('link', {
+    name: 'Run the controlled-state recipe',
+  })
+  await source.focus()
+  await page.keyboard.press('Shift+Tab')
+  await expect(page.locator(':focus')).toHaveAttribute('href')
+  await page.keyboard.press('Tab')
+  await expect(source).toBeFocused()
+  await page.keyboard.press('Tab')
+  await expect(controlledRecipe).toBeFocused()
 })
 
 test('API reference contains dense signatures at 320 pixels', async ({

@@ -121,7 +121,7 @@ describe('Sheet', () => {
       </Sheet.Root>,
     )
 
-    expect(screen.getByRole('button', { name: 'Open' })).toHaveClass(
+    expect(document.querySelector('[data-rsbs-trigger]')).toHaveClass(
       'rsbs-trigger',
       'product-trigger',
     )

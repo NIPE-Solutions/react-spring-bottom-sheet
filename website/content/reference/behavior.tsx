@@ -1,68 +1,43 @@
 import Link from 'next/link'
 import { ApiTable } from '../../components/ApiTable'
 import generatedPublicApi from '../../generated/public-api.json'
-import { publicApiContent, type PublicApiEntry } from './public-api'
+import {
+  createPublicApiReference,
+  publicApiBehavior,
+  publicApiBehaviorKeys,
+  publicApiContent,
+  publicApiPresentation,
+  type PublicApiEntry,
+  type PublicApiReferenceItem,
+} from './public-api'
 
 const entries = generatedPublicApi as readonly PublicApiEntry[]
-const entriesById = new Map(entries.map((entry) => [entry.id, entry]))
-
-function getEntry(id: string): PublicApiEntry {
-  const entry = entriesById.get(id)
-  if (!entry) throw new Error(`Missing generated public API entry: ${id}`)
-  return entry
-}
-
-interface ReferenceEntryProps {
-  id: keyof typeof publicApiContent
-  title: string
-  caption?: string
-  sourceLabel?: string
-}
+const reference = createPublicApiReference(
+  entries,
+  publicApiContent,
+  publicApiBehavior,
+  publicApiPresentation,
+)
 
 function ReferenceEntry({
-  id,
-  title,
-  caption,
-  sourceLabel,
-}: ReferenceEntryProps) {
-  const entry = getEntry(id)
-  const content = publicApiContent[id]
-
-  if (!content) throw new Error(`Missing maintained public API content: ${id}`)
-
+  entry,
+  content,
+  presentation,
+}: PublicApiReferenceItem) {
   return (
-    <div className="docs-api-entry">
+    <div className="docs-api-entry" data-api-id={entry.id}>
       <h3>
-        <code>{title}</code>
+        <code>{presentation.title}</code>
       </h3>
       <ApiTable
-        caption={caption}
+        caption={presentation.caption}
         content={content}
         entry={entry}
-        sourceLabel={sourceLabel}
+        sourceLabel={presentation.sourceLabel}
       />
     </div>
   )
 }
-
-const primitiveEntries = [
-  ['sheet-trigger-props', 'Sheet.Trigger'],
-  ['sheet-portal-props', 'Sheet.Portal'],
-  ['sheet-backdrop-props', 'Sheet.Backdrop'],
-  ['sheet-viewport-props', 'Sheet.Viewport'],
-  ['sheet-content-props', 'Sheet.Content'],
-  ['sheet-handle-props', 'Sheet.Handle'],
-  ['sheet-title-props', 'Sheet.Title'],
-  ['sheet-description-props', 'Sheet.Description'],
-  ['sheet-close-props', 'Sheet.Close'],
-] as const
-
-const publicTypeEntries = [
-  ['open-change-details', 'OpenChangeDetails'],
-  ['open-change-reason', 'OpenChangeReason'],
-  ['snap-point', 'SnapPoint'],
-  ['snap-point-value', 'SnapPointValue'],
-] as const
 
 export function ApiReference() {
   return (
@@ -74,12 +49,9 @@ export function ApiReference() {
           remaining primitives describe the DOM. Use controlled values when
           another part of the application owns open or snap-point state.
         </p>
-        <ReferenceEntry
-          caption="Sheet.Root props"
-          id="sheet-root-props"
-          sourceLabel="Sheet.Root"
-          title="Sheet.Root"
-        />
+        {reference.composition.map((item) => (
+          <ReferenceEntry {...item} key={item.entry.id} />
+        ))}
         <p>
           <Link href="/examples/controlled/">
             Run the controlled-state recipe
@@ -95,19 +67,8 @@ export function ApiReference() {
           <code>asChild</code> when an application-owned element should receive
           those props instead.
         </p>
-        <ReferenceEntry
-          caption="Sheet namespace members"
-          id="sheet"
-          title="Sheet"
-        />
-        {primitiveEntries.map(([id, title]) => (
-          <ReferenceEntry
-            caption={`${title} props`}
-            id={id}
-            key={id}
-            sourceLabel={title}
-            title={title}
-          />
+        {reference.primitives.map((item) => (
+          <ReferenceEntry {...item} key={item.entry.id} />
         ))}
         <p>
           <Link href="/examples/custom-portal/">
@@ -124,12 +85,9 @@ export function ApiReference() {
           viewport, content, handle, title, and optional description around the
           same root behavior.
         </p>
-        <ReferenceEntry id="bottom-sheet" title="BottomSheet" />
-        <ReferenceEntry
-          caption="BottomSheet props"
-          id="bottom-sheet-props"
-          title="BottomSheetProps"
-        />
+        {reference['convenience-api'].map((item) => (
+          <ReferenceEntry {...item} key={item.entry.id} />
+        ))}
       </section>
 
       <section id="public-types">
@@ -138,8 +96,8 @@ export function ApiReference() {
           State callbacks report stable reasons, and snap points pair a stable
           identifier with a validated height value.
         </p>
-        {publicTypeEntries.map(([id, title]) => (
-          <ReferenceEntry id={id} key={id} title={title} />
+        {reference['public-types'].map((item) => (
+          <ReferenceEntry {...item} key={item.entry.id} />
         ))}
         <p>
           <Link href="/examples/snap-points/">
@@ -152,26 +110,9 @@ export function ApiReference() {
       <section id="behavioral-guarantees">
         <h2>Behavioral guarantees</h2>
         <ul className="docs-api-guarantees">
-          <li>
-            Controlled <code>open</code> and <code>activeSnapPoint</code> values
-            remain authoritative until their owners update them.
-          </li>
-          <li>
-            Modal content receives and contains focus, isolates the background,
-            and restores the previously focused element after closing.
-          </li>
-          <li>
-            Portalled content remains mounted until its closing transition has
-            finished.
-          </li>
-          <li>
-            Escape, backdrop, and drag dismissal respect{' '}
-            <code>dismissible</code>; explicit close controls remain available.
-          </li>
-          <li>
-            Transitions settle immediately when the operating system requests
-            reduced motion.
-          </li>
+          {publicApiBehaviorKeys.map((key) => (
+            <li key={key}>{publicApiBehavior[key]}</li>
+          ))}
         </ul>
         <p>
           Verify the motion contract with the{' '}

@@ -408,6 +408,98 @@ test('rejects an incomplete Sheet namespace', () => {
   }
 })
 
+test('rejects unexpected Sheet namespace members', () => {
+  const fixture = publicApiFixture()
+  fixture['dist/components/Sheet.d.ts'] = fixture[
+    'dist/components/Sheet.d.ts'
+  ].replace(
+    '  readonly Close: typeof Close\n',
+    '  readonly Close: typeof Close\n  readonly Experimental: typeof Close\n',
+  )
+  const projectRoot = writeFixture(fixture)
+
+  try {
+    assert.throws(
+      () =>
+        extractPublicApi({
+          declarationFile: join(projectRoot, 'dist/index.d.ts'),
+          projectRoot,
+        }),
+      /Sheet namespace has unexpected members: Experimental/,
+    )
+  } finally {
+    removeFixture(projectRoot)
+  }
+})
+
+test('canonical component signatures ignore local binding names', () => {
+  const firstFixture = publicApiFixture()
+  firstFixture['dist/components/Root.d.ts'] = `
+export interface SheetRootProps {
+  open: boolean
+  activeSnapPoint?: string
+  modal?: boolean
+}
+
+export declare function Root(
+  {
+    open: controlledOpen,
+    activeSnapPoint: controlledSnapPoint,
+    ...rootProps
+  }: SheetRootProps
+): string
+`
+  firstFixture['dist/components/BottomSheet.d.ts'] = `
+import type { SheetRootProps } from './Root.js'
+
+export interface BottomSheetProps extends SheetRootProps {
+  snapPoints?: readonly number[]
+}
+
+export declare function BottomSheet({ ...rootProps }: BottomSheetProps): string
+`
+  const secondFixture = structuredClone(firstFixture)
+  secondFixture['dist/components/Root.d.ts'] = secondFixture[
+    'dist/components/Root.d.ts'
+  ]
+    .replace('controlledOpen', 'externalOpen')
+    .replace('controlledSnapPoint', 'externalSnapPoint')
+    .replace('rootProps', 'remainingRootProps')
+  secondFixture['dist/components/BottomSheet.d.ts'] = secondFixture[
+    'dist/components/BottomSheet.d.ts'
+  ].replace('rootProps', 'remainingBottomSheetProps')
+  const firstProjectRoot = writeFixture(firstFixture)
+  const secondProjectRoot = writeFixture(secondFixture)
+
+  try {
+    const callableSignatures = (projectRoot) => {
+      const entries = extractPublicApi({
+        declarationFile: join(projectRoot, 'dist/index.d.ts'),
+        projectRoot,
+      })
+      const sheet = entries.find(({ id }) => id === 'sheet')
+      const bottomSheet = entries.find(({ id }) => id === 'bottom-sheet')
+
+      return {
+        root: sheet?.members?.find(({ name }) => name === 'Root')?.signature,
+        bottomSheet: bottomSheet?.signature,
+      }
+    }
+
+    assert.deepEqual(callableSignatures(firstProjectRoot), {
+      root: '(props: SheetRootProps) => string',
+      bottomSheet: '(props: BottomSheetProps) => string',
+    })
+    assert.deepEqual(
+      callableSignatures(secondProjectRoot),
+      callableSignatures(firstProjectRoot),
+    )
+  } finally {
+    removeFixture(firstProjectRoot)
+    removeFixture(secondProjectRoot)
+  }
+})
+
 test('keeps dependency-owned inherited members out of public type rows', () => {
   const projectRoot = writeFixture({
     'dist/index.d.ts': `

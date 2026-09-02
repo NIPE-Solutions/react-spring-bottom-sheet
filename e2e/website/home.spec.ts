@@ -16,7 +16,7 @@ test('homepage presents generated package evidence and useful next steps', async
     name: 'What the current build proves.',
   })
   await expect(evidence).toContainText('5.0.0-alpha.0')
-  await expect(evidence).toContainText('10.5 kB gzip')
+  await expect(evidence).toContainText('10.6 kB gzip')
   await expect(evidence).toContainText('Chromium, Firefox, WebKit')
   await expect(evidence).toContainText('React ^19.0.0')
   await expect(

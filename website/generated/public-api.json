@@ -8,52 +8,52 @@
     "members": [
       {
         "name": "Root",
-        "signature": "({ children, open: controlledOpen, defaultOpen, onOpenChange, snapPoints, activeSnapPoint: controlledSnapPoint, defaultSnapPoint, onSnapPointChange, modal, dismissible, }: SheetRootProps) => import(\"react\").JSX.Element",
+        "signature": "(props: SheetRootProps) => React.JSX.Element",
         "required": true
       },
       {
         "name": "Trigger",
-        "signature": "React.ForwardRefExoticComponent<SheetTriggerProps & React.RefAttributes<HTMLButtonElement>>",
+        "signature": "(props: SheetTriggerProps & React.RefAttributes<HTMLButtonElement>) => React.ReactNode",
         "required": true
       },
       {
         "name": "Portal",
-        "signature": "({ children, container }: SheetPortalProps) => import(\"react\").ReactPortal | null",
+        "signature": "(props: SheetPortalProps) => React.ReactPortal | null",
         "required": true
       },
       {
         "name": "Backdrop",
-        "signature": "React.ForwardRefExoticComponent<React.HTMLAttributes<HTMLDivElement> & { asChild?: boolean; } & React.RefAttributes<HTMLDivElement>>",
+        "signature": "(props: React.HTMLAttributes<HTMLDivElement> & { asChild?: boolean; } & React.RefAttributes<HTMLDivElement>) => React.ReactNode",
         "required": true
       },
       {
         "name": "Viewport",
-        "signature": "React.ForwardRefExoticComponent<React.HTMLAttributes<HTMLDivElement> & { asChild?: boolean; } & React.RefAttributes<HTMLDivElement>>",
+        "signature": "(props: React.HTMLAttributes<HTMLDivElement> & { asChild?: boolean; } & React.RefAttributes<HTMLDivElement>) => React.ReactNode",
         "required": true
       },
       {
         "name": "Content",
-        "signature": "React.ForwardRefExoticComponent<React.HTMLAttributes<HTMLDivElement> & { asChild?: boolean; } & React.RefAttributes<HTMLDivElement>>",
+        "signature": "(props: React.HTMLAttributes<HTMLDivElement> & { asChild?: boolean; } & React.RefAttributes<HTMLDivElement>) => React.ReactNode",
         "required": true
       },
       {
         "name": "Handle",
-        "signature": "React.ForwardRefExoticComponent<React.HTMLAttributes<HTMLDivElement> & { asChild?: boolean; } & React.RefAttributes<HTMLDivElement>>",
+        "signature": "(props: React.HTMLAttributes<HTMLDivElement> & { asChild?: boolean; } & React.RefAttributes<HTMLDivElement>) => React.ReactNode",
         "required": true
       },
       {
         "name": "Title",
-        "signature": "React.ForwardRefExoticComponent<React.HTMLAttributes<HTMLHeadingElement> & { asChild?: boolean; } & React.RefAttributes<HTMLHeadingElement>>",
+        "signature": "(props: React.HTMLAttributes<HTMLHeadingElement> & { asChild?: boolean; } & React.RefAttributes<HTMLHeadingElement>) => React.ReactNode",
         "required": true
       },
       {
         "name": "Description",
-        "signature": "React.ForwardRefExoticComponent<React.HTMLAttributes<HTMLParagraphElement> & { asChild?: boolean; } & React.RefAttributes<HTMLParagraphElement>>",
+        "signature": "(props: React.HTMLAttributes<HTMLParagraphElement> & { asChild?: boolean; } & React.RefAttributes<HTMLParagraphElement>) => React.ReactNode",
         "required": true
       },
       {
         "name": "Close",
-        "signature": "React.ForwardRefExoticComponent<React.ButtonHTMLAttributes<HTMLButtonElement> & { asChild?: boolean; } & React.RefAttributes<HTMLButtonElement>>",
+        "signature": "(props: React.ButtonHTMLAttributes<HTMLButtonElement> & { asChild?: boolean; } & React.RefAttributes<HTMLButtonElement>) => React.ReactNode",
         "required": true
       }
     ]
@@ -62,7 +62,7 @@
     "id": "bottom-sheet",
     "name": "BottomSheet",
     "kind": "component",
-    "signature": "({ backdropProps, children, contentProps, description, title, viewportProps, ...rootProps }: BottomSheetProps) => import(\"react\").JSX.Element",
+    "signature": "(props: BottomSheetProps) => React.JSX.Element",
     "source": "src/components/BottomSheet.tsx"
   },
   {

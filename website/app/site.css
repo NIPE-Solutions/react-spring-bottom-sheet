@@ -693,18 +693,13 @@
   .docs-api-declaration {
     max-width: 100%;
     margin-bottom: 0.75rem;
-    overflow-x: auto;
     border-left: 3px solid var(--docs-signal);
     background: var(--docs-panel);
     padding: 0.65rem 0.8rem;
   }
   .docs-api-declaration code {
-    white-space: nowrap;
-  }
-  .docs-api-declaration:focus-visible,
-  .docs-api-signature:focus-visible {
-    outline: 3px solid var(--docs-signal);
-    outline-offset: -3px;
+    overflow-wrap: anywhere;
+    white-space: normal;
   }
   .docs-api-table {
     width: 100%;
@@ -758,8 +753,8 @@
   .docs-api-signature {
     display: block;
     max-width: 100%;
-    overflow-x: auto;
-    white-space: nowrap;
+    overflow-wrap: anywhere;
+    white-space: normal;
   }
   .docs-api-notes,
   .docs-api-guarantees {

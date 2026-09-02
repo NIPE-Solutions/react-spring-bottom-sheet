@@ -129,6 +129,35 @@ function formatType(type, checker, location) {
   )
 }
 
+function formatCallableType(type, checker, location) {
+  const signature = type.getCallSignatures()[0]
+  if (!signature) return undefined
+
+  const parameters = signature.getParameters().map((parameter, index) => {
+    const declaration = declarationFor(parameter)
+    const parameterType = checker.getTypeOfSymbolAtLocation(
+      parameter,
+      declaration ?? location,
+    )
+    const rest =
+      declaration && ts.isParameter(declaration) && declaration.dotDotDotToken
+        ? '...'
+        : ''
+    const optional = index >= signature.minArgumentCount && !rest ? '?' : ''
+    const name =
+      signature.getParameters().length === 1 ? 'props' : `arg${index + 1}`
+
+    return `${rest}${name}${optional}: ${formatType(
+      parameterType,
+      checker,
+      location,
+    )}`
+  })
+  const returnType = formatType(signature.getReturnType(), checker, location)
+
+  return `(${parameters.join(', ')}) => ${returnType}`
+}
+
 function formatTypeNode(typeNode) {
   return normalizeWhitespace(typeNode.getText())
 }
@@ -237,10 +266,20 @@ function extractSheetEntry(symbol, checker, projectRoot) {
   const missingMembers = SHEET_MEMBER_ORDER.filter(
     (name) => !properties.has(name),
   )
+  const expectedMembers = new Set(SHEET_MEMBER_ORDER)
+  const unexpectedMembers = [...properties.keys()]
+    .filter((name) => !expectedMembers.has(name))
+    .sort()
 
   if (missingMembers.length > 0) {
     throw new Error(
       `Sheet namespace is incomplete: missing ${missingMembers.join(', ')}`,
+    )
+  }
+
+  if (unexpectedMembers.length > 0) {
+    throw new Error(
+      `Sheet namespace has unexpected members: ${unexpectedMembers.join(', ')}`,
     )
   }
 
@@ -253,13 +292,15 @@ function extractSheetEntry(symbol, checker, projectRoot) {
     members: SHEET_MEMBER_ORDER.map((name) => {
       const member = properties.get(name)
       const memberDeclaration = declarationFor(member)
+      const memberType = checker.getTypeOfSymbolAtLocation(
+        member,
+        memberDeclaration,
+      )
       return {
         name,
-        signature: formatType(
-          checker.getTypeOfSymbolAtLocation(member, memberDeclaration),
-          checker,
-          memberDeclaration,
-        ),
+        signature:
+          formatCallableType(memberType, checker, memberDeclaration) ??
+          formatType(memberType, checker, memberDeclaration),
         required: !(member.flags & ts.SymbolFlags.Optional),
       }
     }),
@@ -269,14 +310,15 @@ function extractSheetEntry(symbol, checker, projectRoot) {
 function extractComponentEntry(name, symbol, checker, projectRoot) {
   const declaration = declarationFor(symbol)
   const type = checker.getTypeOfSymbolAtLocation(symbol, declaration)
+  const signature = formatCallableType(type, checker, declaration)
 
-  if (type.getCallSignatures().length === 0) return undefined
+  if (!signature) return undefined
 
   return {
     id: normalizeIdentifier(name),
     name,
     kind: 'component',
-    signature: formatType(type, checker, declaration),
+    signature,
     source: sourcePathFor(declaration, projectRoot),
   }
 }

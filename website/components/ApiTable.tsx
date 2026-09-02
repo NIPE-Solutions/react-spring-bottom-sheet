@@ -19,20 +19,37 @@ export function ApiTable({
   caption = `${entry.name} API`,
   sourceLabel = entry.name,
 }: ApiTableProps) {
-  const rows = entry.members?.map((member) => ({
-    ...member,
-    description: content.members?.[member.name]?.description ?? '',
-    defaultValue: content.members?.[member.name]?.defaultValue,
-    state: member.required ? 'Required' : 'Optional',
-  })) ?? [
-    {
-      name: entry.name,
-      signature: entry.signature,
-      description: content.summary,
-      defaultValue: undefined,
-      state: 'Exported',
-    },
-  ]
+  if (!content.summary?.trim()) {
+    throw new Error(
+      `Missing maintained public API summary for "${entry.name}".`,
+    )
+  }
+
+  const rows = entry.members
+    ? entry.members.map((member) => {
+        const memberContent = content.members?.[member.name]
+        if (!memberContent?.description?.trim()) {
+          throw new Error(
+            `Missing maintained public API content for "${entry.name}.${member.name}".`,
+          )
+        }
+
+        return {
+          ...member,
+          description: memberContent.description,
+          defaultValue: memberContent.defaultValue,
+          state: member.required ? 'Required' : 'Optional',
+        }
+      })
+    : [
+        {
+          name: entry.name,
+          signature: entry.signature,
+          description: content.summary,
+          defaultValue: undefined,
+          state: 'Exported',
+        },
+      ]
 
   const nameHeading = entry.id.endsWith('-props') ? 'Prop' : 'Name'
 
@@ -41,7 +58,7 @@ export function ApiTable({
       {entry.members ? (
         <>
           <p className="docs-api-summary">{content.summary}</p>
-          <div className="docs-api-declaration" tabIndex={0}>
+          <div className="docs-api-declaration">
             <code>{entry.signature}</code>
           </div>
         </>
@@ -64,9 +81,7 @@ export function ApiTable({
                 <code>{row.name}</code>
               </th>
               <td data-label="Signature">
-                <code className="docs-api-signature" tabIndex={0}>
-                  {row.signature}
-                </code>
+                <code className="docs-api-signature">{row.signature}</code>
               </td>
               <td data-label="State">{row.state}</td>
               <td data-label="Default">

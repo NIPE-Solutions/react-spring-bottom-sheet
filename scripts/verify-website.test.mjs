@@ -90,10 +90,14 @@ test('the website keeps the generated public API reference inputs available', ()
     readFileSync(new URL('../package.json', import.meta.url), 'utf8'),
   )
   const check = packageJson.scripts.check
+  const distributionBuild = check.indexOf('npm run build:dist')
+  const apiCheck = check.indexOf('npm run test:api')
 
-  assert.ok(check.includes('npm run test:api'))
+  assert.ok(distributionBuild >= 0, 'check builds declarations')
+  assert.ok(apiCheck >= 0, 'check validates the generated API')
   assert.ok(
-    check.indexOf('npm run build:dist') < check.indexOf('npm run test:api'),
+    distributionBuild < apiCheck,
+    'check builds declarations before validating the generated API',
   )
 
   const websiteBuild = packageJson.scripts['build:website']
