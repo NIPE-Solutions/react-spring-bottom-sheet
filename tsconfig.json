@@ -28,6 +28,8 @@
     "src/composition/**/*.ts",
     "src/composition/**/*.tsx",
     "src/context/**/*.ts",
+    "src/gestures/**/*.ts",
+    "src/motion/**/*.ts",
     "vite.config.ts",
     "vitest.config.ts"
   ]
