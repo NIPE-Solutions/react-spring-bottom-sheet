@@ -83,6 +83,40 @@ const commandLines = (step) =>
     .map((line) => line.trim())
     .filter((line) => line !== '' && !line.startsWith('#'))
 
+const jobDependencies = (settings) => {
+  const inline = settings.match(/^ {4}needs:\s*(.+?)\s*$/m)?.[1]
+  if (inline) {
+    if (inline === '[]') return []
+    if (inline.startsWith('[') && inline.endsWith(']')) {
+      return inline
+        .slice(1, -1)
+        .split(',')
+        .map((dependency) => dependency.trim())
+        .filter(Boolean)
+    }
+    return [inline]
+  }
+
+  return mappingBlock(settings, 'needs', 4).flatMap((line) => {
+    const match = line.match(/^ {6}- ([\w-]+)\s*$/)
+    return match ? [match[1]] : []
+  })
+}
+
+export function parseWorkflowModel(workflow) {
+  return jobsIn(withoutComments(workflow)).map((job) => {
+    const settings = jobSettings(job)
+
+    return {
+      name: job.name,
+      needs: jobDependencies(settings),
+      steps: stepsIn(job).map((step) => ({
+        commands: commandLines(step),
+      })),
+    }
+  })
+}
+
 const hasPublishCommand = (step) =>
   commandLines(step).some(
     (line) =>

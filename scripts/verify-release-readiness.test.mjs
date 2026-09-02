@@ -1,10 +1,16 @@
 import assert from 'node:assert/strict'
-import { existsSync, readFileSync } from 'node:fs'
+import { spawnSync } from 'node:child_process'
+import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import test from 'node:test'
 
 import {
   readinessCommands,
+  runReadinessCli,
   runReadinessChecks,
+  validateReadinessScriptGraph,
+  validateReadinessWorkflows,
 } from './verify-release-readiness.mjs'
 
 const expectedCommands = [
@@ -31,17 +37,10 @@ const requiredText = (url) => {
   return readFileSync(url, 'utf8')
 }
 
-const jobSource = (workflow, name) => {
-  const marker = `  ${name}:\n`
-  const start = workflow.indexOf(marker)
-  assert.notEqual(start, -1, `missing ${name} job`)
-  const remainder = workflow.slice(start + marker.length)
-  const nextJob = remainder.search(/^ {2}[\w-]+:\s*$/m)
-  return remainder.slice(0, nextJob === -1 ? undefined : nextJob)
+const replaceOnce = (source, expected, replacement) => {
+  assert.notEqual(source.indexOf(expected), -1, `missing ${expected}`)
+  return source.replace(expected, replacement)
 }
-
-const inlineCommands = (job) =>
-  [...job.matchAll(/^ {6}- run: (.+)$/gm)].map((match) => match[1])
 
 test('runs every readiness gate in deterministic order', () => {
   const calls = []
@@ -72,7 +71,69 @@ test('stops at the first failed readiness gate', () => {
   assert.deepEqual(calls, expectedCommands.slice(0, 2))
 })
 
-test('readiness gates contain no publication or repository mutation', () => {
+test('runs an injected harmless command list', () => {
+  const commands = [
+    [process.execPath, ['-e', 'process.exit(0)']],
+    [process.execPath, ['-e', 'process.exit(9)']],
+  ]
+  const calls = []
+  const runner = (command, args) => {
+    calls.push([command, args])
+    return { status: 0 }
+  }
+
+  assert.equal(runReadinessChecks({ commands, runner }), 0)
+  assert.deepEqual(calls, commands)
+})
+
+test('real runner propagates child failure through the CLI and stops', () => {
+  const directory = mkdtempSync(join(tmpdir(), 'release-readiness-'))
+  const marker = join(directory, 'launched-after-failure')
+  const previousExitCode = process.exitCode
+
+  try {
+    process.exitCode = undefined
+    const status = runReadinessCli({
+      commands: [
+        [process.execPath, ['-e', 'process.exit(0)']],
+        [process.execPath, ['-e', 'process.exit(23)']],
+        [
+          process.execPath,
+          [
+            '-e',
+            `require('node:fs').writeFileSync(${JSON.stringify(marker)}, '')`,
+          ],
+        ],
+      ],
+    })
+
+    assert.equal(status, 23)
+    assert.equal(process.exitCode, 23)
+    assert.equal(existsSync(marker), false)
+  } finally {
+    process.exitCode = previousExitCode
+    rmSync(directory, { force: true, recursive: true })
+  }
+})
+
+test('importing the readiness module does not execute its CLI', () => {
+  const moduleUrl = new URL('./verify-release-readiness.mjs', import.meta.url)
+  const result = spawnSync(
+    process.execPath,
+    [
+      '--input-type=module',
+      '-e',
+      `await import(${JSON.stringify(moduleUrl.href)})`,
+    ],
+    { encoding: 'utf8' },
+  )
+
+  assert.equal(result.status, 0)
+  assert.equal(result.stdout, '')
+  assert.equal(result.stderr, '')
+})
+
+test('readiness manifest contains no direct publication or repository mutation', () => {
   assert.deepEqual(readinessCommands, expectedCommands)
   assert.equal(
     readinessCommands.some(([command, args]) =>
@@ -82,6 +143,59 @@ test('readiness gates contain no publication or repository mutation', () => {
     ),
     false,
   )
+})
+
+test('accepts the reachable readiness package-script graph', () => {
+  assert.deepEqual(
+    validateReadinessScriptGraph({ scripts: packageJson.scripts }),
+    [],
+  )
+})
+
+test('rejects readiness recursion through a reachable script', () => {
+  const scripts = {
+    ...packageJson.scripts,
+    check: `${packageJson.scripts.check} && npm run release:check`,
+  }
+
+  assert.match(
+    validateReadinessScriptGraph({ scripts }).join('\n'),
+    /readiness package-script cycle: release:check -> check -> release:check/,
+  )
+})
+
+test('rejects release mutations in every reachable script', () => {
+  for (const command of [
+    'npm publish',
+    'npm version prerelease',
+    'npm dist-tag add package@version next',
+    'git tag v5.0.0-alpha.0',
+    'gh release create v5.0.0-alpha.0',
+  ]) {
+    const scripts = {
+      ...packageJson.scripts,
+      'test:browser-matrix': command,
+    }
+
+    assert.match(
+      validateReadinessScriptGraph({ scripts }).join('\n'),
+      /reachable script test:browser-matrix contains a release mutation/,
+    )
+  }
+})
+
+test('rejects release mutations in pack lifecycle hooks', () => {
+  for (const hook of ['prepack', 'prepare', 'postpack']) {
+    const scripts = {
+      ...packageJson.scripts,
+      [hook]: 'npm publish',
+    }
+
+    assert.match(
+      validateReadinessScriptGraph({ scripts }).join('\n'),
+      new RegExp(`reachable script ${hook} contains a release mutation`),
+    )
+  }
 })
 
 test('package scripts expose readiness and keep its policy tests in check', () => {
@@ -157,33 +271,92 @@ test('prerelease instructions order clean install before readiness and sign-off'
   }
 })
 
-for (const [name, workflow] of [
-  ['CI', ciWorkflow],
-  ['release', releaseWorkflow],
-]) {
-  test(`${name} quality runs the composed readiness command once`, () => {
-    assert.deepEqual(inlineCommands(jobSource(workflow, 'quality')), [
-      'npm ci',
-      'npm run release:check',
-    ])
-  })
-
-  test(`${name} preserves desktop and touch browser execution`, () => {
-    assert.match(
-      jobSource(workflow, 'browsers'),
-      /project: \[chromium, firefox, webkit\]/,
-    )
-    assert.match(
-      jobSource(workflow, 'chromium-touch'),
-      /npm run test:e2e -- --project=chromium-touch/,
-    )
-  })
-}
-
-test('release readiness completes before the protected publish job', () => {
-  assert.match(
-    jobSource(releaseWorkflow, 'verify'),
-    /needs: \[quality, browsers, chromium-touch\]/,
+test('accepts the checked workflow readiness policy', () => {
+  assert.deepEqual(
+    validateReadinessWorkflows({ ciWorkflow, releaseWorkflow }),
+    [],
   )
-  assert.match(jobSource(releaseWorkflow, 'publish'), /^ {4}needs: verify$/m)
+})
+
+test('rejects a named duplicate check step in either quality job', () => {
+  for (const workflowName of ['ciWorkflow', 'releaseWorkflow']) {
+    const workflows = { ciWorkflow, releaseWorkflow }
+    workflows[workflowName] = replaceOnce(
+      workflows[workflowName],
+      '      - run: npm run release:check\n',
+      [
+        '      - run: npm run release:check',
+        '      - name: Duplicate full check',
+        '        run: npm run check',
+        '',
+      ].join('\n'),
+    )
+
+    assert.match(
+      validateReadinessWorkflows(workflows).join('\n'),
+      /quality must run only npm ci and npm run release:check/,
+    )
+  }
+})
+
+test('ignores commands in workflow comments and inert step metadata', () => {
+  const workflowWithInertText = replaceOnce(
+    ciWorkflow,
+    '      - run: npm run release:check\n',
+    [
+      '      - run: npm run release:check',
+      '      # run: npm run check',
+      '      - uses: actions/cache@v5',
+      '        with:',
+      '          note: npm run check',
+      '',
+    ].join('\n'),
+  )
+
+  assert.deepEqual(
+    validateReadinessWorkflows({
+      ciWorkflow: workflowWithInertText,
+      releaseWorkflow,
+    }),
+    [],
+  )
+})
+
+test('rejects a touch job whose command survives only in a comment', () => {
+  const withoutExecutableTouch = replaceOnce(
+    ciWorkflow,
+    '      - run: npm run test:e2e -- --project=chromium-touch',
+    [
+      '      - run: echo "touch execution skipped"',
+      '      # run: npm run test:e2e -- --project=chromium-touch',
+    ].join('\n'),
+  )
+
+  assert.match(
+    validateReadinessWorkflows({
+      ciWorkflow: withoutExecutableTouch,
+      releaseWorkflow,
+    }).join('\n'),
+    /CI chromium-touch must execute its browser project/,
+  )
+})
+
+test('rejects a publish graph disconnected from readiness quality', () => {
+  const disconnectedRelease = releaseWorkflow
+    .replaceAll('    needs: quality\n', '    needs: []\n')
+    .replace(
+      '    needs: [quality, browsers, chromium-touch]',
+      [
+        '    needs: [browsers, chromium-touch]',
+        '    # needs: [quality, browsers, chromium-touch]',
+      ].join('\n'),
+    )
+
+  assert.match(
+    validateReadinessWorkflows({
+      ciWorkflow,
+      releaseWorkflow: disconnectedRelease,
+    }).join('\n'),
+    /release publish must depend on quality readiness/,
+  )
 })
