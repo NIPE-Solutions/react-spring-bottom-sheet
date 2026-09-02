@@ -296,7 +296,7 @@ export interface MotionAdapter {
 - [ ] Upgrade to the current supported Next.js release compatible with React 19 and Node 24.
 - [ ] Configure the website to import local package source or workspace output during development and CI.
 - [ ] Rewrite the README with installation, one compound-component example, support policy, CSS entry choices, documentation URL, and contribution links.
-- [ ] Add a concise project-lineage section that credits the original project and maintainers, links to `JasGH/react-spring-bottom-sheet`, and identifies NIPE Solutions as the current independent maintainer.
+- [ ] Add a concise project-lineage section that credits the original `stipsan/react-spring-bottom-sheet` project and maintainers, acknowledges the `JasGH/react-spring-bottom-sheet` intermediate fork, links to both repositories, and identifies NIPE Solutions as the current independent maintainer.
 - [ ] Write migration tables for every removed v4 prop, callback, CSS selector, custom property, and import path, each with a v5 replacement or explicit removal rationale.
 - [ ] Add documentation routes for every topic required by the architecture specification.
 - [ ] Add executable examples for controlled state, snap points, modal and non-modal use, nested scrolling, custom portals, custom styling, dark mode, and reduced motion.
