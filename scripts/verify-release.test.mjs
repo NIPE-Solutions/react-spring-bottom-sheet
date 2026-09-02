@@ -37,6 +37,16 @@ const moveNamedStep = (source, stepName, beforeStepName) => {
   )
 }
 
+const addValidationEnvText = (source, text) =>
+  replaceOnce(
+    source,
+    '          VERSION: ${{ inputs.version }}\n        run: |',
+    `          VERSION: \${{ inputs.version }}\n          POLICY_TEXT: |\n${text
+      .split('\n')
+      .map((line) => `            ${line}`)
+      .join('\n')}\n        run: |`,
+  )
+
 const expectPolicyError = (
   {
     packageJson: mutatedPackage = packageJson,
@@ -161,6 +171,38 @@ test('requires PACKAGE_VERSION to come from package.json', () => {
   )
 })
 
+test('rejects a package-version lookup stored only in env metadata', () => {
+  const metadataLookup = addValidationEnvText(
+    replaceOnce(
+      workflow,
+      'PACKAGE_VERSION=$(node -p "require(\'./package.json\').version")',
+      'PACKAGE_VERSION=untrusted',
+    ),
+    'PACKAGE_VERSION=$(node -p "require(\'./package.json\').version")',
+  )
+
+  expectPolicyError(
+    { workflow: metadataLookup },
+    'package version must be read from package.json',
+  )
+})
+
+test('rejects a package-version equality stored only in env metadata', () => {
+  const metadataEquality = addValidationEnvText(
+    replaceOnce(
+      workflow,
+      'test "$PACKAGE_VERSION" = "$VERSION"',
+      'test "$PACKAGE_VERSION" != "$VERSION"',
+    ),
+    'test "$PACKAGE_VERSION" = "$VERSION"',
+  )
+
+  expectPolicyError(
+    { workflow: metadataEquality },
+    'requested version must match package.json',
+  )
+})
+
 test('binds the package-version source to its equality check', () => {
   const packageVersionInAnotherStep = replaceOnce(
     replaceOnce(
@@ -204,6 +246,28 @@ test('requires the immutable-version check before publication', () => {
   )
 })
 
+test('rejects an immutable-version check stored only in env metadata', () => {
+  const immutableCheck = [
+    'if npm view "$NAME@$VERSION" version >/dev/null 2>&1; then',
+    '  echo "$NAME@$VERSION already exists"',
+    '  exit 1',
+    'fi',
+  ].join('\n')
+  const metadataCheck = addValidationEnvText(
+    replaceOnce(
+      workflow,
+      `          ${immutableCheck.replaceAll('\n', '\n          ')}\n`,
+      '',
+    ),
+    immutableCheck,
+  )
+
+  expectPolicyError(
+    { workflow: metadataCheck },
+    'published versions must be immutable',
+  )
+})
+
 test('requires prereleases for the next channel', () => {
   expectPolicyError(
     {
@@ -224,6 +288,19 @@ test('allows exactly the next and latest release channels', () => {
         workflow,
         '          - latest',
         '          - latest\n          - canary',
+      ),
+    },
+    'release channels must be exactly next and latest',
+  )
+})
+
+test('requires the channel input to be a choice', () => {
+  expectPolicyError(
+    {
+      workflow: replaceOnce(
+        workflow,
+        '        type: choice',
+        '        type: string',
       ),
     },
     'release channels must be exactly next and latest',
@@ -311,6 +388,36 @@ test('requires registry verification to compare the channel version exactly', ()
   )
 })
 
+test('rejects registry verification stored only in with metadata', () => {
+  const metadataRegistryCheck = replaceOnce(
+    replaceOnce(
+      workflow,
+      'test "$(npm view "$NAME@$CHANNEL" version)" = "$VERSION"',
+      'echo "registry verification omitted"',
+    ),
+    '      - name: Create GitHub release',
+    '      - name: Policy note\n        with:\n          POLICY_TEXT: |\n            test "$(npm view "$NAME@$CHANNEL" version)" = "$VERSION"\n      - name: Create GitHub release',
+  )
+
+  expectPolicyError(
+    { workflow: metadataRegistryCheck },
+    'registry verification must confirm the requested version',
+  )
+})
+
+test('rejects publish commands stored only in with metadata', () => {
+  const metadataPublish = replaceOnce(
+    workflow,
+    '        run: npm publish --access public --tag "$CHANNEL"',
+    '        with:\n          POLICY_TEXT: |\n            npm publish --access public --tag "$CHANNEL"\n        run: echo "publish omitted"',
+  )
+
+  expectPolicyError(
+    { workflow: metadataPublish },
+    'publish must use the requested protected channel',
+  )
+})
+
 test('rejects a comment that spoofs post-publish registry verification', () => {
   const checkBeforePublish = moveNamedStep(
     workflow,
@@ -342,4 +449,27 @@ test('requires registry verification before GitHub release creation', () => {
         error.includes('registry verification must precede release creation'),
     ),
   )
+})
+
+test('rejects release creation stored only in with metadata', () => {
+  const metadataRelease = replaceOnce(
+    workflow.replaceAll('gh release create', 'echo release creation omitted'),
+    '        run: |\n          if test "$CHANNEL" = "latest"; then',
+    '        with:\n          POLICY_TEXT: |\n            gh release create "v$VERSION"\n        run: |\n          if test "$CHANNEL" = "latest"; then',
+  )
+
+  expectPolicyError(
+    { workflow: metadataRelease },
+    'registry verification must precede release creation',
+  )
+})
+
+test('requires OIDC under the publish job permissions mapping', () => {
+  const oidcInEnv = replaceOnce(
+    workflow,
+    '    permissions:\n      contents: write\n      id-token: write',
+    '    permissions:\n      contents: write\n    env:\n      id-token: write',
+  )
+
+  expectPolicyError({ workflow: oidcInEnv }, 'publish job must request OIDC')
 })

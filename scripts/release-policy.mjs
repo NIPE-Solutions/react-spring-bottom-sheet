@@ -44,8 +44,44 @@ const jobSettings = (job) => {
   return job.source.slice(0, firstStep === -1 ? undefined : firstStep)
 }
 
+const mappingBlock = (source, name, indent) => {
+  const lines = source.split('\n')
+  const start = lines.findIndex(
+    (line) => line === `${' '.repeat(indent)}${name}:`,
+  )
+  if (start === -1) return []
+
+  const end = lines.findIndex(
+    (line, index) =>
+      index > start && line.trim() !== '' && line.search(/\S/) <= indent,
+  )
+  return lines.slice(start + 1, end === -1 ? undefined : end)
+}
+
+const runContent = (step) => {
+  const lines = step.source.split('\n')
+  const inlineRun = lines.find((line) => /^ {6}- run:/.test(line))
+  if (inlineRun) return inlineRun.replace(/^ {6}- run:\s*/, '')
+
+  const runIndex = lines.findIndex((line) => /^ {8}run:/.test(line))
+  if (runIndex === -1) return ''
+
+  const value = lines[runIndex].replace(/^ {8}run:\s*/, '')
+  if (value !== '|' && value !== '>') return value
+
+  const content = []
+  for (const line of lines.slice(runIndex + 1)) {
+    if (line.trim() !== '' && line.search(/\S/) <= 8) break
+    content.push(line)
+  }
+  return content.join('\n')
+}
+
 const commandLines = (step) =>
-  step.source.split('\n').map((line) => line.trim())
+  runContent(step)
+    .split('\n')
+    .map((line) => line.trim())
+    .filter((line) => line !== '' && !line.startsWith('#'))
 
 const hasPublishCommand = (step) =>
   commandLines(step).some(
@@ -67,7 +103,7 @@ const hasImmutableVersionCheck = (step) => {
   )
 }
 
-const channelChoices = (workflow) => {
+const channelInput = (workflow) => {
   const on = topLevelBlock(workflow, 'on')
   const lines = on.split('\n')
   const start = lines.findIndex((line) => line === '      channel:')
@@ -76,12 +112,15 @@ const channelChoices = (workflow) => {
   const end = lines.findIndex(
     (line, index) => index > start && /^ {6}[\w-]+:$/.test(line),
   )
-  return lines
-    .slice(start + 1, end === -1 ? undefined : end)
-    .flatMap((line) => {
-      const match = line.match(/^ {10}- ([^\s#]+)\s*$/)
-      return match ? [match[1]] : []
-    })
+  return lines.slice(start + 1, end === -1 ? undefined : end)
+}
+
+const channelChoices = (input) => {
+  const options = mappingBlock(input.join('\n'), 'options', 8)
+  return options.flatMap((line) => {
+    const match = line.match(/^ {10}- ([^\s#]+)\s*$/)
+    return match ? [match[1]] : []
+  })
 }
 
 export function validateReleasePolicy({ packageJson, workflow }) {
@@ -89,7 +128,8 @@ export function validateReleasePolicy({ packageJson, workflow }) {
   const source = withoutComments(workflow)
   const on = topLevelBlock(source, 'on')
   const triggers = [...on.matchAll(/^ {2}([\w-]+):/gm)].map((match) => match[1])
-  const channels = channelChoices(source)
+  const input = channelInput(source)
+  const channels = channelChoices(input)
   const publishJob = jobsIn(source).find((job) =>
     stepsIn(job).some(hasPublishCommand),
   )
@@ -98,6 +138,7 @@ export function validateReleasePolicy({ packageJson, workflow }) {
     errors.push('release workflow must be manual')
   }
   if (
+    !input.includes('        type: choice') ||
     channels.length !== 2 ||
     channels[0] !== 'next' ||
     channels[1] !== 'latest'
@@ -131,7 +172,11 @@ export function validateReleasePolicy({ packageJson, workflow }) {
     if (!/^ {4}environment: npm$/m.test(settings)) {
       errors.push('publish job must use the npm environment')
     }
-    if (!/^ {6}id-token: write$/m.test(settings)) {
+    if (
+      !mappingBlock(settings, 'permissions', 4).includes(
+        '      id-token: write',
+      )
+    ) {
       errors.push('publish job must request OIDC')
     }
     if (
@@ -148,19 +193,23 @@ export function validateReleasePolicy({ packageJson, workflow }) {
     }
     if (
       !/if test "\$CHANNEL" = "latest"; then\s*[\s\S]*?case "\$VERSION" in\s+\*-\*\) exit 1 ;; esac/.test(
-        publishJob.source,
+        runContent(steps[packageVersionIndex] ?? { source: '' }),
       )
     ) {
       errors.push('latest must reject prerelease versions')
     }
     if (
       !/else\s+case "\$VERSION" in\s+\*-\*\) ;; \*\) exit 1 ;; esac/.test(
-        publishJob.source,
+        runContent(steps[packageVersionIndex] ?? { source: '' }),
       )
     ) {
       errors.push('next must require prerelease versions')
     }
-    if (!/test "\$GITHUB_REF_NAME" = "main"/.test(publishJob.source)) {
+    if (
+      !/test "\$GITHUB_REF_NAME" = "main"/.test(
+        runContent(steps[packageVersionIndex] ?? { source: '' }),
+      )
+    ) {
       errors.push('latest releases must come from main')
     }
     if (registryIndex === -1) {
