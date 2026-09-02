@@ -181,19 +181,29 @@ export const docs = [
     order: 2,
     sections: [
       {
-        id: 'sheet-root',
-        title: 'Sheet.Root',
-        body: 'Props: open, defaultOpen, onOpenChange, snapPoints, activeSnapPoint, defaultSnapPoint, onSnapPointChange, modal, and dismissible.',
+        id: 'composition',
+        title: 'Composition',
+        body: 'Compose Sheet primitives around a shared root contract.',
       },
       {
-        id: 'dom-primitives',
-        title: 'DOM primitives',
-        body: 'Trigger, Close, Backdrop, Viewport, Content, Handle, Title, and Description accept native element props, forwarded refs, className, and asChild.',
+        id: 'primitives',
+        title: 'Primitives',
+        body: 'Reference the Sheet namespace and each DOM primitive contract.',
       },
       {
-        id: 'bottom-sheet',
-        title: 'BottomSheet',
-        body: 'Accepts the Root contract plus title, description, backdropProps, viewportProps, and contentProps.',
+        id: 'convenience-api',
+        title: 'Convenience API',
+        body: 'Use BottomSheet for the standard composition.',
+      },
+      {
+        id: 'public-types',
+        title: 'Public types',
+        body: 'Reference callback details, change reasons, and snap-point values.',
+      },
+      {
+        id: 'behavioral-guarantees',
+        title: 'Behavioral guarantees',
+        body: 'Understand state, focus, portal, dismissal, and motion behavior.',
       },
     ],
   },

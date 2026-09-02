@@ -8,6 +8,7 @@ import {
   getDocHeadings,
 } from '../../../content/navigation'
 import { getLearnGuide } from '../../../content/learn'
+import { getReferenceGuide } from '../../../content/reference'
 
 export const dynamicParams = false
 
@@ -41,7 +42,7 @@ export default async function Doc({
   if (!page) notFound()
   const headings = getDocHeadings(page)
   const { previous, next } = getAdjacentDocs(slug)
-  const LearnGuide = getLearnGuide(slug)
+  const Guide = getLearnGuide(slug) ?? getReferenceGuide(slug)
 
   return (
     <DocsShell
@@ -55,8 +56,8 @@ export default async function Doc({
         <h1>{page.title}</h1>
         <p>{page.description}</p>
       </header>
-      {LearnGuide ? (
-        <LearnGuide />
+      {Guide ? (
+        <Guide />
       ) : (
         page.sections.map((section) => (
           <section id={section.id} key={section.id}>

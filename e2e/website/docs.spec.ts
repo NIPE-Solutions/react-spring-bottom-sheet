@@ -1,5 +1,13 @@
 import { expect, test } from '@playwright/test'
 import AxeBuilder from '@axe-core/playwright'
+import { readFileSync } from 'node:fs'
+
+const generatedPublicApi = JSON.parse(
+  readFileSync(
+    new URL('../../website/generated/public-api.json', import.meta.url),
+    'utf8',
+  ),
+) as readonly { id: string }[]
 
 test('home page exposes navigation and a working sheet', async ({ page }) => {
   await page.goto('/')
@@ -69,6 +77,157 @@ test('styling guide documents replacement hooks and working themes', async ({
   ).toHaveAttribute('href', '/examples/dark-theme/')
 })
 
+test('API reference documents the generated surface and maintained guidance', async ({
+  page,
+}) => {
+  await page.goto('/docs/api/')
+
+  await expect(
+    page.getByRole('heading', { level: 2, name: 'Composition' }),
+  ).toBeVisible()
+
+  const rootProps = page.getByRole('table', { name: 'Sheet.Root props' })
+  await expect(rootProps).toBeVisible()
+  await expect(
+    rootProps.getByRole('columnheader', { name: 'Prop' }),
+  ).toBeVisible()
+  await expect(rootProps).toContainText('onOpenChange')
+  await expect(rootProps).toContainText('Optional')
+  await expect(rootProps).toContainText('false')
+
+  await expect(
+    page.getByRole('heading', {
+      level: 3,
+      name: 'BottomSheet',
+      exact: true,
+    }),
+  ).toBeVisible()
+  await expect(
+    page
+      .locator('#public-types')
+      .getByText(
+        "'trigger' | 'close' | 'escape' | 'backdrop' | 'drag' | 'imperative'",
+        { exact: true },
+      ),
+  ).toBeVisible()
+  await expect(
+    page.getByRole('link', { name: 'View Sheet.Root source' }),
+  ).toHaveAttribute(
+    'href',
+    'https://github.com/NIPE-Solutions/react-spring-bottom-sheet/blob/v5/src/components/Root.tsx',
+  )
+  await expect(
+    page.getByRole('link', { name: 'Run the controlled-state recipe' }),
+  ).toHaveAttribute('href', '/examples/controlled/')
+})
+
+test('API reference renders every generated entry exactly once', async ({
+  page,
+}) => {
+  await page.goto('/docs/api/')
+
+  const renderedIds = await page
+    .locator('[data-api-id]')
+    .evaluateAll((nodes) =>
+      nodes.map((node) => node.getAttribute('data-api-id')),
+    )
+  const generatedIds = generatedPublicApi.map(({ id }) => id)
+
+  expect(renderedIds).toHaveLength(generatedIds.length)
+  expect(new Set(renderedIds).size).toBe(generatedIds.length)
+  expect(renderedIds.toSorted()).toEqual(generatedIds.toSorted())
+})
+
+test('API signatures stay out of keyboard order while links remain reachable', async ({
+  page,
+}) => {
+  await page.goto('/docs/api/')
+
+  const source = page.getByRole('link', { name: 'View Sheet.Root source' })
+  const controlledRecipe = page.getByRole('link', {
+    name: 'Run the controlled-state recipe',
+  })
+  await source.focus()
+  await page.keyboard.press('Shift+Tab')
+  await expect(page.locator(':focus')).toHaveAttribute('href')
+  await page.keyboard.press('Tab')
+  await expect(source).toBeFocused()
+  await page.keyboard.press('Tab')
+  await expect(controlledRecipe).toBeFocused()
+})
+
+test('API reference contains dense signatures at 320 pixels', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 320, height: 720 })
+  await page.goto('/docs/api/')
+
+  await expect(
+    page.getByRole('table', { name: 'Sheet.Root props' }),
+  ).toBeVisible()
+
+  const dimensions = await page.evaluate(() => ({
+    viewport: window.innerWidth,
+    document: document.documentElement.scrollWidth,
+  }))
+  expect(dimensions.document).toBe(dimensions.viewport)
+})
+
+test('API reference responds to its available table width', async ({
+  page,
+}) => {
+  const rootProps = page.getByRole('table', { name: 'Sheet.Root props' })
+  const firstRowGeometry = () =>
+    rootProps
+      .locator('tbody tr')
+      .first()
+      .evaluate((row) => {
+        const table = row.closest('table')
+        const tableWidth = table?.getBoundingClientRect().width ?? 0
+        const captionWidth = table?.caption?.getBoundingClientRect().width ?? 0
+        const cells = Array.from(row.children, (cell) => {
+          const bounds = cell.getBoundingClientRect()
+          return { top: Math.round(bounds.top), width: bounds.width }
+        })
+
+        return { captionWidth, cells, tableWidth }
+      })
+
+  await page.setViewportSize({ width: 1024, height: 900 })
+  await page.goto('/docs/api/')
+  await expect(rootProps).toBeVisible()
+
+  const constrained = await firstRowGeometry()
+  expect(new Set(constrained.cells.map(({ top }) => top)).size).toBe(5)
+  expect(
+    constrained.cells.every(
+      ({ width }) => width >= constrained.tableWidth * 0.95,
+    ),
+  ).toBe(true)
+  expect(constrained.captionWidth).toBeGreaterThanOrEqual(
+    constrained.tableWidth * 0.95,
+  )
+
+  let dimensions = await page.evaluate(() => ({
+    viewport: window.innerWidth,
+    document: document.documentElement.scrollWidth,
+  }))
+  expect(dimensions.document).toBe(dimensions.viewport)
+
+  await page.setViewportSize({ width: 1440, height: 900 })
+  const wide = await firstRowGeometry()
+  expect(new Set(wide.cells.map(({ top }) => top)).size).toBe(1)
+  expect(wide.cells.some(({ width }) => width < wide.tableWidth * 0.5)).toBe(
+    true,
+  )
+
+  dimensions = await page.evaluate(() => ({
+    viewport: window.innerWidth,
+    document: document.documentElement.scrollWidth,
+  }))
+  expect(dimensions.document).toBe(dimensions.viewport)
+})
+
 test('documentation navigation becomes compact on a narrow viewport', async ({
   page,
 }) => {
@@ -131,7 +290,7 @@ test('skip link moves keyboard focus to the main content', async ({ page }) => {
   await expect(page.locator('main#content')).toBeFocused()
 })
 
-for (const route of ['/', '/docs/accessibility/', '/examples/']) {
+for (const route of ['/', '/docs/accessibility/', '/docs/api/', '/examples/']) {
   test(`${route} has no detectable accessibility violations`, async ({
     page,
   }) => {

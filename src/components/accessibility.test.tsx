@@ -101,6 +101,63 @@ describe('sheet accessibility', () => {
     )
   })
 
+  it('isolates and restores siblings along a nested portal path', async () => {
+    const portalBoundary = document.createElement('section')
+    const innerSibling = document.createElement('div')
+    const portalTarget = document.createElement('div')
+    const bodySibling = document.createElement('aside')
+    portalBoundary.setAttribute('aria-hidden', 'false')
+    portalBoundary.inert = false
+    innerSibling.inert = false
+    bodySibling.setAttribute('aria-hidden', 'false')
+    bodySibling.inert = true
+    portalBoundary.append(innerSibling, portalTarget)
+    document.body.append(portalBoundary, bodySibling)
+
+    const view = render(
+      <Sheet.Root defaultOpen>
+        <Sheet.Portal container={portalTarget}>
+          <Sheet.Backdrop />
+          <Sheet.Content aria-label="Nested sheet">
+            <button type="button">Sheet action</button>
+          </Sheet.Content>
+        </Sheet.Portal>
+      </Sheet.Root>,
+    )
+
+    try {
+      await waitFor(() => {
+        expect(innerSibling).toHaveAttribute('aria-hidden', 'true')
+        expect(innerSibling.inert).toBe(true)
+        expect(bodySibling).toHaveAttribute('aria-hidden', 'true')
+        expect(bodySibling.inert).toBe(true)
+      })
+
+      const backdrop = portalTarget.querySelector<HTMLElement>(
+        '[data-rsbs-backdrop]',
+      )
+      expect(portalBoundary).toHaveAttribute('aria-hidden', 'false')
+      expect(portalBoundary.inert).toBe(false)
+      expect(portalTarget).not.toHaveAttribute('aria-hidden')
+      expect(portalTarget.inert).not.toBe(true)
+      expect(backdrop).not.toHaveAttribute('aria-hidden')
+      expect(backdrop?.inert).not.toBe(true)
+
+      fireEvent.click(backdrop!)
+
+      await waitFor(() => {
+        expect(innerSibling).not.toHaveAttribute('aria-hidden')
+        expect(innerSibling.inert).toBe(false)
+        expect(bodySibling).toHaveAttribute('aria-hidden', 'false')
+        expect(bodySibling.inert).toBe(true)
+      })
+    } finally {
+      view.unmount()
+      portalBoundary.remove()
+      bodySibling.remove()
+    }
+  })
+
   it('does not trap focus or isolate content in non-modal mode', async () => {
     const onOpenChange = vi.fn()
     render(<ModalExample modal={false} onOpenChange={onOpenChange} />)
