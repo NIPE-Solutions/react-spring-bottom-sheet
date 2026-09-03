@@ -186,6 +186,37 @@ describe('DeviceLab navigation', () => {
     expect(navigation.replace).not.toHaveBeenCalled()
   })
 
+  test('clears the pending morph rollback when its URL selection commits', () => {
+    vi.useFakeTimers()
+    vi.stubGlobal('ResizeObserver', TestResizeObserver)
+    const { rerender } = render(<DeviceLab slug="basic" title="Basic" />)
+    fireEvent.load(screen.getByTitle('Basic interactive preview'))
+
+    fireEvent.click(screen.getByRole('button', { name: 'Tablet' }))
+    expect(vi.getTimerCount()).toBe(1)
+
+    navigation.searchParams = new URLSearchParams(
+      'device=tablet&orientation=portrait',
+    )
+    rerender(<DeviceLab slug="basic" title="Basic" />)
+
+    expect(vi.getTimerCount()).toBe(0)
+  })
+
+  test('clears a pending morph rollback when the device lab unmounts', () => {
+    vi.useFakeTimers()
+    vi.stubGlobal('ResizeObserver', TestResizeObserver)
+    const { unmount } = render(<DeviceLab slug="basic" title="Basic" />)
+    fireEvent.load(screen.getByTitle('Basic interactive preview'))
+
+    fireEvent.click(screen.getByRole('button', { name: 'Tablet' }))
+    expect(vi.getTimerCount()).toBe(1)
+
+    unmount()
+
+    expect(vi.getTimerCount()).toBe(0)
+  })
+
   test('exposes labelled button groups and the active selections', () => {
     vi.stubGlobal('ResizeObserver', TestResizeObserver)
     render(<DeviceLab slug="basic" title="Basic" />)

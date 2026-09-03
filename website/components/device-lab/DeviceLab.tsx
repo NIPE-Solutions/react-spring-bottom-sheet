@@ -1,7 +1,13 @@
 'use client'
 
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from 'react'
 import { DeviceControls } from './DeviceControls'
 import { DeviceFrame } from './DeviceFrame'
 import type { DeviceFrameHandle } from './DeviceFrame'
@@ -13,10 +19,18 @@ import {
 import type { DeviceSelection } from './device-config'
 import { RecipeEmbed } from './RecipeEmbed'
 
+const MORPH_NAVIGATION_TIMEOUT_MS = 1_500
+
 export type DeviceLabProps = Readonly<{
   slug: string
   title: string
 }>
+
+type MorphRequest = DeviceSelection &
+  Readonly<{
+    key: number
+    source: DeviceSelection
+  }>
 
 function isValidSelection(searchParams: URLSearchParams) {
   const device = searchParams.get('device')
@@ -51,9 +65,25 @@ export function DeviceLab({ slug, title }: DeviceLabProps) {
   )
   const nextMorphKey = useRef(0)
   const deviceFrameRef = useRef<DeviceFrameHandle>(null)
-  const [morphRequest, setMorphRequest] = useState<
-    (DeviceSelection & { key: number }) | null
-  >(null)
+  const morphRequestRef = useRef<MorphRequest | null>(null)
+  const morphTimeoutRef = useRef<number | null>(null)
+  const [morphRequest, setMorphRequest] = useState<MorphRequest | null>(null)
+
+  const clearMorphTimeout = useCallback(() => {
+    if (morphTimeoutRef.current === null) return
+    window.clearTimeout(morphTimeoutRef.current)
+    morphTimeoutRef.current = null
+  }, [])
+  const rollbackMorphRequest = useCallback(
+    (key: number) => {
+      if (morphRequestRef.current?.key !== key) return
+      clearMorphTimeout()
+      morphRequestRef.current = null
+      deviceFrameRef.current?.rollbackPresentation()
+      setMorphRequest((current) => (current?.key === key ? null : current))
+    },
+    [clearMorphTimeout],
+  )
 
   useEffect(() => {
     if (isValidSelection(searchParams)) return
@@ -64,20 +94,74 @@ export function DeviceLab({ slug, title }: DeviceLabProps) {
 
   useEffect(() => setStatus('loading'), [slug])
 
+  useLayoutEffect(() => {
+    if (!morphRequest) return
+    const reachedTarget =
+      morphRequest.device === selection.device &&
+      morphRequest.orientation === selection.orientation
+    if (reachedTarget) {
+      clearMorphTimeout()
+      if (morphRequestRef.current?.key === morphRequest.key) {
+        morphRequestRef.current = null
+      }
+      setMorphRequest((current) =>
+        current?.key === morphRequest.key ? null : current,
+      )
+      return
+    }
+
+    const remainsAtSource =
+      morphRequest.source.device === selection.device &&
+      morphRequest.source.orientation === selection.orientation
+    if (!remainsAtSource) rollbackMorphRequest(morphRequest.key)
+  }, [
+    clearMorphTimeout,
+    morphRequest,
+    rollbackMorphRequest,
+    selection.device,
+    selection.orientation,
+  ])
+
+  useEffect(
+    () => () => {
+      clearMorphTimeout()
+      morphRequestRef.current = null
+    },
+    [clearMorphTimeout],
+  )
+
   const handleReady = useCallback(() => setStatus('ready'), [])
   const handleFailure = useCallback(() => setStatus('failed'), [])
   const handleChange = (nextSelection: DeviceSelection) => {
-    if (
+    const isCurrentSelection =
       nextSelection.device === selection.device &&
       nextSelection.orientation === selection.orientation
-    )
+    if (isCurrentSelection) {
+      const pendingRequest = morphRequestRef.current
+      if (pendingRequest) rollbackMorphRequest(pendingRequest.key)
       return
+    }
 
     deviceFrameRef.current?.freezePresentation()
+    clearMorphTimeout()
     nextMorphKey.current += 1
-    setMorphRequest({ ...nextSelection, key: nextMorphKey.current })
+    const request = {
+      ...nextSelection,
+      key: nextMorphKey.current,
+      source: selection,
+    }
+    morphRequestRef.current = request
+    setMorphRequest(request)
+    morphTimeoutRef.current = window.setTimeout(
+      () => rollbackMorphRequest(request.key),
+      MORPH_NAVIGATION_TIMEOUT_MS,
+    )
     const nextParams = withSelection(searchParams, nextSelection)
-    router.push(`${pathname}?${nextParams.toString()}`)
+    try {
+      router.push(`${pathname}?${nextParams.toString()}`)
+    } catch {
+      rollbackMorphRequest(request.key)
+    }
   }
   return (
     <div className="docs-device-lab">

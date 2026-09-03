@@ -56,6 +56,7 @@ type DeviceFrameProps = Readonly<{
 
 export type DeviceFrameHandle = Readonly<{
   freezePresentation(): void
+  rollbackPresentation(): void
 }>
 
 export const DeviceFrame = forwardRef<DeviceFrameHandle, DeviceFrameProps>(
@@ -121,7 +122,6 @@ export const DeviceFrame = forwardRef<DeviceFrameHandle, DeviceFrameProps>(
       )
       const presentation = capturePresentation()
       if (!presentation || activeAnimations.length === 0) return
-      for (const animation of activeAnimations) animation.cancel()
       const options = { duration: MORPH_DURATION_MS, fill: 'both' as const }
       const hold = (element: Element, keyframe: FrozenKeyframe) =>
         element.animate([keyframe, keyframe], options)
@@ -141,10 +141,28 @@ export const DeviceFrame = forwardRef<DeviceFrameHandle, DeviceFrameProps>(
           borderRadius: presentation.screenRadius,
         }),
       ]
+      for (const animation of activeAnimations) animation.cancel()
     }, [capturePresentation, outerHeight, outerWidth, stageRef])
-    useImperativeHandle(ref, () => ({ freezePresentation }), [
-      freezePresentation,
-    ])
+    const rollbackPresentation = useCallback(() => {
+      const frame = frameRef.current
+      const screen = screenRef.current
+      const sizer = sizerRef.current
+      const stage = stageRef.current
+
+      interruptedPresentation.current = null
+      for (const element of [stage, sizer, frame, screen]) {
+        for (const animation of element?.getAnimations?.() ?? []) {
+          animation.cancel()
+        }
+      }
+      frozenAnimations.current = []
+      if (frame) frame.dataset.morphing = 'false'
+    }, [stageRef])
+    useImperativeHandle(
+      ref,
+      () => ({ freezePresentation, rollbackPresentation }),
+      [freezePresentation, rollbackPresentation],
+    )
 
     const acceptedMorphKey =
       morphRequest?.device === device &&
