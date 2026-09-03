@@ -61,3 +61,17 @@ for (const route of routes) {
     expect(results.violations).toEqual([])
   })
 }
+
+test('footer exposes both German legal routes', async ({ page }) => {
+  await page.goto('/')
+  const navigation = page.getByRole('navigation', { name: 'Legal navigation' })
+
+  await expect(navigation.getByText('Datenschutz')).toHaveAttribute(
+    'href',
+    '/de/datenschutz/',
+  )
+  await expect(navigation.getByText('Impressum (DE)')).toHaveAttribute(
+    'href',
+    '/de/impressum/',
+  )
+})

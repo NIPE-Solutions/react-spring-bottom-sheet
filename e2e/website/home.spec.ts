@@ -129,4 +129,27 @@ test('homepage remains contained at 320 pixels', async ({ page }) => {
     document: document.documentElement.scrollWidth,
   }))
   expect(dimensions.document).toBe(dimensions.viewport)
+
+  const stylingColumns = await page
+    .locator('.docs-style-layers > div')
+    .first()
+    .evaluate((element) => getComputedStyle(element).gridTemplateColumns)
+  expect(stylingColumns.trim().split(/\s+/)).toHaveLength(1)
+})
+
+test('homepage remains contained at the compact-layout boundary', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 801, height: 900 })
+  await page.goto('/')
+
+  const dimensions = await page.evaluate(() => ({
+    viewport: window.innerWidth,
+    document: document.documentElement.scrollWidth,
+  }))
+  expect(dimensions.document).toBe(dimensions.viewport)
+  const launchColumns = await page
+    .locator('.docs-launch-path')
+    .evaluate((element) => getComputedStyle(element).gridTemplateColumns)
+  expect(launchColumns.trim().split(/\s+/)).toHaveLength(1)
 })

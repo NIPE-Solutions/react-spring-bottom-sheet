@@ -16,6 +16,9 @@ export function SiteFooter() {
         <Link href="/de/datenschutz/" lang="de">
           Datenschutz
         </Link>
+        <Link href="/de/impressum/" lang="de">
+          Impressum (DE)
+        </Link>
       </nav>
     </footer>
   )

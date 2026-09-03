@@ -951,7 +951,7 @@
   }
 }
 
-@media (max-width: 800px) {
+@media (max-width: 801px) {
   .docs-header {
     align-items: flex-start;
     flex-wrap: wrap;
@@ -1053,6 +1053,12 @@
   .docs-home-recipes article {
     grid-template-columns: 1fr;
     gap: 0.75rem;
+  }
+  .docs-style-layers > div {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .docs-style-layers p {
+    grid-column: 1;
   }
   .docs-recipe-grid article,
   .docs-recipe-grid article:first-child {

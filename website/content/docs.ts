@@ -365,8 +365,8 @@ export const docs = [
       {
         id: 'release-channels',
         title: 'Choose a release channel',
-        body: 'Stable releases use npm latest. Prereleases use next and may change before the final major release. Pin an exact prerelease version when evaluating it in a shared application so an install cannot move unexpectedly.',
-        code: 'npm install @nipe-solutions/react-spring-bottom-sheet@next',
+        body: 'Stable releases use npm latest. Prereleases use next and may change before the final major release. Resolve next when choosing a build, then pin the resulting exact version in shared applications so later installs cannot move unexpectedly.',
+        code: 'npm view @nipe-solutions/react-spring-bottom-sheet dist-tags.next\nnpm install @nipe-solutions/react-spring-bottom-sheet@<version>',
       },
       {
         id: 'security',
