@@ -22,7 +22,7 @@ export function DocsShell({
   return (
     <div className="docs-shell">
       <aside className="docs-sidebar">
-        <p className="docs-version">Version 5 alpha</p>
+        <p className="docs-version">Version 5</p>
         <DocsNavigation currentSlug={currentPage.slug} />
       </aside>
       <details className="docs-mobile-nav">

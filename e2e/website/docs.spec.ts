@@ -73,29 +73,19 @@ test('installation instructions match the package release state', async ({
 }) => {
   await page.goto('/docs/installation/')
 
-  const prerelease = packageVersion.includes('-')
   const release = getReleasePresentation(packageVersion)
   await expect(
-    page.getByText(
-      `npm install @nipe-solutions/react-spring-bottom-sheet${
-        prerelease ? '@next' : ''
-      }`,
-      { exact: true },
-    ),
+    page.getByText(release.installCommand, { exact: true }),
   ).toBeVisible()
-  const plannedChannel = page.getByText('Planned prerelease channel', {
-    exact: true,
-  })
-  const unpublished = page.getByText('is not published yet', { exact: false })
-  await expect(plannedChannel).toHaveCount(
-    prerelease && !release.published ? 1 : 0,
-  )
-  await expect(unpublished).toHaveCount(
-    prerelease && !release.published ? 1 : 0,
+  await expect(page.getByText('Prepared release', { exact: true })).toHaveCount(
+    release.published ? 0 : 1,
   )
   await expect(
+    page.getByText('is not published yet', { exact: false }),
+  ).toHaveCount(release.published ? 0 : 1)
+  await expect(
     page.getByText('Prerelease channel', { exact: true }),
-  ).toHaveCount(prerelease && release.published ? 1 : 0)
+  ).toHaveCount(release.prerelease && release.published ? 1 : 0)
 })
 
 test('documentation shell exposes location and adjacent routes', async ({
@@ -117,6 +107,14 @@ test('documentation shell exposes location and adjacent routes', async ({
     page.getByRole('link', { name: 'Next: Component anatomy' }),
   ).toHaveAttribute('href', '/docs/anatomy/')
   await expect(page.locator('section#package')).toBeVisible()
+})
+
+test('documentation shell keeps its version label lifecycle-neutral', async ({
+  page,
+}) => {
+  await page.goto('/docs/introduction/')
+
+  await expect(page.locator('.docs-version')).toHaveText('Version 5')
 })
 
 test('styling guide documents replacement hooks and working themes', async ({

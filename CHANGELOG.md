@@ -1,7 +1,8 @@
-## 5.0.0-alpha.0 (unreleased)
+## [5.0.0](https://github.com/NIPE-Solutions/react-spring-bottom-sheet/compare/4.1.0...v5.0.0) (2026-09-03)
 
-Version 5 is a breaking redesign for React 19. Test the alpha through the `next`
-distribution tag and report compatibility issues before the beta phase.
+Version 5 is a stable breaking redesign for React 19. Applications upgrading
+from version 4 should follow the migration guide to adopt the compound API,
+named snap points, stylesheet exports, and replacement lifecycle contracts.
 
 ### Added
 

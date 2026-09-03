@@ -4,9 +4,6 @@ Accessible, composable bottom sheets for React 19. Version 5 owns its gesture,
 layout, accessibility, and motion boundaries while keeping animation details out
 of the public API.
 
-> Version 5 is currently in alpha. Use the latest stable 4.x release in
-> production until the prerelease program is complete.
-
 ## Install
 
 ```bash
