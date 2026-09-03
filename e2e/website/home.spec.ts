@@ -23,6 +23,24 @@ test('homepage presents generated package evidence and useful next steps', async
     page.getByRole('heading', { name: 'Start with the whole system.' }),
   ).toBeVisible()
   await expect(
+    page.getByRole('heading', { name: 'Built for the difficult parts.' }),
+  ).toBeVisible()
+  await expect(
+    page.getByRole('heading', { name: 'Your visual system stays yours.' }),
+  ).toBeVisible()
+  await expect(
+    page.getByRole('heading', { name: 'Accessibility is runtime behavior.' }),
+  ).toBeVisible()
+  await expect(
+    page.getByRole('heading', { name: 'A deliberate path to 5.0.' }),
+  ).toBeVisible()
+  await expect(
+    page.getByRole('link', { name: 'Read the styling contract' }),
+  ).toHaveAttribute('href', '/docs/styling/')
+  await expect(
+    page.getByRole('link', { name: 'Review accessibility behavior' }),
+  ).toHaveAttribute('href', '/docs/accessibility/')
+  await expect(
     page.getByRole('link', { name: 'Explore controlled state' }),
   ).toHaveAttribute('href', '/examples/controlled/')
 })

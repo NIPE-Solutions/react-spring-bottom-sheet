@@ -1,8 +1,12 @@
 import Link from 'next/link'
+import { AccessibilityProof } from '../components/AccessibilityProof'
+import { Capabilities } from '../components/Capabilities'
 import { Evidence } from '../components/Evidence'
+import { LaunchPath } from '../components/LaunchPath'
 import { LiveSheet } from '../components/LiveSheet'
 import { QuickStart } from '../components/QuickStart'
 import { RecipeLinks } from '../components/RecipeLinks'
+import { StylingContract } from '../components/StylingContract'
 import { buildEvidence } from '../content/evidence'
 
 export default function Home() {
@@ -33,8 +37,12 @@ export default function Home() {
         <LiveSheet />
       </section>
       <Evidence evidence={buildEvidence} />
+      <Capabilities />
+      <StylingContract />
+      <AccessibilityProof />
       <QuickStart />
       <RecipeLinks />
+      <LaunchPath version={buildEvidence.version} />
     </main>
   )
 }
