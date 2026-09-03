@@ -1,36 +1,14 @@
-'use client'
+import { CopySourceButton } from './source-code/CopySourceButton'
+import { HighlightedCode } from './source-code/HighlightedCode'
+import { highlightTsx } from './source-code/highlighter'
 
-import { useState } from 'react'
-
-export function RecipeSource({
-  filename,
-  source,
-}: {
+export type RecipeSourceProps = {
   filename: string
   source: string
-}) {
-  const [copyStatus, setCopyStatus] = useState('Copy source')
+}
 
-  function copyWithSelection() {
-    const input = document.createElement('textarea')
-    input.value = source
-    input.style.position = 'fixed'
-    input.style.opacity = '0'
-    document.body.append(input)
-    input.select()
-    const copied = document.execCommand('copy')
-    input.remove()
-    return copied
-  }
-
-  async function copySource() {
-    try {
-      await navigator.clipboard.writeText(source)
-      setCopyStatus('Copied')
-    } catch {
-      setCopyStatus(copyWithSelection() ? 'Copied' : 'Select source to copy')
-    }
-  }
+export async function RecipeSource({ filename, source }: RecipeSourceProps) {
+  const lines = await highlightTsx(source)
 
   return (
     <section
@@ -42,15 +20,11 @@ export function RecipeSource({
           <p>Complete implementation</p>
           <h2 id="recipe-source-title">Source</h2>
         </div>
-        <button type="button" onClick={copySource} aria-live="polite">
-          {copyStatus}
-        </button>
+        <CopySourceButton source={source} />
       </div>
       <details>
         <summary>View {filename}</summary>
-        <pre tabIndex={0}>
-          <code>{source}</code>
-        </pre>
+        <HighlightedCode filename={filename} lines={lines} />
       </details>
     </section>
   )
