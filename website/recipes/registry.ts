@@ -1,27 +1,15 @@
 import { BasicSheet } from './basic/BasicSheet'
-import { basicSource } from './basic/source'
 import { ControlledSheet } from './controlled/ControlledSheet'
-import { controlledSource } from './controlled/source'
 import { ContentHeightSheet } from './content-height/ContentHeightSheet'
-import { contentHeightSource } from './content-height/source'
 import { FormSheet } from './form/FormSheet'
-import { formSource } from './form/source'
 import { CustomPortalSheet } from './custom-portal/CustomPortalSheet'
-import { customPortalSource } from './custom-portal/source'
 import { NonModalSheet } from './non-modal/NonModalSheet'
-import { nonModalSource } from './non-modal/source'
 import { ReducedMotionSheet } from './reduced-motion/ReducedMotionSheet'
-import { reducedMotionSource } from './reduced-motion/source'
 import { ScrollingSheet } from './scrolling/ScrollingSheet'
-import { scrollingSource } from './scrolling/source'
 import { SnapPointSheet } from './snap-points/SnapPointSheet'
-import { snapPointSource } from './snap-points/source'
 import { ConfirmationSheet } from './confirmation/ConfirmationSheet'
-import { confirmationSource } from './confirmation/source'
 import { CustomThemeSheet } from './custom-theme/CustomThemeSheet'
-import { customThemeSource } from './custom-theme/source'
 import { DarkThemeSheet } from './dark-theme/DarkThemeSheet'
-import { darkThemeSource } from './dark-theme/source'
 import type { RecipeDefinition } from './types'
 
 export const recipes = [
@@ -30,7 +18,7 @@ export const recipes = [
     title: 'Basic sheet',
     summary: 'Start with local state and a content-sized destination.',
     component: BasicSheet,
-    source: basicSource,
+    sourceFile: 'basic/BasicSheet.tsx',
     relatedDocs: ['installation', 'anatomy'],
     prerequisites: ['React 19 and the package default stylesheet.'],
     behavior: ['Root keeps open state locally and sizes to its content.'],
@@ -45,7 +33,7 @@ export const recipes = [
     summary:
       'Keep the open state in your application when other UI depends on it.',
     component: ControlledSheet,
-    source: controlledSource,
+    sourceFile: 'controlled/ControlledSheet.tsx',
     relatedDocs: ['state', 'accessibility'],
     prerequisites: ['An application state owner for the open value.'],
     behavior: ['Every dismissal route requests the same state update.'],
@@ -60,7 +48,7 @@ export const recipes = [
     summary:
       'Control compact and expanded destinations with stable identifiers.',
     component: SnapPointSheet,
-    source: snapPointSource,
+    sourceFile: 'snap-points/SnapPointSheet.tsx',
     relatedDocs: ['snap-points', 'gestures'],
     prerequisites: ['Two named destinations with distinct layout values.'],
     behavior: ['Buttons and drag gestures update the controlled destination.'],
@@ -74,7 +62,7 @@ export const recipes = [
     title: 'Content height',
     summary: 'Let measured content define the sheet destination as it changes.',
     component: ContentHeightSheet,
-    source: contentHeightSource,
+    sourceFile: 'content-height/ContentHeightSheet.tsx',
     relatedDocs: ['snap-points', 'anatomy'],
     prerequisites: ['Content whose rendered height can change.'],
     behavior: [
@@ -91,7 +79,7 @@ export const recipes = [
     summary:
       'Coordinate sheet gestures with a long, keyboard-scrollable region.',
     component: ScrollingSheet,
-    source: scrollingSource,
+    sourceFile: 'scrolling/ScrollingSheet.tsx',
     relatedDocs: ['gestures', 'accessibility'],
     prerequisites: ['A bounded descendant with overflow enabled.'],
     behavior: [
@@ -108,7 +96,7 @@ export const recipes = [
     summary:
       'Keep form submission explicit while virtual keyboards resize the viewport.',
     component: FormSheet,
-    source: formSource,
+    sourceFile: 'form/FormSheet.tsx',
     relatedDocs: ['state', 'accessibility'],
     prerequisites: ['A controlled open value and an ordinary HTML form.'],
     behavior: ['Submit saves and closes; cancel closes without submitting.'],
@@ -123,7 +111,7 @@ export const recipes = [
     summary:
       'Contain the sheet within an application-owned rendering boundary.',
     component: CustomPortalSheet,
-    source: customPortalSource,
+    sourceFile: 'custom-portal/CustomPortalSheet.tsx',
     relatedDocs: ['anatomy', 'styling'],
     prerequisites: [
       'A mounted application-owned container that establishes a fixed-position containing block.',
@@ -141,7 +129,7 @@ export const recipes = [
     title: 'Non-modal panel',
     summary: 'Keep the surrounding page interactive beside a persistent sheet.',
     component: NonModalSheet,
-    source: nonModalSource,
+    sourceFile: 'non-modal/NonModalSheet.tsx',
     relatedDocs: ['state', 'accessibility'],
     prerequisites: ['A workflow that must coexist with page interaction.'],
     behavior: ['Non-modal mode leaves surrounding controls available.'],
@@ -156,7 +144,7 @@ export const recipes = [
     summary:
       'Honor the operating system preference without maintaining a second component.',
     component: ReducedMotionSheet,
-    source: reducedMotionSource,
+    sourceFile: 'reduced-motion/ReducedMotionSheet.tsx',
     relatedDocs: ['accessibility', 'troubleshooting'],
     prerequisites: ['No application-specific motion branch is required.'],
     behavior: [
@@ -173,7 +161,7 @@ export const recipes = [
     summary:
       'Replace every visual decision while retaining the mechanical layer.',
     component: CustomThemeSheet,
-    source: customThemeSource,
+    sourceFile: 'custom-theme/CustomThemeSheet.tsx',
     relatedDocs: ['styling', 'accessibility'],
     prerequisites: [
       'Import core.css and keep theme selectors in an application-owned namespace.',
@@ -192,7 +180,7 @@ export const recipes = [
     summary:
       'Ship a dark surface that does not depend on the operating system preference.',
     component: DarkThemeSheet,
-    source: darkThemeSource,
+    sourceFile: 'dark-theme/DarkThemeSheet.tsx',
     relatedDocs: ['styling', 'accessibility'],
     prerequisites: [
       'Import core.css and scope the dark palette to this sheet.',
@@ -211,7 +199,7 @@ export const recipes = [
     summary:
       'Require a deliberate choice before closing a destructive workflow.',
     component: ConfirmationSheet,
-    source: confirmationSource,
+    sourceFile: 'confirmation/ConfirmationSheet.tsx',
     relatedDocs: ['state', 'accessibility'],
     prerequisites: ['Controlled open state for both explicit outcomes.'],
     behavior: ['Escape, backdrop, and drag dismissal remain disabled.'],

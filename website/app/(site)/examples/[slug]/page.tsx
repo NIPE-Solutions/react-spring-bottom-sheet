@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation'
 import { RecipePreview } from '../../../../components/RecipePreview'
 import { RecipeSource } from '../../../../components/RecipeSource'
 import { getRecipe, recipes } from '../../../../recipes/registry'
+import { loadRecipeSource } from '../../../../recipes/source'
 
 export const dynamicParams = false
 
@@ -33,6 +34,7 @@ export default async function RecipePage({
 }) {
   const recipe = getRecipe((await params).slug)
   if (!recipe) notFound()
+  const source = await loadRecipeSource(recipe.sourceFile)
 
   return (
     <main id="content" className="docs-page docs-recipe-page" tabIndex={-1}>
@@ -72,7 +74,7 @@ export default async function RecipePage({
           ))}
         </ul>
       </section>
-      <RecipeSource source={recipe.source} />
+      <RecipeSource filename={source.filename} source={source.source} />
       <nav className="docs-related-docs" aria-label="Related documentation">
         <p>Related documentation</p>
         {recipe.relatedDocs.map((slug) => (

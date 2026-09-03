@@ -2,7 +2,13 @@
 
 import { useState } from 'react'
 
-export function RecipeSource({ source }: { source: string }) {
+export function RecipeSource({
+  filename,
+  source,
+}: {
+  filename: string
+  source: string
+}) {
   const [copyStatus, setCopyStatus] = useState('Copy source')
 
   function copyWithSelection() {
@@ -41,7 +47,7 @@ export function RecipeSource({ source }: { source: string }) {
         </button>
       </div>
       <details>
-        <summary>View source</summary>
+        <summary>View {filename}</summary>
         <pre tabIndex={0}>
           <code>{source}</code>
         </pre>
