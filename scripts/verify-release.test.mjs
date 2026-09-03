@@ -401,10 +401,19 @@ test('requires registry verification to tolerate bounded propagation delay', () 
   )
 })
 
+test('requires at least two minutes of registry propagation retries', () => {
+  expectPolicyError(
+    {
+      workflow: workflow.replace(/MAX_ATTEMPTS=[1-9][0-9]*/, 'MAX_ATTEMPTS=8'),
+    },
+    'registry verification must retry with a bounded delay',
+  )
+})
+
 test('caps the registry propagation wait at five minutes', () => {
   expectPolicyError(
     {
-      workflow: replaceOnce(workflow, 'MAX_ATTEMPTS=8', 'MAX_ATTEMPTS=99'),
+      workflow: replaceOnce(workflow, 'MAX_ATTEMPTS=18', 'MAX_ATTEMPTS=99'),
     },
     'registry verification must retry with a bounded delay',
   )
@@ -415,7 +424,7 @@ test('includes registry lookup time in the five-minute bound', () => {
     {
       workflow: replaceOnce(
         workflow,
-        'FETCH_TIMEOUT_MS=10000',
+        'FETCH_TIMEOUT_MS=3000',
         'FETCH_TIMEOUT_MS=300000',
       ),
     },

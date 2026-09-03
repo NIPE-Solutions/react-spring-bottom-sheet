@@ -179,6 +179,7 @@ const hasBoundedRegistryVerification = (step) => {
   return (
     attempts !== null &&
     delay !== null &&
+    (Number(attempts[1]) - 1) * Number(delay[1]) >= 120 &&
     Number(attempts[1]) * Number(delay[1]) <= 300 &&
     /while test "\$attempt" -le "\$MAX_ATTEMPTS"; do/.test(content) &&
     /sleep "\$RETRY_DELAY_SECONDS"/.test(content) &&
