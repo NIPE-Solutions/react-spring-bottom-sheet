@@ -142,7 +142,24 @@ jobs:
           VERSION: ${{ inputs.version }}
         run: |
           NAME=$(node -p "require('./package.json').name")
-          test "$(npm view "$NAME@$CHANNEL" version)" = "$VERSION"
+          MAX_ATTEMPTS=8
+          RETRY_DELAY_SECONDS=10
+          FETCH_TIMEOUT_MS=10000
+          attempt=1
+          while test "$attempt" -le "$MAX_ATTEMPTS"; do
+            PUBLISHED_VERSION=$(npm view "$NAME@$VERSION" version --fetch-timeout="$FETCH_TIMEOUT_MS" --fetch-retries=0 2>/dev/null || true)
+            CHANNEL_VERSION=$(npm view "$NAME@$CHANNEL" version --fetch-timeout="$FETCH_TIMEOUT_MS" --fetch-retries=0 2>/dev/null || true)
+            if test "$PUBLISHED_VERSION" = "$VERSION" && test "$CHANNEL_VERSION" = "$VERSION"; then
+              exit 0
+            fi
+            if test "$attempt" -eq "$MAX_ATTEMPTS"; then
+              echo "Registry verification failed after $MAX_ATTEMPTS attempts"
+              exit 1
+            fi
+            echo "Waiting for npm registry propagation ($attempt/$MAX_ATTEMPTS)"
+            sleep "$RETRY_DELAY_SECONDS"
+            attempt=$((attempt + 1))
+          done
       - name: Create GitHub release
         env:
           GH_TOKEN: ${{ github.token }}
