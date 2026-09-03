@@ -74,12 +74,13 @@ test(
   'interrupts settling motion with a new handle drag',
   { tag: '@release:motion-interruption' },
   async ({ page }) => {
-    await page.clock.install()
+    const clockStart = new Date('2026-01-01T00:00:00Z')
+    await page.clock.install({ time: clockStart })
     await page.goto('')
     const dialog = page.getByRole('dialog')
     const handle = page.getByText('Drag sheet')
     await expect(dialog).toHaveCSS('--rsbs-position', '400px')
-    await page.clock.pauseAt(await page.evaluate(() => Date.now()))
+    await page.clock.pauseAt(clockStart.getTime() + 60_000)
 
     await handle.dispatchEvent('pointerdown', {
       bubbles: true,
