@@ -109,6 +109,14 @@ test('documentation shell exposes location and adjacent routes', async ({
   await expect(page.locator('section#package')).toBeVisible()
 })
 
+test('documentation shell keeps its version label lifecycle-neutral', async ({
+  page,
+}) => {
+  await page.goto('/docs/introduction/')
+
+  await expect(page.locator('.docs-version')).toHaveText('Version 5')
+})
+
 test('styling guide documents replacement hooks and working themes', async ({
   page,
 }) => {

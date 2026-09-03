@@ -391,6 +391,47 @@ test('prerelease instructions order clean install before readiness and sign-off'
   }
 })
 
+test('stable release instructions preserve every protected promotion stage', () => {
+  const releasing = requiredText(
+    new URL('../docs/RELEASING.md', import.meta.url),
+  )
+  const setup = releasing.slice(
+    releasing.indexOf('## One-time repository setup'),
+    releasing.indexOf('## Prepare a prerelease'),
+  )
+  const stable = releasing.slice(
+    releasing.indexOf('## Publish the stable release'),
+  )
+  const normalizedSetup = setup.replaceAll(/\s+/g, ' ')
+  const normalizedStable = stable.replaceAll(/\s+/g, ' ')
+  const milestones = [
+    'promotion pull request',
+    'production deployment',
+    'production sign-off pull request',
+    'SIGNED_OFF_SHA',
+    'head SHA',
+    'approve the protected environment deployment',
+    'registry checks succeed',
+    'website-state pull request',
+  ]
+
+  assert.match(normalizedSetup, /solo-maintainer self-review exception/i)
+  assert.doesNotMatch(normalizedSetup, /prevent self-review/i)
+  assert.ok(
+    normalizedStable.includes(
+      'test "$(gh run view "$RUN_ID" --json headSha --jq .headSha)" = "$SIGNED_OFF_SHA"',
+    ),
+    'stable publication must prove the workflow head SHA exactly',
+  )
+
+  let previous = -1
+  for (const milestone of milestones) {
+    const index = normalizedStable.indexOf(milestone)
+    assert.ok(index > previous, `${milestone} must follow the prior milestone`)
+    previous = index
+  }
+})
+
 test('accepts the checked workflow readiness policy', () => {
   assert.deepEqual(
     validateReadinessWorkflows({ ciWorkflow, releaseWorkflow }),

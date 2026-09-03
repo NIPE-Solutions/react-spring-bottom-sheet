@@ -59,16 +59,23 @@ try {
   const temporaryRequire = createRequire(
     join(temporaryDirectory, 'package.json'),
   )
+  const installedPackageJson = temporaryRequire.resolve(
+    `${sourceMetadata.name}/package.json`,
+  )
   const installedMetadata = JSON.parse(
-    readFileSync(
-      temporaryRequire.resolve(`${sourceMetadata.name}/package.json`),
-      'utf8',
-    ),
+    readFileSync(installedPackageJson, 'utf8'),
   )
   assert.deepEqual(
     verifyInstalledMetadata(installedMetadata, sourceMetadata),
     [],
   )
+
+  const installedReadme = readFileSync(
+    join(dirname(installedPackageJson), 'README.md'),
+    'utf8',
+  )
+  assert.doesNotMatch(installedReadme, /Version 5 is currently in alpha/i)
+  assert.doesNotMatch(installedReadme, /latest stable 4\.x release/i)
 
   const coreCss = readFileSync(
     temporaryRequire.resolve(`${sourceMetadata.name}/core.css`),
