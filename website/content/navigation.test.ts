@@ -38,8 +38,10 @@ test('adjacent documentation follows visible navigation order', () => {
   expect(getAdjacentDocs('introduction').previous).toBeUndefined()
   expect(getAdjacentDocs('introduction').next?.slug).toBe('installation')
   expect(getAdjacentDocs('state').previous?.slug).toBe('anatomy')
-  expect(getAdjacentDocs('state').next?.slug).toBe('snap-points')
+  expect(getAdjacentDocs('state').next?.slug).toBe('events')
+  expect(getAdjacentDocs('performance').next?.slug).toBe('migration')
   expect(getAdjacentDocs('migration').next?.slug).toBe('troubleshooting')
+  expect(getAdjacentDocs('support').next).toBeUndefined()
   expect(getAdjacentDocs('missing')).toEqual({})
 })
 

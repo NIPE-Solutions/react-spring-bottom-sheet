@@ -1,5 +1,10 @@
 import { expect, test } from '@playwright/test'
 import AxeBuilder from '@axe-core/playwright'
+import { readFileSync } from 'node:fs'
+
+const packageVersion = JSON.parse(
+  readFileSync(new URL('../../package.json', import.meta.url), 'utf8'),
+).version as string
 
 test('homepage presents generated package evidence and useful next steps', async ({
   page,
@@ -15,13 +20,37 @@ test('homepage presents generated package evidence and useful next steps', async
   const evidence = page.getByRole('region', {
     name: 'What the current build proves.',
   })
-  await expect(evidence).toContainText('5.0.0-alpha.0')
+  await expect(evidence).toContainText(packageVersion)
+  await expect(evidence.getByText('Build facts', { exact: true })).toBeVisible()
+  await expect(
+    evidence.getByText('Prepared version', { exact: true }),
+  ).toBeVisible()
+  await expect(evidence.getByText('Published facts')).toHaveCount(0)
+  await expect(evidence.getByText('Current channel')).toHaveCount(0)
   await expect(evidence).toContainText('10.6 kB gzip')
   await expect(evidence).toContainText('Chromium, Firefox, WebKit')
   await expect(evidence).toContainText('React ^19.0.0')
   await expect(
     page.getByRole('heading', { name: 'Start with the whole system.' }),
   ).toBeVisible()
+  await expect(
+    page.getByRole('heading', { name: 'Built for the difficult parts.' }),
+  ).toBeVisible()
+  await expect(
+    page.getByRole('heading', { name: 'Your visual system stays yours.' }),
+  ).toBeVisible()
+  await expect(
+    page.getByRole('heading', { name: 'Accessibility is runtime behavior.' }),
+  ).toBeVisible()
+  await expect(
+    page.getByRole('heading', { name: 'A deliberate path to 5.0.' }),
+  ).toBeVisible()
+  await expect(
+    page.getByRole('link', { name: 'Read the styling contract' }),
+  ).toHaveAttribute('href', '/docs/styling/')
+  await expect(
+    page.getByRole('link', { name: 'Review accessibility behavior' }),
+  ).toHaveAttribute('href', '/docs/accessibility/')
   await expect(
     page.getByRole('link', { name: 'Explore controlled state' }),
   ).toHaveAttribute('href', '/examples/controlled/')
@@ -106,4 +135,27 @@ test('homepage remains contained at 320 pixels', async ({ page }) => {
     document: document.documentElement.scrollWidth,
   }))
   expect(dimensions.document).toBe(dimensions.viewport)
+
+  const stylingColumns = await page
+    .locator('.docs-style-layers > div')
+    .first()
+    .evaluate((element) => getComputedStyle(element).gridTemplateColumns)
+  expect(stylingColumns.trim().split(/\s+/)).toHaveLength(1)
+})
+
+test('homepage remains contained at the compact-layout boundary', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 809, height: 900 })
+  await page.goto('/')
+
+  const dimensions = await page.evaluate(() => ({
+    viewport: window.innerWidth,
+    document: document.documentElement.scrollWidth,
+  }))
+  expect(dimensions.document).toBe(dimensions.viewport)
+  const launchColumns = await page
+    .locator('.docs-launch-path')
+    .evaluate((element) => getComputedStyle(element).gridTemplateColumns)
+  expect(launchColumns.trim().split(/\s+/)).toHaveLength(1)
 })

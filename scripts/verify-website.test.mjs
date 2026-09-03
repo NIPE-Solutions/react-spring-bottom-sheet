@@ -7,14 +7,19 @@ const requiredRoutes = [
   'installation',
   'anatomy',
   'state',
+  'events',
   'snap-points',
   'gestures',
+  'portals',
   'accessibility',
   'styling',
   'examples',
   'api',
+  'testing',
+  'performance',
   'migration',
   'troubleshooting',
+  'support',
 ]
 
 test('the documentation manifest covers every required topic', async () => {
@@ -66,6 +71,18 @@ test('the website publishes search and social metadata routes', () => {
     '../website/app/sitemap.ts',
     '../website/app/robots.ts',
     '../website/app/opengraph-image.tsx',
+  ]) {
+    assert.ok(existsSync(new URL(path, import.meta.url)), path)
+  }
+})
+
+test('the website publishes its legal and accessibility routes', () => {
+  for (const path of [
+    '../website/app/impressum/page.tsx',
+    '../website/app/privacy/page.tsx',
+    '../website/app/de/impressum/page.tsx',
+    '../website/app/de/datenschutz/page.tsx',
+    '../website/app/accessibility/page.tsx',
   ]) {
     assert.ok(existsSync(new URL(path, import.meta.url)), path)
   }

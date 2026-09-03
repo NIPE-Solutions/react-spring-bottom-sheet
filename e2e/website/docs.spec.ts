@@ -8,6 +8,9 @@ const generatedPublicApi = JSON.parse(
     'utf8',
   ),
 ) as readonly { id: string }[]
+const packageVersion = JSON.parse(
+  readFileSync(new URL('../../package.json', import.meta.url), 'utf8'),
+).version as string
 
 test('home page exposes navigation and a working sheet', async ({ page }) => {
   await page.goto('/')
@@ -30,13 +33,60 @@ test('every documentation link resolves', async ({ page }) => {
   await page.goto('/docs/introduction/')
   const links = page.locator('.docs-sidebar a')
   const count = await links.count()
-  expect(count).toBe(12)
+  expect(count).toBe(17)
 
   for (let index = 0; index < count; index += 1) {
     const href = await links.nth(index).getAttribute('href')
     const response = await page.request.get(href ?? '')
     expect(response.ok(), href ?? 'missing href').toBe(true)
   }
+})
+
+test('documentation navigation covers integration and operations', async ({
+  page,
+}) => {
+  await page.goto('/docs/introduction/')
+
+  for (const name of [
+    'Events and dismissal',
+    'Portals and layering',
+    'Testing',
+    'Performance',
+    'Support and maintenance',
+  ]) {
+    await expect(page.getByRole('link', { name }).first()).toBeVisible()
+  }
+})
+
+test('accessibility guidance describes the real close lifecycle', async ({
+  page,
+}) => {
+  await page.goto('/docs/accessibility/')
+
+  await expect(page.getByText('when close state is entered')).toBeVisible()
+  await expect(page.getByText('after the closing motion')).toHaveCount(0)
+})
+
+test('installation instructions match the package release state', async ({
+  page,
+}) => {
+  await page.goto('/docs/installation/')
+
+  const prerelease = packageVersion.includes('-')
+  await expect(
+    page.getByText(
+      `npm install @nipe-solutions/react-spring-bottom-sheet${
+        prerelease ? '@next' : ''
+      }`,
+      { exact: true },
+    ),
+  ).toBeVisible()
+  const plannedChannel = page.getByText('Planned prerelease channel', {
+    exact: true,
+  })
+  const unpublished = page.getByText('is not published yet', { exact: false })
+  await expect(plannedChannel).toHaveCount(prerelease ? 1 : 0)
+  await expect(unpublished).toHaveCount(prerelease ? 1 : 0)
 })
 
 test('documentation shell exposes location and adjacent routes', async ({
