@@ -28,31 +28,14 @@ describe('recipe registry', () => {
     expect(getRecipe('missing')).toBeUndefined()
   })
 
-  it('provides useful copy and source for every recipe', () => {
+  it('provides useful copy and a runnable source file for every recipe', () => {
     for (const recipe of recipes) {
       expect(recipe.title.trim()).not.toBe('')
       expect(recipe.summary.trim()).not.toBe('')
-      expect(recipe.source.trim()).not.toBe('')
-      expect(recipe.source).toContain("from '@library'")
-    }
-  })
-
-  it('consumes the package through its public website alias', () => {
-    for (const file of [
-      'basic/BasicSheet.tsx',
-      'controlled/ControlledSheet.tsx',
-      'snap-points/SnapPointSheet.tsx',
-      'content-height/ContentHeightSheet.tsx',
-      'scrolling/ScrollingSheet.tsx',
-      'form/FormSheet.tsx',
-      'custom-portal/CustomPortalSheet.tsx',
-      'non-modal/NonModalSheet.tsx',
-      'reduced-motion/ReducedMotionSheet.tsx',
-      'confirmation/ConfirmationSheet.tsx',
-      'custom-theme/CustomThemeSheet.tsx',
-      'dark-theme/DarkThemeSheet.tsx',
-    ]) {
-      const component = readFileSync(new URL(file, import.meta.url), 'utf8')
+      const component = readFileSync(
+        new URL(recipe.sourceFile, import.meta.url),
+        'utf8',
+      )
       expect(component).toContain("from '@library'")
       expect(component).not.toMatch(/from ['"](?:\.\.\/)+.*src/)
     }

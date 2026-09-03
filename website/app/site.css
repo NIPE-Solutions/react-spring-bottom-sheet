@@ -720,6 +720,23 @@
       linear-gradient(90deg, var(--docs-rule) 1px, transparent 1px);
     background-size: 2.2rem 2.2rem;
   }
+  .docs-recipe-frame {
+    display: block;
+    width: min(100%, 390px);
+    height: 780px;
+    border: 0;
+    background: var(--docs-surface);
+  }
+  .docs-recipe-embed {
+    min-height: 100svh;
+    display: grid;
+    place-items: center;
+    padding: clamp(1rem, 4vw, 2rem);
+    background: var(--docs-surface);
+  }
+  .docs-recipe-sheet .docs-recipe-actions {
+    margin-top: 0.75rem;
+  }
   .docs-recipe-control {
     display: grid;
     justify-items: start;
