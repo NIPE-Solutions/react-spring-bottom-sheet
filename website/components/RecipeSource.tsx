@@ -1,6 +1,6 @@
 import { CopySourceButton } from './source-code/CopySourceButton'
-import { HighlightedCode } from './source-code/HighlightedCode'
-import { highlightTsx } from './source-code/highlighter'
+import { CodeTokens } from './source-code/CodeTokens'
+import { highlightCode } from './source-code/highlighter'
 
 export type RecipeSourceProps = {
   filename: string
@@ -8,7 +8,7 @@ export type RecipeSourceProps = {
 }
 
 export async function RecipeSource({ filename, source }: RecipeSourceProps) {
-  const lines = await highlightTsx(source)
+  const lines = await highlightCode(source, 'tsx')
 
   return (
     <section
@@ -24,7 +24,12 @@ export async function RecipeSource({ filename, source }: RecipeSourceProps) {
       </div>
       <details>
         <summary>View {filename}</summary>
-        <HighlightedCode filename={filename} lines={lines} />
+        <CodeTokens
+          source={source}
+          lines={lines}
+          label={`Source code for ${filename}`}
+          lineNumbers
+        />
       </details>
     </section>
   )
