@@ -42,6 +42,17 @@ describe('highlightCode', () => {
     expect(restoreSource(lines)).toBe(source)
   })
 
+  it.each<CodeLanguage>(['tsx', 'css', 'shell'])(
+    'preserves lone carriage returns for %s',
+    async (language) => {
+      for (const source of ['\r', 'first\rsecond\r']) {
+        const lines = await highlightCode(source, language)
+
+        expect(restoreSource(lines)).toBe(source)
+      }
+    },
+  )
+
   it('distinguishes TSX tags from attributes', async () => {
     const lines = await highlightCode(samples.tsx, 'tsx')
 

@@ -150,9 +150,12 @@ export async function highlightCode(
   })
 
   const crlfLineIndexes = new Set<number>()
-  source.split('\n').forEach((line, lineIndex) => {
-    if (line.endsWith('\r')) crlfLineIndexes.add(lineIndex)
-  })
+  let lineIndex = 0
+  for (let sourceIndex = 0; sourceIndex < source.length; sourceIndex += 1) {
+    if (source[sourceIndex] !== '\n') continue
+    if (source[sourceIndex - 1] === '\r') crlfLineIndexes.add(lineIndex)
+    lineIndex += 1
+  }
 
   return normalizeTokens(tokens, language, crlfLineIndexes)
 }
