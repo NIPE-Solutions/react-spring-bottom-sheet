@@ -1,10 +1,11 @@
-export function RecipePreview({
-  slug,
-  title,
-}: {
+import { DeviceLab, DeviceLabFallback } from './device-lab/DeviceLab'
+
+type RecipePreviewProps = Readonly<{
   slug: string
   title: string
-}) {
+}>
+
+export function RecipePreview({ slug, title }: RecipePreviewProps) {
   return (
     <section
       className="docs-recipe-preview"
@@ -14,13 +15,22 @@ export function RecipePreview({
         <p>Live package</p>
         <h2 id="recipe-preview-title">Preview</h2>
       </div>
-      <div className="docs-recipe-stage">
-        <iframe
-          className="docs-recipe-frame"
-          src={`/examples/${slug}/embed/`}
-          title={`${title} interactive preview`}
-        />
+      <DeviceLab slug={slug} title={title} />
+    </section>
+  )
+}
+
+export function RecipePreviewFallback({ slug, title }: RecipePreviewProps) {
+  return (
+    <section
+      className="docs-recipe-preview"
+      aria-labelledby="recipe-preview-title"
+    >
+      <div className="docs-recipe-section-heading">
+        <p>Live package</p>
+        <h2 id="recipe-preview-title">Preview</h2>
       </div>
+      <DeviceLabFallback slug={slug} title={title} />
     </section>
   )
 }

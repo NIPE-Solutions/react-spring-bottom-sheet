@@ -263,6 +263,7 @@
   .docs-demo-actions button,
   .docs-recipe-trigger,
   .docs-recipe-control button,
+  .docs-device-controls button,
   .docs-recipe-actions button,
   .docs-recipe-source button,
   .docs-recipe-sheet button {
@@ -709,23 +710,118 @@
   .docs-recipe-section-heading p {
     margin-bottom: 0;
   }
-  .docs-recipe-stage {
-    min-height: 20rem;
-    display: grid;
-    place-items: center;
+  .docs-device-lab {
     margin-top: 1.5rem;
-    border: 1px solid var(--docs-rule);
-    background:
-      linear-gradient(var(--docs-rule) 1px, transparent 1px),
-      linear-gradient(90deg, var(--docs-rule) 1px, transparent 1px);
-    background-size: 2.2rem 2.2rem;
+  }
+  .docs-device-controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem 1.5rem;
+    margin-bottom: 0.75rem;
+  }
+  .docs-device-controls fieldset {
+    display: grid;
+    gap: 0.4rem;
+    margin: 0;
+    border: 0;
+    padding: 0;
+  }
+  .docs-device-controls legend {
+    color: var(--docs-muted);
+    font-size: 0.78rem;
+    font-weight: 650;
+  }
+  .docs-device-controls fieldset > div {
+    display: flex;
+  }
+  .docs-device-controls button {
+    min-width: 6.5rem;
+    border-radius: 0;
+    background: var(--docs-surface);
+  }
+  .docs-device-controls button:first-child {
+    border-radius: 0.35rem 0 0 0.35rem;
+  }
+  .docs-device-controls button:last-child {
+    margin-left: -1px;
+    border-radius: 0 0.35rem 0.35rem 0;
+  }
+  .docs-device-controls button[aria-pressed='true'] {
+    position: relative;
+    z-index: 1;
+    border-color: var(--docs-signal);
+    background: var(--docs-signal);
+    color: white;
+  }
+  .docs-device-readout {
+    margin-bottom: 0.65rem;
+    color: var(--docs-muted);
+    font-size: 0.82rem;
+    font-variant-numeric: tabular-nums;
+  }
+  .docs-recipe-stage {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    overflow: hidden;
+    background: var(--docs-panel);
+    box-shadow: inset 0 0 0 1px var(--docs-rule);
+  }
+  .docs-device-frame-sizer {
+    position: relative;
+    flex: none;
+  }
+  .docs-device-frame {
+    position: absolute;
+    inset: 0 auto auto 0;
+    width: calc(var(--device-width) + 2px);
+    height: calc(var(--device-height) + 2px);
+    border: 1px solid color-mix(in srgb, var(--docs-ink) 72%, transparent);
+    border-radius: var(--device-radius);
+    background: var(--docs-surface);
+    box-shadow: 0 0.8rem 2rem rgb(15 23 42 / 14%);
+    transform: scale(var(--device-scale));
+    transform-origin: top left;
+  }
+  .docs-device-screen {
+    position: relative;
+    width: var(--device-width);
+    height: var(--device-height);
+    overflow: hidden;
+    border-radius: max(0px, calc(var(--device-radius) - 1px));
+    background: var(--docs-surface);
+  }
+  .docs-recipe-stage,
+  .docs-device-frame-sizer,
+  .docs-device-frame,
+  .docs-device-screen {
+    transition: none;
   }
   .docs-recipe-frame {
     display: block;
-    width: min(100%, 390px);
-    height: 780px;
+    width: 100%;
+    height: 100%;
     border: 0;
     background: var(--docs-surface);
+  }
+  .docs-device-status {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    background: color-mix(in srgb, var(--docs-surface) 94%, transparent);
+    color: var(--docs-ink);
+    padding: 2rem;
+    text-align: center;
+  }
+  .docs-device-status p {
+    margin-bottom: 0;
+  }
+  .docs-device-status a {
+    display: inline-block;
+    margin-top: 0.75rem;
+    color: var(--docs-signal-strong);
+    font-weight: 650;
   }
   .docs-recipe-embed {
     min-height: 100svh;
@@ -1080,6 +1176,14 @@
   .docs-recipe-grid article,
   .docs-recipe-grid article:first-child {
     border-left: 1px solid var(--docs-rule);
+  }
+  .docs-device-controls,
+  .docs-device-controls fieldset {
+    width: 100%;
+  }
+  .docs-device-controls fieldset > div,
+  .docs-device-controls button {
+    flex: 1;
   }
   .docs-footer,
   .docs-footer > div {

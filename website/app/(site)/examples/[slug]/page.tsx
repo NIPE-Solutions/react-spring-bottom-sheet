@@ -1,7 +1,11 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
-import { RecipePreview } from '../../../../components/RecipePreview'
+import { Suspense } from 'react'
+import {
+  RecipePreview,
+  RecipePreviewFallback,
+} from '../../../../components/RecipePreview'
 import { RecipeSource } from '../../../../components/RecipeSource'
 import { getRecipe, recipes } from '../../../../recipes/registry'
 import { loadRecipeSource } from '../../../../recipes/source'
@@ -44,7 +48,13 @@ export default async function RecipePage({
         <p>{recipe.summary}</p>
         <Link href="/examples/">All recipes</Link>
       </header>
-      <RecipePreview slug={recipe.slug} title={recipe.title} />
+      <Suspense
+        fallback={
+          <RecipePreviewFallback slug={recipe.slug} title={recipe.title} />
+        }
+      >
+        <RecipePreview slug={recipe.slug} title={recipe.title} />
+      </Suspense>
       <div className="docs-recipe-guidance">
         <section>
           <h2>Prerequisites</h2>

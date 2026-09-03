@@ -12,6 +12,7 @@ export default defineConfig({
     include: [
       'src/**/*.{test,spec}.{ts,tsx}',
       'website/content/**/*.{test,spec}.{ts,tsx}',
+      'website/components/**/*.{test,spec}.{ts,tsx}',
       'website/recipes/**/*.{test,spec}.{ts,tsx}',
     ],
     setupFiles: ['./test/setup.ts'],
