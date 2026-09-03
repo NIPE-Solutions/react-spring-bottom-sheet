@@ -722,8 +722,8 @@
   }
   .docs-recipe-frame {
     display: block;
-    width: 100%;
-    min-height: 32rem;
+    width: min(100%, 390px);
+    height: 780px;
     border: 0;
     background: var(--docs-surface);
   }
@@ -733,6 +733,9 @@
     place-items: center;
     padding: clamp(1rem, 4vw, 2rem);
     background: var(--docs-surface);
+  }
+  .docs-recipe-sheet .docs-recipe-actions {
+    margin-top: 0.75rem;
   }
   .docs-recipe-control {
     display: grid;

@@ -71,13 +71,30 @@ test('snap-point recipe exposes and changes its named destination', async ({
   const frame = recipeFrame(page)
   await frame.getByRole('button', { name: 'Open snap-point sheet' }).click()
 
+  await expect(
+    frame.getByRole('dialog', { name: 'Named snap points' }),
+  ).toHaveAttribute('data-rsbs-state', 'open')
   await expect(frame.getByText('Active snap point: compact')).toBeVisible()
-  await frame.getByRole('button', { name: 'Expanded' }).click()
+  const expanded = frame.getByRole('button', { name: 'Expanded' })
+  const bounds = await expanded.evaluate((element) => {
+    const rect = element.getBoundingClientRect()
+    return {
+      top: rect.top,
+      right: rect.right,
+      bottom: rect.bottom,
+      left: rect.left,
+      viewportWidth: window.innerWidth,
+      viewportHeight: window.innerHeight,
+    }
+  })
+  expect(bounds.top).toBeGreaterThanOrEqual(0)
+  expect(bounds.left).toBeGreaterThanOrEqual(0)
+  expect(bounds.right).toBeLessThanOrEqual(bounds.viewportWidth)
+  expect(bounds.bottom).toBeLessThanOrEqual(bounds.viewportHeight)
+
+  await expanded.click()
   await expect(frame.getByText('Active snap point: expanded')).toBeVisible()
-  await expect(frame.getByRole('button', { name: 'Expanded' })).toHaveAttribute(
-    'aria-pressed',
-    'true',
-  )
+  await expect(expanded).toHaveAttribute('aria-pressed', 'true')
 })
 
 test(
