@@ -178,6 +178,53 @@
   .docs-page {
     min-width: 0;
   }
+  .docs-legal-page {
+    width: 100%;
+    max-width: 88rem;
+    margin-inline: auto;
+    padding: clamp(3rem, 7vw, 7rem);
+  }
+  .docs-legal-page > header {
+    max-width: 62rem;
+    padding-bottom: clamp(2.5rem, 6vw, 5rem);
+    border-bottom: 1px solid var(--docs-rule);
+  }
+  .docs-legal-page h1 {
+    font-size: clamp(2.8rem, 7vw, 6rem);
+  }
+  .docs-legal-intro,
+  .docs-legal-page section p {
+    max-width: 68ch;
+    color: var(--docs-muted);
+  }
+  .docs-legal-intro {
+    font-size: clamp(1.05rem, 2vw, 1.3rem);
+  }
+  .docs-legal-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 48rem) minmax(13rem, 17rem);
+    justify-content: space-between;
+    gap: clamp(3rem, 7vw, 7rem);
+  }
+  .docs-legal-page section {
+    min-width: 0;
+    padding-block: 2.5rem;
+    border-bottom: 1px solid var(--docs-rule);
+  }
+  .docs-legal-page a {
+    overflow-wrap: anywhere;
+  }
+  .docs-legal-layout aside {
+    position: sticky;
+    top: 2rem;
+    align-self: start;
+    margin-top: 2.5rem;
+    padding-left: 1.25rem;
+    border-left: 1px solid var(--docs-rule);
+    color: var(--docs-muted);
+    font-size: 0.86rem;
+    overflow-wrap: anywhere;
+  }
   .docs-hero {
     min-height: calc(100vh - 4.5rem);
     display: grid;
@@ -778,6 +825,15 @@
     color: var(--docs-muted);
     font-size: 0.85rem;
   }
+  .docs-footer > div,
+  .docs-footer nav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 1rem;
+  }
+  .docs-footer nav {
+    justify-content: flex-end;
+  }
 }
 
 @media (max-width: 800px) {
@@ -817,6 +873,14 @@
   }
   .docs-reading-layout {
     display: block;
+  }
+  .docs-legal-layout {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0;
+  }
+  .docs-legal-layout aside {
+    position: static;
+    padding-block: 1.25rem;
   }
   .docs-reading-layout > .docs-table-of-contents {
     display: none;
@@ -874,6 +938,13 @@
   .docs-recipe-grid article,
   .docs-recipe-grid article:first-child {
     border-left: 1px solid var(--docs-rule);
+  }
+  .docs-footer,
+  .docs-footer > div {
+    flex-direction: column;
+  }
+  .docs-footer nav {
+    justify-content: flex-start;
   }
 }
 

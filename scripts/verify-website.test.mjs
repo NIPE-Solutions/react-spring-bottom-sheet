@@ -71,6 +71,18 @@ test('the website publishes search and social metadata routes', () => {
   }
 })
 
+test('the website publishes its legal and accessibility routes', () => {
+  for (const path of [
+    '../website/app/impressum/page.tsx',
+    '../website/app/privacy/page.tsx',
+    '../website/app/de/impressum/page.tsx',
+    '../website/app/de/datenschutz/page.tsx',
+    '../website/app/accessibility/page.tsx',
+  ]) {
+    assert.ok(existsSync(new URL(path, import.meta.url)), path)
+  }
+})
+
 test('displayed public API examples have a type-check fixture', () => {
   assert.ok(
     existsSync(new URL('../test/types/docs-examples.tsx', import.meta.url)),
