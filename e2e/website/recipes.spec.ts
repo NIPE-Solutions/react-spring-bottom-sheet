@@ -290,7 +290,7 @@ test('source remains available as native disclosure content', async ({
   page,
 }) => {
   await page.goto('/examples/basic/')
-  await page.getByText('View source').click()
+  await page.getByText('View BasicSheet.tsx').click()
 
   await expect(page.locator('.docs-recipe-source code')).toContainText(
     "import { Sheet } from '@library'",
