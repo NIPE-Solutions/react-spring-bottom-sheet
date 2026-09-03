@@ -11,12 +11,12 @@ test('prereleases install from the next channel', () => {
   })
 })
 
-test('prepared stable releases use latest without claiming publication', () => {
+test('version 5 stable installs from the published latest channel', () => {
   expect(getReleasePresentation('5.0.0')).toEqual({
     channel: 'latest',
     installCommand: 'npm install @nipe-solutions/react-spring-bottom-sheet',
     prerelease: false,
-    published: false,
+    published: true,
   })
 })
 
