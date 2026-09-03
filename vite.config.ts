@@ -9,7 +9,10 @@ export default defineConfig({
       fileName: (format) => (format === 'es' ? 'index.js' : 'index.cjs'),
     },
     rollupOptions: {
-      external: ['motion', 'react', 'react-dom'],
+      external: (id) =>
+        ['motion', 'react', 'react-dom'].some(
+          (dependency) => id === dependency || id.startsWith(`${dependency}/`),
+        ),
     },
     sourcemap: true,
   },
