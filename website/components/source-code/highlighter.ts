@@ -117,17 +117,26 @@ function normalizeTokens(
     }>
   >,
   language: CodeLanguage,
+  crlfLineIndexes: ReadonlySet<number>,
 ): HighlightedLine[] {
-  return tokens.map((line) =>
-    line.map(({ color = foreground, content, fontStyle }) => ({
-      color:
-        language === 'shell' && content.startsWith('@')
-          ? shellPackageForeground
-          : color,
-      content,
-      ...(fontStyle === undefined ? {} : { fontStyle }),
-    })),
-  )
+  return tokens.map((line, lineIndex) => {
+    const normalizedLine = line.map(
+      ({ color = foreground, content, fontStyle }) => ({
+        color:
+          language === 'shell' && content.startsWith('@')
+            ? shellPackageForeground
+            : color,
+        content,
+        ...(fontStyle === undefined ? {} : { fontStyle }),
+      }),
+    )
+
+    // Shiki separates lines on LF and omits the preceding CR. Keep that CR in
+    // its token line so CodeTokens' literal LF node recreates the original CRLF.
+    return crlfLineIndexes.has(lineIndex)
+      ? [...normalizedLine, { color: foreground, content: '\r' }]
+      : normalizedLine
+  })
 }
 
 export async function highlightCode(
@@ -140,5 +149,10 @@ export async function highlightCode(
     theme: recipeSourceTheme.name,
   })
 
-  return normalizeTokens(tokens, language)
+  const crlfLineIndexes = new Set<number>()
+  source.split('\n').forEach((line, lineIndex) => {
+    if (line.endsWith('\r')) crlfLineIndexes.add(lineIndex)
+  })
+
+  return normalizeTokens(tokens, language, crlfLineIndexes)
 }

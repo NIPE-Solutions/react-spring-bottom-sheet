@@ -34,6 +34,14 @@ describe('highlightCode', () => {
     },
   )
 
+  it('preserves CRLF line endings including a terminal CRLF', async () => {
+    const source = 'const first = true\r\nconst second = false\r\n'
+
+    const lines = await highlightCode(source, 'tsx')
+
+    expect(restoreSource(lines)).toBe(source)
+  })
+
   it('distinguishes TSX tags from attributes', async () => {
     const lines = await highlightCode(samples.tsx, 'tsx')
 

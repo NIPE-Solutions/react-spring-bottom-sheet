@@ -47,4 +47,14 @@ describe('CodeBlock', () => {
       region.querySelector('[data-source-trailing-newline]'),
     ).toBeInTheDocument()
   })
+
+  it('preserves CRLF bytes in selectable code text including a terminal CRLF', async () => {
+    const source = 'const first = true\r\nconst second = false\r\n'
+    const block = await CodeBlock({ source, language: 'tsx' })
+
+    render(block)
+
+    const region = screen.getByRole('region', { name: 'tsx code' })
+    expect(sourceCodeValue(region)).toBe(source)
+  })
 })
