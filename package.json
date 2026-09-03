@@ -1,6 +1,6 @@
 {
   "name": "@nipe-solutions/react-spring-bottom-sheet",
-  "version": "5.0.0-alpha.0",
+  "version": "5.0.0",
   "description": "Accessible and composable bottom sheets for React",
   "license": "MIT",
   "author": "Cody Olsen",
