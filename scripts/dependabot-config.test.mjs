@@ -39,4 +39,11 @@ test('Dependabot keeps npm and workflow dependencies current without grouping ma
     config.updates[0].groups['development-minor-and-patch']['dependency-type'],
     'development',
   )
+
+  assert.deepEqual(config.updates[0].ignore, [
+    {
+      'dependency-name': '@types/node',
+      'update-types': ['version-update:semver-major'],
+    },
+  ])
 })
