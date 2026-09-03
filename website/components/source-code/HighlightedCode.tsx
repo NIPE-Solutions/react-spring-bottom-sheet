@@ -29,7 +29,11 @@ export function HighlightedCode({
     <pre tabIndex={0} aria-label={`Source code for ${filename}`}>
       <code>
         {lines.map((line, lineIndex) => (
-          <span key={lineIndex} style={{ display: 'block' }}>
+          <span
+            data-line={lineIndex + 1}
+            key={lineIndex}
+            style={{ display: 'block' }}
+          >
             <span
               aria-hidden="true"
               style={{

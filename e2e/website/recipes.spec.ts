@@ -1,5 +1,11 @@
+import { readFileSync } from 'node:fs'
 import { expect, test, type Page } from '@playwright/test'
 import AxeBuilder from '@axe-core/playwright'
+
+const BASIC_RECIPE_SOURCE = readFileSync(
+  new URL('../../website/recipes/basic/BasicSheet.tsx', import.meta.url),
+  'utf8',
+)
 
 function recipeFrame(page: Page) {
   return page.frameLocator('[title$="interactive preview"]')
@@ -1057,17 +1063,218 @@ test('dark theme is explicit instead of depending on system mode', async ({
   await expect(dialog).toHaveCSS('color', 'rgb(232, 241, 247)')
 })
 
-test('source remains available as native disclosure content', async ({
+test('highlighted source is a keyboard-readable disclosure with exact copy output', async ({
+  browserName,
+  context,
+  page,
+}) => {
+  if (browserName === 'chromium') {
+    await context.grantPermissions(['clipboard-read', 'clipboard-write'])
+  }
+  await page.goto('/examples/basic/')
+
+  const disclosure = page.locator('.docs-recipe-source details')
+  const disclosureControl = page.getByText('View BasicSheet.tsx')
+  await expect(disclosure).not.toHaveAttribute('open', '')
+  await disclosureControl.click()
+  await expect(disclosure).toHaveAttribute('open', '')
+
+  const scroller = page.locator(
+    'pre[aria-label="Source code for BasicSheet.tsx"]',
+  )
+  await expect(scroller).toHaveAttribute('tabindex', '0')
+  await page.keyboard.press('Tab')
+  await expect(scroller).toBeFocused()
+  await expect(scroller).toHaveCSS('overflow-x', 'auto')
+  await expect(scroller).toHaveCSS('outline-style', 'solid')
+
+  const tokenColors = await page
+    .locator('.docs-recipe-source [data-code-token]')
+    .evaluateAll((tokens) => [
+      ...new Set(tokens.map((token) => getComputedStyle(token).color)),
+    ])
+  expect(tokenColors.length).toBeGreaterThanOrEqual(4)
+  const semanticTokenColors = await page
+    .locator('.docs-recipe-source [data-code-token]')
+    .evaluateAll((tokens) => {
+      const colorFor = (content: string) =>
+        tokens.find((token) => token.textContent === content)
+          ? getComputedStyle(
+              tokens.find((token) => token.textContent === content)!,
+            ).color
+          : undefined
+      return {
+        keyword: colorFor('import'),
+        string: colorFor("'@library'"),
+      }
+    })
+  expect(semanticTokenColors.keyword).toBeDefined()
+  expect(semanticTokenColors.string).toBeDefined()
+  expect(semanticTokenColors.keyword).not.toBe(semanticTokenColors.string)
+
+  const sourceLines = page.locator('.docs-recipe-source [data-line]')
+  const expectedLines = BASIC_RECIPE_SOURCE.split('\n')
+  await expect(sourceLines).toHaveCount(expectedLines.length)
+  expect(
+    await sourceLines.evaluateAll((lines) =>
+      lines.map((line) => line.getAttribute('data-line')),
+    ),
+  ).toEqual(expectedLines.map((_, index) => String(index + 1)))
+  const lineNumbers = sourceLines.locator('[aria-hidden="true"]')
+  await expect(lineNumbers).toHaveCount(expectedLines.length)
+  expect(
+    await lineNumbers.evaluateAll((numbers) =>
+      numbers.map((number) => ({
+        text: number.textContent,
+        userSelect: getComputedStyle(number).userSelect,
+      })),
+    ),
+  ).toEqual(
+    expectedLines.map((_, index) => ({
+      text: String(index + 1),
+      userSelect: 'none',
+    })),
+  )
+  const renderedSource = await sourceLines.evaluateAll((lines) =>
+    lines
+      .map((line) => {
+        const copy = line.cloneNode(true) as HTMLElement
+        copy
+          .querySelectorAll('[aria-hidden="true"]')
+          .forEach((element) => element.remove())
+        return copy.textContent ?? ''
+      })
+      .join('\n'),
+  )
+  expect(renderedSource).toBe(BASIC_RECIPE_SOURCE)
+
+  if (browserName !== 'chromium') {
+    await page.evaluate(() => {
+      Object.defineProperty(navigator, 'clipboard', {
+        configurable: true,
+        value: {
+          writeText(value: string) {
+            ;(window as Window & { copiedSource?: string }).copiedSource = value
+            return Promise.resolve()
+          },
+        },
+      })
+    })
+  }
+
+  const copyButton = page.getByRole('button', { name: 'Copy source' })
+  await expect(copyButton).toHaveAttribute('aria-live', 'polite')
+  await copyButton.click()
+  await expect(page.getByRole('button', { name: 'Copied' })).toBeVisible()
+  const copiedSource =
+    browserName === 'chromium'
+      ? await page.evaluate(() => navigator.clipboard.readText())
+      : await page.evaluate(
+          () => (window as Window & { copiedSource?: string }).copiedSource,
+        )
+  expect(copiedSource).toBe(BASIC_RECIPE_SOURCE)
+})
+
+test('highlighted source reports controllable clipboard fallback outcomes', async ({
   page,
 }) => {
   await page.goto('/examples/basic/')
-  await page.getByText('View BasicSheet.tsx').click()
+  await page.evaluate(() => {
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: {
+        writeText: () => Promise.reject(new Error('Clipboard unavailable')),
+      },
+    })
+    document.execCommand = (command) => {
+      if (command !== 'copy') return false
+      ;(window as Window & { fallbackSource?: string }).fallbackSource =
+        document.activeElement instanceof HTMLTextAreaElement
+          ? document.activeElement.value
+          : undefined
+      return true
+    }
+  })
 
-  await expect(page.locator('.docs-recipe-source code')).toContainText(
-    "import { Sheet } from '@library'",
-  )
   await page.getByRole('button', { name: 'Copy source' }).click()
   await expect(page.getByRole('button', { name: 'Copied' })).toBeVisible()
+  expect(
+    await page.evaluate(
+      () => (window as Window & { fallbackSource?: string }).fallbackSource,
+    ),
+  ).toBe(BASIC_RECIPE_SOURCE)
+  await expect(page.locator('textarea')).toHaveCount(0)
+
+  await page.reload()
+  await page.evaluate(() => {
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: {
+        writeText: () => Promise.reject(new Error('Clipboard unavailable')),
+      },
+    })
+    document.execCommand = () => false
+  })
+  await page.getByRole('button', { name: 'Copy source' }).click()
+  await expect(
+    page.getByRole('button', { name: 'Select source to copy' }),
+  ).toBeVisible()
+})
+
+test('recipe lab and source split only when both columns remain readable', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1440, height: 1000 })
+  await page.goto('/examples/basic/')
+
+  const wideLayout = await page.evaluate(() => {
+    const bounds = (selector: string) => {
+      const rect = document.querySelector(selector)?.getBoundingClientRect()
+      if (!rect) throw new Error(`Missing ${selector}`)
+      return {
+        bottom: rect.bottom,
+        left: rect.left,
+        right: rect.right,
+        top: rect.top,
+        width: rect.width,
+      }
+    }
+    return {
+      documentWidth: document.documentElement.scrollWidth,
+      preview: bounds('.docs-recipe-preview'),
+      source: bounds('.docs-recipe-source'),
+      viewportWidth: window.innerWidth,
+    }
+  })
+  expect(wideLayout.source.left).toBeGreaterThanOrEqual(
+    wideLayout.preview.right,
+  )
+  expect(wideLayout.preview.width).toBeGreaterThanOrEqual(400)
+  expect(wideLayout.source.width).toBeGreaterThanOrEqual(440)
+  expect(wideLayout.documentWidth).toBe(wideLayout.viewportWidth)
+
+  await page.setViewportSize({ width: 720, height: 1000 })
+  const compactLayout = await page.evaluate(() => {
+    const top = (selector: string) => {
+      const rect = document.querySelector(selector)?.getBoundingClientRect()
+      if (!rect) throw new Error(`Missing ${selector}`)
+      return rect.top
+    }
+    return {
+      controlsWrap: getComputedStyle(
+        document.querySelector('.docs-device-controls')!,
+      ).flexWrap,
+      documentWidth: document.documentElement.scrollWidth,
+      guidance: top('.docs-recipe-guidance'),
+      preview: top('.docs-recipe-preview'),
+      source: top('.docs-recipe-source'),
+      viewportWidth: window.innerWidth,
+    }
+  })
+  expect(compactLayout.controlsWrap).toBe('wrap')
+  expect(compactLayout.preview).toBeLessThan(compactLayout.guidance)
+  expect(compactLayout.guidance).toBeLessThan(compactLayout.source)
+  expect(compactLayout.documentWidth).toBe(compactLayout.viewportWidth)
 })
 
 for (const route of [

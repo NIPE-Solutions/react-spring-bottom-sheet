@@ -1,9 +1,36 @@
 import assert from 'node:assert/strict'
-import { mkdtempSync, writeFileSync } from 'node:fs'
+import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { spawnSync } from 'node:child_process'
 import test from 'node:test'
+import postcss from 'postcss'
+
+const websiteCss = postcss.parse(
+  readFileSync(new URL('../website/app/site.css', import.meta.url), 'utf8'),
+)
+
+function declarationsFor(selector, mediaQuery) {
+  const declarations = new Map()
+
+  websiteCss.walkRules(selector, (rule) => {
+    let ancestor = rule.parent
+    let media
+    while (ancestor) {
+      if (ancestor.type === 'atrule' && ancestor.name === 'media') {
+        media = ancestor.params
+        break
+      }
+      ancestor = ancestor.parent
+    }
+    if (media !== mediaQuery) return
+    rule.walkDecls((declaration) => {
+      declarations.set(declaration.prop, declaration.value)
+    })
+  })
+
+  return declarations
+}
 
 function checkCss(css) {
   const directory = mkdtempSync(join(tmpdir(), 'rsbs-website-css-'))
@@ -57,4 +84,43 @@ test('rejects custom property declarations and references outside the docs names
 
   assert.equal(result.status, 1)
   assert.match(result.stderr, /--canvas/)
+})
+
+test('recipe source owns horizontal overflow and accessible line-number presentation', () => {
+  const source = declarationsFor('.docs-recipe-source pre')
+  const line = declarationsFor('.docs-recipe-source [data-line]')
+  const number = declarationsFor(
+    ".docs-recipe-source [data-line] > [aria-hidden='true']",
+  )
+
+  assert.equal(source.get('overflow-x'), 'auto')
+  assert.equal(source.get('max-width'), '100%')
+  assert.equal(line.get('min-width'), 'max-content')
+  assert.equal(number.get('user-select'), 'none')
+  assert.equal(number.get('font-variant-numeric'), 'tabular-nums')
+})
+
+test('wide recipe layout balances preview and source without fixed-width overflow', () => {
+  const recipePage = declarationsFor('.docs-recipe-page', '(min-width: 90rem)')
+  const preview = declarationsFor('.docs-recipe-preview', '(min-width: 90rem)')
+  const source = declarationsFor('.docs-recipe-source', '(min-width: 90rem)')
+
+  assert.equal(recipePage.get('display'), 'grid')
+  assert.match(recipePage.get('grid-template-columns'), /minmax\(0,/)
+  assert.equal(preview.get('grid-column'), '1')
+  assert.equal(source.get('grid-column'), '2')
+  assert.equal(source.get('min-width'), '0')
+})
+
+test('compact recipe controls wrap while recipe sections return to document flow', () => {
+  const controls = declarationsFor(
+    '.docs-device-controls',
+    '(max-width: 809px)',
+  )
+  const recipePage = declarationsFor('.docs-recipe-page', '(max-width: 809px)')
+  const source = declarationsFor('.docs-recipe-source', '(max-width: 809px)')
+
+  assert.equal(controls.get('flex-wrap'), 'wrap')
+  assert.equal(recipePage.get('display'), 'block')
+  assert.equal(source.get('min-width'), '0')
 })
