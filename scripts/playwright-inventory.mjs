@@ -13,6 +13,27 @@ const specsIn = (suites) =>
     ...specsIn(suite.suites ?? []),
   ])
 
+export function releaseTestsFromReport({ report, suite }) {
+  return specsIn(report.suites ?? []).flatMap((spec) =>
+    (spec.tests ?? []).flatMap((test) =>
+      (spec.tags ?? [])
+        .map((tag) => tag.replace(/^@/, ''))
+        .filter((tag) => tag.startsWith(releaseTagPrefix))
+        .map((tag) => ({
+          scenario: tag.slice(releaseTagPrefix.length),
+          suite,
+          file: spec.file,
+          line: spec.line,
+          column: spec.column,
+          title: spec.title,
+          projectName: test.projectName,
+          expectedStatus: test.expectedStatus,
+          annotations: test.annotations ?? [],
+        })),
+    ),
+  )
+}
+
 export function discoverReleaseTests({ config, suite }) {
   const result = spawnSync(
     process.execPath,
@@ -40,17 +61,5 @@ export function discoverReleaseTests({ config, suite }) {
   }
 
   const report = JSON.parse(result.stdout)
-  return specsIn(report.suites ?? []).flatMap((spec) =>
-    (spec.tags ?? [])
-      .map((tag) => tag.replace(/^@/, ''))
-      .filter((tag) => tag.startsWith(releaseTagPrefix))
-      .map((tag) => ({
-        scenario: tag.slice(releaseTagPrefix.length),
-        suite,
-        file: spec.file,
-        line: spec.line,
-        column: spec.column,
-        title: spec.title,
-      })),
-  )
+  return releaseTestsFromReport({ report, suite })
 }

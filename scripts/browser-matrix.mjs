@@ -1,4 +1,5 @@
 const desktopProjects = ['chromium', 'firefox', 'webkit']
+const nonExecutingAnnotations = new Set(['skip', 'fixme', 'fail'])
 
 export const releaseScenarioRegistry = Object.freeze({
   'modal-focus-isolation': { suite: 'library' },
@@ -67,6 +68,23 @@ export function validateBrowserMatrix({
     errors.push(`release scenarios missing: ${missingScenarios.join(', ')}`)
   }
 
+  const disabledScenarios = [
+    ...new Set(
+      releaseTests
+        .filter(
+          ({ expectedStatus, annotations = [] }) =>
+            expectedStatus !== 'passed' ||
+            annotations.some(({ type }) => nonExecutingAnnotations.has(type)),
+        )
+        .map(({ scenario }) => scenario),
+    ),
+  ]
+  if (disabledScenarios.length > 0) {
+    errors.push(
+      `release scenarios must execute normally: ${disabledScenarios.join(', ')}`,
+    )
+  }
+
   for (const scenario of expectedScenarios) {
     const releaseScenarioTests = testsByScenario.get(scenario) ?? []
     const expectedSuite = scenarioRegistry[scenario].suite
@@ -102,7 +120,7 @@ export function validateBrowserMatrix({
     ...new Set(
       releaseTests
         .map(({ scenario }) => scenario)
-        .filter((scenario) => !scenarioRegistry[scenario]),
+        .filter((scenario) => !Object.hasOwn(scenarioRegistry, scenario)),
     ),
   ]
   if (unknownScenarios.length > 0) {

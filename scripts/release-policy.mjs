@@ -83,6 +83,17 @@ const commandLines = (step) =>
     .map((line) => line.trim())
     .filter((line) => line !== '' && !line.startsWith('#'))
 
+const stepScalarSetting = (step, name) => {
+  const inline = step.source.match(
+    new RegExp(`^ {6}- ${name}:\\s*(.*?)\\s*$`, 'm'),
+  )?.[1]
+  if (inline !== undefined) return inline
+
+  return (
+    step.source.match(new RegExp(`^ {8}${name}:\\s*(.*?)\\s*$`, 'm'))?.[1] ?? ''
+  )
+}
+
 const jobDependencies = (settings) => {
   const inline = settings.match(/^ {4}needs:\s*(.+?)\s*$/m)?.[1]
   if (inline) {
@@ -145,6 +156,8 @@ export function parseWorkflowModel(workflow) {
       matrix: matrixSettings(settings),
       steps: stepsIn(job).map((step) => ({
         commands: commandLines(step),
+        if: stepScalarSetting(step, 'if'),
+        continueOnError: stepScalarSetting(step, 'continue-on-error'),
       })),
     }
   })

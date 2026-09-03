@@ -34,6 +34,53 @@ const desktopCommands = [
 const touchInstallCommand = 'npx playwright install --with-deps chromium'
 const touchTestCommand = 'npm run test:e2e -- --project=chromium-touch'
 
+const stepsWithCommand = (job, command) =>
+  job?.steps.filter((step) => step.commands.includes(command)) ?? []
+
+const hasBlockingDefaultPolicy = (step) =>
+  step.if === '' &&
+  (step.continueOnError === '' || step.continueOnError === 'false')
+
+const shellWords = (command) =>
+  command.match(/(?:[^\s"'\\]|\\.|"(?:\\.|[^"])*"|'[^']*')+/g) ?? []
+
+const withoutWrappingQuotes = (word) => {
+  const quote = word[0]
+  return quote && quote === word.at(-1) && (quote === '"' || quote === "'")
+    ? word.slice(1, -1)
+    : word
+}
+
+const isTouchTestInvocation = (command) =>
+  command.split(/&&|\|\||[;|]/).some((segment) => {
+    const words = shellWords(segment)
+    const npmIndex = words.findIndex((word) => word === 'npm')
+    if (npmIndex === -1) return false
+
+    const wrappers = words.slice(0, npmIndex)
+    if (
+      wrappers.some(
+        (word) =>
+          word !== 'env' &&
+          word !== 'command' &&
+          word !== 'exec' &&
+          !word.startsWith('-') &&
+          !/^[A-Za-z_][A-Za-z0-9_]*=/.test(word),
+      )
+    ) {
+      return false
+    }
+
+    const args = words.slice(npmIndex + 1).map(withoutWrappingQuotes)
+    if (args[0] !== 'run' || args[1] !== 'test:e2e') return false
+
+    return args.some(
+      (argument, index) =>
+        argument === '--project=chromium-touch' ||
+        (argument === '--project' && args[index + 1] === 'chromium-touch'),
+    )
+  })
+
 const sameCommands = (actual, expected) =>
   actual.length === expected.length &&
   actual.every((command, index) => command === expected[index])
@@ -105,6 +152,14 @@ export function validateReadinessWorkflows({ ciWorkflow, releaseWorkflow }) {
         `${label} browsers must install and execute each desktop project in both suites`,
       )
     }
+    const desktopSteps = desktopCommands.flatMap((command) =>
+      stepsWithCommand(browsers, command),
+    )
+    if (desktopSteps.some((step) => !hasBlockingDefaultPolicy(step))) {
+      errors.push(
+        `${label} browser steps must be unconditional and non-tolerated`,
+      )
+    }
     if (
       !touch ||
       !touch.needs.includes('quality') ||
@@ -112,8 +167,16 @@ export function validateReadinessWorkflows({ ciWorkflow, releaseWorkflow }) {
     ) {
       errors.push(`${label} chromium-touch must execute its browser project`)
     }
+    const touchSteps = [touchInstallCommand, touchTestCommand].flatMap(
+      (command) => stepsWithCommand(touch, command),
+    )
+    if (touchSteps.some((step) => !hasBlockingDefaultPolicy(step))) {
+      errors.push(
+        `${label} chromium-touch steps must be unconditional and non-tolerated`,
+      )
+    }
     const touchExecutions = workflowJobs.flatMap((job) =>
-      commandsIn(job).filter((command) => command === touchTestCommand),
+      commandsIn(job).filter(isTouchTestInvocation),
     )
     if (
       workflowJobs.filter((job) => job.name === 'chromium-touch').length !==
