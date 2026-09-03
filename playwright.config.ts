@@ -1,12 +1,14 @@
 import { defineConfig, devices } from '@playwright/test'
 
+import { releaseReporters } from './scripts/playwright-release-config.mjs'
+
 export default defineConfig({
   testDir: './e2e',
   testIgnore: 'website/**',
   fullyParallel: true,
   forbidOnly: Boolean(process.env.CI),
   retries: process.env.CI ? 2 : 0,
-  reporter: process.env.CI ? 'github' : 'list',
+  reporter: releaseReporters(process.env.CI ? 'github' : 'list'),
   use: {
     baseURL: 'http://127.0.0.1:4173/e2e/fixture/',
     trace: 'on-first-retry',

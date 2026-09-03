@@ -16,18 +16,22 @@ test('recipe index links to every core pattern', async ({ page }) => {
   ).toHaveAttribute('href', '/examples/snap-points/')
 })
 
-test('recipe pages fit a 320-pixel viewport', async ({ page }) => {
-  await page.setViewportSize({ width: 320, height: 720 })
+test(
+  'recipe pages fit a 320-pixel viewport',
+  { tag: '@release:narrow-layout' },
+  async ({ page }) => {
+    await page.setViewportSize({ width: 320, height: 720 })
 
-  for (const route of ['/examples/', '/examples/basic/']) {
-    await page.goto(route)
-    const dimensions = await page.evaluate(() => ({
-      viewport: window.innerWidth,
-      document: document.documentElement.scrollWidth,
-    }))
-    expect(dimensions.document).toBe(dimensions.viewport)
-  }
-})
+    for (const route of ['/examples/', '/examples/basic/']) {
+      await page.goto(route)
+      const dimensions = await page.evaluate(() => ({
+        viewport: window.innerWidth,
+        document: document.documentElement.scrollWidth,
+      }))
+      expect(dimensions.document).toBe(dimensions.viewport)
+    }
+  },
+)
 
 test('basic recipe opens, closes, and restores focus', async ({ page }) => {
   await page.goto('/examples/basic/')
@@ -69,12 +73,40 @@ test('snap-point recipe exposes and changes its named destination', async ({
   )
 })
 
-test('content-height recipe sizes to changing content', async ({ page }) => {
-  await page.goto('/examples/content-height/')
-  await page.getByRole('button', { name: 'Open content-height sheet' }).click()
-  await page.getByRole('button', { name: 'Show another detail' }).click()
-  await expect(page.getByText('Detail 2')).toBeVisible()
-})
+test(
+  'content-height recipe sizes to changing content',
+  { tag: '@release:content-resize' },
+  async ({ page }) => {
+    await page.goto('/examples/content-height/')
+    await page
+      .getByRole('button', { name: 'Open content-height sheet' })
+      .click()
+    const dialog = page.getByRole('dialog', { name: 'Content-sized details' })
+    await expect(dialog).toHaveAttribute('data-rsbs-state', 'open')
+    const initialPosition = await dialog.evaluate((element) =>
+      Number.parseFloat(
+        getComputedStyle(element).getPropertyValue('--rsbs-position'),
+      ),
+    )
+
+    await dialog.evaluate((element) => {
+      const addedContent = document.createElement('p')
+      addedContent.textContent = 'Resize observer probe'
+      addedContent.style.height = '48px'
+      addedContent.style.margin = '0'
+      element.append(addedContent)
+    })
+    await expect(dialog).toHaveAttribute('data-rsbs-state', 'settling')
+    await expect(dialog).toHaveAttribute('data-rsbs-state', 'open')
+    expect(
+      await dialog.evaluate((element) =>
+        Number.parseFloat(
+          getComputedStyle(element).getPropertyValue('--rsbs-position'),
+        ),
+      ),
+    ).toBeLessThan(initialPosition)
+  },
+)
 
 test('scrolling recipe keeps long content operable', async ({ page }) => {
   await page.goto('/examples/scrolling/')
@@ -98,64 +130,103 @@ test('form recipe preserves entered values and submits explicitly', async ({
   await expect(page.getByText('Saved for Ada')).toBeVisible()
 })
 
-test('custom portal recipe renders within its owned container', async ({
-  page,
-}) => {
-  await page.goto('/examples/custom-portal/')
-  await page.getByRole('button', { name: 'Open contained sheet' }).click()
-  await expect(
-    page.locator('.docs-custom-portal-target [role="dialog"]'),
-  ).toBeVisible()
-  const bounds = await page.evaluate(() => {
-    const targetElement = document.querySelector('.docs-custom-portal-target')
-    const target = targetElement?.getBoundingClientRect()
-    const viewport = targetElement
-      ?.querySelector('[data-rsbs-viewport]')
-      ?.getBoundingClientRect()
-    const dialog = document
-      .querySelector('.docs-custom-portal-target [role="dialog"]')
-      ?.getBoundingClientRect()
-    return target && viewport && dialog && targetElement
-      ? {
-          target: { top: target.top, bottom: target.bottom },
-          viewport: { top: viewport.top, bottom: viewport.bottom },
-          dialog: { top: dialog.top, bottom: dialog.bottom },
-          overflow: getComputedStyle(targetElement).overflow,
+test(
+  'custom portal recipe renders within its owned container',
+  {
+    tag: '@release:custom-portal',
+  },
+  async ({ page }) => {
+    await page.goto('/examples/custom-portal/')
+    await page.getByRole('button', { name: 'Open contained sheet' }).click()
+    await expect(
+      page.locator('.docs-custom-portal-target [role="dialog"]'),
+    ).toBeVisible()
+    const bounds = await page.evaluate(() => {
+      const targetElement = document.querySelector('.docs-custom-portal-target')
+      const target = targetElement?.getBoundingClientRect()
+      const viewport = targetElement
+        ?.querySelector('[data-rsbs-viewport]')
+        ?.getBoundingClientRect()
+      const dialog = document
+        .querySelector('.docs-custom-portal-target [role="dialog"]')
+        ?.getBoundingClientRect()
+      return target && viewport && dialog && targetElement
+        ? {
+            target: { top: target.top, bottom: target.bottom },
+            viewport: { top: viewport.top, bottom: viewport.bottom },
+            dialog: { top: dialog.top, bottom: dialog.bottom },
+            overflow: getComputedStyle(targetElement).overflow,
+          }
+        : null
+    })
+    expect(bounds).not.toBeNull()
+    expect(bounds!.viewport.top).toBeGreaterThanOrEqual(bounds!.target.top)
+    expect(bounds!.viewport.bottom).toBeLessThanOrEqual(bounds!.target.bottom)
+    expect(bounds!.dialog.top).toBeGreaterThanOrEqual(bounds!.target.top)
+    expect(bounds!.dialog.top).toBeLessThan(bounds!.target.bottom)
+    expect(bounds!.overflow).toBe('hidden')
+  },
+)
+
+test(
+  'non-modal recipe leaves the page controls interactive',
+  {
+    tag: '@release:non-modal-interaction',
+  },
+  async ({ page }) => {
+    await page.goto('/examples/non-modal/')
+    await page.getByRole('button', { name: 'Open non-modal sheet' }).click()
+    await expect(
+      page.getByRole('dialog', { name: 'Persistent filters' }),
+    ).not.toHaveAttribute('aria-modal')
+    await page.getByRole('button', { name: 'Update page counter' }).click()
+    await expect(page.getByText('Page updates: 1')).toBeVisible()
+  },
+)
+
+test(
+  'reduced-motion recipe settles by the next animation frame',
+  {
+    tag: '@release:reduced-motion',
+  },
+  async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: 'reduce' })
+    await page.goto('/examples/reduced-motion/')
+    const trigger = page.getByRole('button', {
+      name: 'Open reduced-motion sheet',
+    })
+    await expect(trigger).toBeVisible()
+    const openState = await trigger.evaluate(async (element) => {
+      if (!(element instanceof HTMLElement)) {
+        throw new Error('Expected the sheet trigger to be an HTML element')
+      }
+      element.click()
+      await new Promise<void>((resolve) =>
+        requestAnimationFrame(() => resolve()),
+      )
+      return document
+        .querySelector('[data-rsbs-content]')
+        ?.getAttribute('data-rsbs-state')
+    })
+    expect(openState).toBe('open')
+
+    const closeState = await page
+      .getByRole('button', { name: 'Close sheet' })
+      .evaluate(async (element) => {
+        if (!(element instanceof HTMLElement)) {
+          throw new Error('Expected the sheet close control to be HTML')
         }
-      : null
-  })
-  expect(bounds).not.toBeNull()
-  expect(bounds!.viewport.top).toBeGreaterThanOrEqual(bounds!.target.top)
-  expect(bounds!.viewport.bottom).toBeLessThanOrEqual(bounds!.target.bottom)
-  expect(bounds!.dialog.top).toBeGreaterThanOrEqual(bounds!.target.top)
-  expect(bounds!.dialog.top).toBeLessThan(bounds!.target.bottom)
-  expect(bounds!.overflow).toBe('hidden')
-})
-
-test('non-modal recipe leaves the page controls interactive', async ({
-  page,
-}) => {
-  await page.goto('/examples/non-modal/')
-  await page.getByRole('button', { name: 'Open non-modal sheet' }).click()
-  await expect(
-    page.getByRole('dialog', { name: 'Persistent filters' }),
-  ).not.toHaveAttribute('aria-modal')
-  await page.getByRole('button', { name: 'Update page counter' }).click()
-  await expect(page.getByText('Page updates: 1')).toBeVisible()
-})
-
-test('reduced-motion recipe remains functional with reduced motion requested', async ({
-  page,
-}) => {
-  await page.emulateMedia({ reducedMotion: 'reduce' })
-  await page.goto('/examples/reduced-motion/')
-  await page.getByRole('button', { name: 'Open reduced-motion sheet' }).click()
-  await expect(
-    page.getByRole('dialog', { name: 'Motion preference' }),
-  ).toBeVisible()
-  await page.keyboard.press('Escape')
-  await expect(page.getByRole('dialog')).toHaveCount(0)
-})
+        element.click()
+        await new Promise<void>((resolve) =>
+          requestAnimationFrame(() => resolve()),
+        )
+        return document
+          .querySelector('[data-rsbs-content]')
+          ?.getAttribute('data-rsbs-state')
+      })
+    expect(closeState).toBeUndefined()
+  },
+)
 
 test('confirmation recipe cannot dismiss without an explicit choice', async ({
   page,
@@ -216,11 +287,13 @@ for (const route of [
   '/examples/custom-theme/',
   '/examples/dark-theme/',
 ]) {
-  test(`${route} has no detectable accessibility violations`, async ({
-    page,
-  }) => {
-    await page.goto(route)
-    const results = await new AxeBuilder({ page }).analyze()
-    expect(results.violations).toEqual([])
-  })
+  test(
+    `${route} has no detectable accessibility violations`,
+    { tag: '@release:website-accessibility' },
+    async ({ page }) => {
+      await page.goto(route)
+      const results = await new AxeBuilder({ page }).analyze()
+      expect(results.violations).toEqual([])
+    },
+  )
 }

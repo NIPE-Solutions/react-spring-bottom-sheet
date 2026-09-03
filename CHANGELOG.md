@@ -15,6 +15,11 @@ distribution tag and report compatibility issues before the beta phase.
   with a checked `rsbs` namespace.
 - Add a Next.js documentation site, interactive examples, migration guide, and
   responsive accessible design.
+- Add release-candidate verification for the public type contract, packed
+  consumers, browser behavior inventory, production audit, package contents,
+  and bundle budgets.
+- Add a deterministic, side-effect-free alpha readiness command and an explicit
+  unchecked maintainer sign-off checklist.
 
 ### Changed
 
