@@ -78,7 +78,7 @@
     "react-dom": "^19.0.0"
   },
   "dependencies": {
-    "motion": "^13.1.1"
+    "motion": "^13.2.0"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.13.0",
@@ -88,15 +88,15 @@
     "@testing-library/react": "^16.3.0",
     "@types/node": "^24.10.0",
     "@types/react": "^19.2.18",
-    "@types/react-dom": "^19.2.5",
+    "@types/react-dom": "^19.2.6",
     "@typescript-eslint/eslint-plugin": "^8.69.0",
     "@typescript-eslint/parser": "^8.69.0",
     "eslint": "^10.0.0",
     "globals": "^17.3.0",
     "jsdom": "^30.0.1",
     "next": "^16.3.4",
-    "postcss": "^8.5.26",
-    "postcss-selector-parser": "^7.1.5",
+    "postcss": "^8.5.27",
+    "postcss-selector-parser": "^7.1.6",
     "prettier": "^3.9.0",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
