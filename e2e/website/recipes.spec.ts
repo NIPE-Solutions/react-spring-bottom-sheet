@@ -5,6 +5,33 @@ function recipeFrame(page: Page) {
   return page.frameLocator('[title$="interactive preview"]')
 }
 
+const DEVICE_STATES = [
+  {
+    device: 'phone',
+    orientation: 'portrait',
+    width: 390,
+    height: 780,
+  },
+  {
+    device: 'phone',
+    orientation: 'landscape',
+    width: 780,
+    height: 390,
+  },
+  {
+    device: 'tablet',
+    orientation: 'portrait',
+    width: 768,
+    height: 1024,
+  },
+  {
+    device: 'tablet',
+    orientation: 'landscape',
+    width: 1024,
+    height: 768,
+  },
+] as const
+
 test('recipe index links to every core pattern', async ({ page }) => {
   await page.goto('/examples/')
 
@@ -18,6 +45,231 @@ test('recipe index links to every core pattern', async ({ page }) => {
   await expect(
     page.getByRole('link', { name: 'Open named snap points recipe' }),
   ).toHaveAttribute('href', '/examples/snap-points/')
+})
+
+test('device lab restores all viewport states with exact dimensions', async ({
+  page,
+}) => {
+  for (const { device, orientation, width, height } of DEVICE_STATES) {
+    await page.goto(
+      `/examples/basic/?device=${device}&orientation=${orientation}`,
+    )
+
+    const frame = page.locator('.docs-device-frame')
+    const iframe = page.locator('[title$="interactive preview"]')
+    await expect(frame).toHaveAttribute('data-device', device)
+    await expect(frame).toHaveAttribute('data-orientation', orientation)
+    await expect(frame).toHaveAttribute('data-preview-ready', 'true')
+    await expect(
+      page.getByRole('button', {
+        name: device === 'phone' ? 'Phone' : 'Tablet',
+      }),
+    ).toHaveAttribute('aria-pressed', 'true')
+    await expect(
+      page.getByRole('button', {
+        name: orientation === 'portrait' ? 'Portrait' : 'Landscape',
+      }),
+    ).toHaveAttribute('aria-pressed', 'true')
+    await expect(page.locator('.docs-device-readout')).toHaveText(
+      `${device === 'phone' ? 'Phone' : 'Tablet'} viewport: ${width} × ${height}`,
+    )
+
+    expect(
+      await iframe.evaluate((element) => {
+        if (!(element instanceof HTMLIFrameElement)) {
+          throw new Error('Expected the recipe preview to be an iframe')
+        }
+        return {
+          height: element.contentWindow?.innerHeight,
+          width: element.contentWindow?.innerWidth,
+        }
+      }),
+    ).toEqual({ height, width })
+    await expect(frame).toHaveCSS('--device-width', `${width}px`)
+    await expect(frame).toHaveCSS('--device-height', `${height}px`)
+  }
+})
+
+test('device lab defaults to phone portrait with visible pressed controls', async ({
+  page,
+}) => {
+  await page.goto('/examples/basic/')
+
+  await expect(page).toHaveURL(
+    /\/examples\/basic\/\?device=phone&orientation=portrait$/,
+  )
+  await expect(page.getByRole('button', { name: 'Phone' })).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  )
+  await expect(page.getByRole('button', { name: 'Portrait' })).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  )
+  await expect(page.getByRole('button', { name: 'Tablet' })).toHaveAttribute(
+    'aria-pressed',
+    'false',
+  )
+  await expect(page.getByRole('button', { name: 'Landscape' })).toHaveAttribute(
+    'aria-pressed',
+    'false',
+  )
+  const pressedColors = await page
+    .getByRole('button', { name: 'Phone' })
+    .evaluate((element) => {
+      const pressed = getComputedStyle(element)
+      const unpressed = getComputedStyle(
+        element.parentElement?.querySelector('button:last-child') ?? element,
+      )
+      return {
+        pressedBackground: pressed.backgroundColor,
+        pressedText: pressed.color,
+        unpressedBackground: unpressed.backgroundColor,
+        unpressedText: unpressed.color,
+      }
+    })
+  expect(pressedColors.pressedBackground).not.toBe(
+    pressedColors.unpressedBackground,
+  )
+  expect(pressedColors.pressedText).not.toBe(pressedColors.unpressedText)
+  const transition = await page
+    .locator('.docs-device-frame')
+    .evaluate((element) => {
+      const style = getComputedStyle(element)
+      return {
+        durations: style.transitionDuration.split(', '),
+        properties: style.transitionProperty.split(', '),
+      }
+    })
+  expect(transition.properties).toEqual([
+    'width',
+    'height',
+    'border-radius',
+    'transform',
+    'box-shadow',
+  ])
+  expect(new Set(transition.durations)).toEqual(new Set(['0.28s']))
+})
+
+test('device lab preserves its iframe and open sheet through browser history', async ({
+  page,
+}) => {
+  await page.goto(
+    '/examples/basic/?campaign=spring&device=tablet&orientation=landscape',
+  )
+  const iframe = page.locator('[title$="interactive preview"]')
+  await expect(page.locator('.docs-device-frame')).toHaveAttribute(
+    'data-preview-ready',
+    'true',
+  )
+  const iframeElement = await iframe.elementHandle()
+  expect(iframeElement).not.toBeNull()
+  const marker = 'device-lab-persistent-document'
+  await recipeFrame(page)
+    .locator('#content')
+    .evaluate((element, value) => {
+      element.dataset.persistenceMarker = value
+    }, marker)
+
+  await recipeFrame(page)
+    .getByRole('button', { name: 'Open basic sheet' })
+    .click()
+  await expect(
+    recipeFrame(page).getByRole('dialog', { name: 'Basic bottom sheet' }),
+  ).toBeVisible()
+  await page.getByRole('button', { name: 'Portrait' }).click()
+  await expect(page).toHaveURL(
+    /campaign=spring&device=tablet&orientation=portrait$/,
+  )
+  expect(
+    await iframe.evaluate(
+      (element, original) => element === original,
+      iframeElement,
+    ),
+  ).toBe(true)
+  await expect(recipeFrame(page).locator('#content')).toHaveAttribute(
+    'data-persistence-marker',
+    marker,
+  )
+  await expect(
+    recipeFrame(page).getByRole('dialog', { name: 'Basic bottom sheet' }),
+  ).toBeVisible()
+
+  await page.goBack()
+  await expect(page).toHaveURL(
+    /campaign=spring&device=tablet&orientation=landscape$/,
+  )
+  await expect(page.locator('.docs-device-frame')).toHaveAttribute(
+    'data-orientation',
+    'landscape',
+  )
+  await page.goForward()
+  await expect(page).toHaveURL(
+    /campaign=spring&device=tablet&orientation=portrait$/,
+  )
+  await expect(recipeFrame(page).locator('#content')).toHaveAttribute(
+    'data-persistence-marker',
+    marker,
+  )
+  await expect(
+    recipeFrame(page).getByRole('dialog', { name: 'Basic bottom sheet' }),
+  ).toBeVisible()
+})
+
+test('device lab removes frame interpolation for reduced motion', async ({
+  page,
+}) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' })
+  await page.goto('/examples/basic/?device=phone&orientation=portrait')
+
+  const frame = page.locator('.docs-device-frame')
+  const stage = page.locator('.docs-recipe-stage')
+  await expect(frame).toHaveAttribute('data-preview-ready', 'true')
+  await expect(frame).toHaveCSS('transition-duration', '0s')
+  await expect(frame).toHaveCSS('transition-property', 'none')
+  await expect(stage).toHaveCSS('transition-duration', '0s')
+
+  await page.getByRole('button', { name: 'Landscape' }).click()
+  await expect(frame).toHaveAttribute('data-orientation', 'landscape')
+  await expect(frame).toHaveCSS('--device-width', '780px')
+  await expect(frame).toHaveCSS('--device-height', '390px')
+})
+
+test('device lab recovers scaling without horizontal overflow from 320 to 1440 pixels', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 320, height: 720 })
+  await page.goto('/examples/basic/?device=tablet&orientation=landscape')
+  const stage = page.locator('.docs-recipe-stage')
+  const frame = page.locator('.docs-device-frame')
+  await expect(frame).toHaveAttribute('data-preview-ready', 'true')
+
+  await stage.evaluate((element) => {
+    element.style.display = 'none'
+  })
+  await stage.evaluate((element) => {
+    element.style.display = ''
+  })
+  await expect
+    .poll(() =>
+      frame.evaluate((element) => {
+        const transform = getComputedStyle(element).transform
+        return transform !== 'none' && !transform.includes('NaN')
+      }),
+    )
+    .toBe(true)
+
+  for (const width of [320, 768, 1440]) {
+    await page.setViewportSize({ width, height: 900 })
+    await expect
+      .poll(() =>
+        page.evaluate(() => ({
+          document: document.documentElement.scrollWidth,
+          viewport: window.innerWidth,
+        })),
+      )
+      .toEqual({ document: width, viewport: width })
+  }
 })
 
 test(

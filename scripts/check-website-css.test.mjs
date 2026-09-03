@@ -27,6 +27,21 @@ test('accepts namespaced website selectors and custom properties', () => {
   assert.equal(result.status, 0, result.stderr)
 })
 
+test('accepts the documented device frame custom properties', () => {
+  const result = checkCss(`
+    .docs-device-frame {
+      --device-width: 390px;
+      --device-height: 780px;
+      --device-scale: 1;
+      --device-radius: 1rem;
+      width: calc(var(--device-width) * var(--device-scale));
+      border-radius: var(--device-radius);
+    }
+  `)
+
+  assert.equal(result.status, 0, result.stderr)
+})
+
 test('rejects a website class outside the docs namespace', () => {
   const result = checkCss('.header { display: flex; }')
 

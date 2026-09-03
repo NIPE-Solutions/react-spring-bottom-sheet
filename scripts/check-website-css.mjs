@@ -4,6 +4,16 @@ import postcss from 'postcss'
 import selectorParser from 'postcss-selector-parser'
 
 const paths = process.argv.slice(2)
+const DEVICE_FRAME_PROPERTIES = new Set([
+  '--device-width',
+  '--device-height',
+  '--device-scale',
+  '--device-radius',
+])
+
+function isAllowedCustomProperty(property) {
+  return property.startsWith('--docs-') || DEVICE_FRAME_PROPERTIES.has(property)
+}
 
 if (paths.length === 0) {
   console.error('Usage: node scripts/check-website-css.mjs <stylesheet...>')
@@ -27,7 +37,7 @@ if (paths.length === 0) {
     root.walkDecls((declaration) => {
       if (
         declaration.prop.startsWith('--') &&
-        !declaration.prop.startsWith('--docs-')
+        !isAllowedCustomProperty(declaration.prop)
       ) {
         errors.push(
           `${path}: custom property ${declaration.prop} must use --docs-`,
@@ -35,7 +45,7 @@ if (paths.length === 0) {
       }
 
       for (const match of declaration.value.matchAll(/var\((--[\w-]+)/g)) {
-        if (!match[1].startsWith('--docs-')) {
+        if (!isAllowedCustomProperty(match[1])) {
           errors.push(`${path}: custom property ${match[1]} must use --docs-`)
         }
       }

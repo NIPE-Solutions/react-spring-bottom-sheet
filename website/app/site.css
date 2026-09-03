@@ -716,12 +716,12 @@
   .docs-device-controls {
     display: flex;
     flex-wrap: wrap;
-    gap: 0.8rem 1.5rem;
-    margin-bottom: 1rem;
+    gap: 0.75rem 1.5rem;
+    margin-bottom: 0.75rem;
   }
   .docs-device-controls fieldset {
     display: grid;
-    gap: 0.35rem;
+    gap: 0.4rem;
     margin: 0;
     border: 0;
     padding: 0;
@@ -737,6 +737,7 @@
   .docs-device-controls button {
     min-width: 6.5rem;
     border-radius: 0;
+    background: var(--docs-surface);
   }
   .docs-device-controls button:first-child {
     border-radius: 0.35rem 0 0 0.35rem;
@@ -752,42 +753,57 @@
     background: var(--docs-signal);
     color: white;
   }
+  .docs-device-readout {
+    margin-bottom: 0.65rem;
+    color: var(--docs-muted);
+    font-size: 0.82rem;
+    font-variant-numeric: tabular-nums;
+  }
   .docs-recipe-stage {
     width: 100%;
     display: flex;
     justify-content: center;
     overflow: hidden;
-    background:
-      linear-gradient(var(--docs-rule) 1px, transparent 1px),
-      linear-gradient(90deg, var(--docs-rule) 1px, transparent 1px);
-    background-size: 2.2rem 2.2rem;
+    background: var(--docs-panel);
     box-shadow: inset 0 0 0 1px var(--docs-rule);
+    transition: height 280ms cubic-bezier(0.22, 1, 0.36, 1);
   }
   .docs-device-frame-sizer {
     position: relative;
     flex: none;
+    transition:
+      width 280ms cubic-bezier(0.22, 1, 0.36, 1),
+      height 280ms cubic-bezier(0.22, 1, 0.36, 1);
   }
   .docs-device-frame {
     position: absolute;
     inset: 0 auto auto 0;
-    padding: 11px;
-    border: 1px solid var(--docs-ink);
-    border-radius: 1.75rem;
-    background: var(--docs-ink);
-    box-shadow: 0 1rem 2.5rem rgb(15 23 42 / 18%);
+    width: calc(var(--device-width) + 2px);
+    height: calc(var(--device-height) + 2px);
+    border: 1px solid color-mix(in srgb, var(--docs-ink) 72%, transparent);
+    border-radius: var(--device-radius);
+    background: var(--docs-surface);
+    box-shadow: 0 0.8rem 2rem rgb(15 23 42 / 14%);
+    transform: scale(var(--device-scale));
     transform-origin: top left;
-  }
-  .docs-device-frame[data-device='tablet'] {
-    border-radius: 1.15rem;
+    transition:
+      width 280ms cubic-bezier(0.22, 1, 0.36, 1),
+      height 280ms cubic-bezier(0.22, 1, 0.36, 1),
+      border-radius 280ms cubic-bezier(0.22, 1, 0.36, 1),
+      transform 280ms cubic-bezier(0.22, 1, 0.36, 1),
+      box-shadow 280ms cubic-bezier(0.22, 1, 0.36, 1);
   }
   .docs-device-screen {
     position: relative;
+    width: var(--device-width);
+    height: var(--device-height);
     overflow: hidden;
-    border-radius: 1.05rem;
+    border-radius: max(0px, calc(var(--device-radius) - 1px));
     background: var(--docs-surface);
-  }
-  .docs-device-frame[data-device='tablet'] .docs-device-screen {
-    border-radius: 0.55rem;
+    transition:
+      width 280ms cubic-bezier(0.22, 1, 0.36, 1),
+      height 280ms cubic-bezier(0.22, 1, 0.36, 1),
+      border-radius 280ms cubic-bezier(0.22, 1, 0.36, 1);
   }
   .docs-recipe-frame {
     display: block;
@@ -1273,5 +1289,11 @@
   *::before,
   *::after {
     scroll-behavior: auto !important;
+  }
+  .docs-recipe-stage,
+  .docs-device-frame-sizer,
+  .docs-device-frame,
+  .docs-device-screen {
+    transition: none;
   }
 }

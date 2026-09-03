@@ -77,6 +77,7 @@ export function DeviceLab({ slug, title }: DeviceLabProps) {
       <DeviceFrame
         device={selection.device}
         embedHref={embedHref}
+        orientation={selection.orientation}
         preset={preset}
         status={status}
       >
@@ -100,6 +101,7 @@ export function DeviceLabFallback({ slug, title }: DeviceLabProps) {
       <DeviceFrame
         device={DEFAULT_DEVICE_SELECTION.device}
         embedHref={embedHref}
+        orientation={DEFAULT_DEVICE_SELECTION.orientation}
         preset={preset}
         status="loading"
       >
