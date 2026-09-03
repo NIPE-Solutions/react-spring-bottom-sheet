@@ -10,15 +10,15 @@ export function LaunchPath({ version }: { version: string }) {
       <div>
         <h2 id="launch-title">A deliberate path to 5.0.</h2>
         <p>
-          {release.prerelease && !release.published
-            ? `Version ${version} is the prepared prerelease build, but it is not published yet. After the protected release workflow publishes it, the next channel will support consumer validation before stable promotion.`
+          {!release.published
+            ? `Version ${version} is the prepared release, but it is not published yet. After the protected release workflow publishes it, the ${release.channel} channel will make it available.`
             : release.prerelease
               ? `Version ${version} is the current prerelease build. Install it from the next channel to validate the redesigned API before stable promotion.`
               : `Version ${version} is available from the stable npm channel.`}
         </p>
       </div>
       <div className="docs-launch-actions">
-        {release.prerelease && !release.published ? (
+        {!release.published ? (
           <span className="docs-launch-command-label">After publication</span>
         ) : null}
         <code>{release.installCommand}</code>

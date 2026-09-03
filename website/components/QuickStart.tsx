@@ -37,8 +37,8 @@ export function QuickStart() {
           part stays visible in the component tree, so behavior is easy to find
           and change.
         </p>
-        {release.prerelease && !release.published ? (
-          <p className="docs-install-label">After prerelease publication</p>
+        {!release.published ? (
+          <p className="docs-install-label">After publication</p>
         ) : null}
         <pre className="docs-install" tabIndex={0}>
           <code>{release.installCommand}</code>
