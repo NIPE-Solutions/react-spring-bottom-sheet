@@ -1,0 +1,293 @@
+import assert from 'node:assert/strict'
+import { spawnSync } from 'node:child_process'
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { dirname, join } from 'node:path'
+import { fileURLToPath, pathToFileURL } from 'node:url'
+import test from 'node:test'
+
+import { releaseTestViolation } from './playwright-release-reporter.mjs'
+
+const repositoryRoot = fileURLToPath(new URL('..', import.meta.url))
+const playwrightCli = join(
+  repositoryRoot,
+  'node_modules',
+  '@playwright',
+  'test',
+  'cli.js',
+)
+
+const runFixture = ({
+  configFile = 'playwright.config.ts',
+  retries = 0,
+  source,
+}) => {
+  const fixtureRoot = mkdtempSync(
+    join(repositoryRoot, 'test-results', 'release-policy-'),
+  )
+  const configPath = join(fixtureRoot, 'playwright.config.mjs')
+  const testPath = join(fixtureRoot, 'policy.spec.mjs')
+  const outputDir = join(fixtureRoot, 'output')
+
+  try {
+    mkdirSync(dirname(testPath), { recursive: true })
+    writeFileSync(testPath, source)
+    writeFileSync(
+      configPath,
+      [
+        `import sourceConfig from ${JSON.stringify(
+          pathToFileURL(join(repositoryRoot, configFile)).href,
+        )}`,
+        '',
+        'export default {',
+        '  ...sourceConfig,',
+        `  testDir: ${JSON.stringify(fixtureRoot)},`,
+        "  testMatch: 'policy.spec.mjs',",
+        '  testIgnore: [],',
+        '  fullyParallel: false,',
+        '  forbidOnly: true,',
+        `  retries: ${retries},`,
+        '  workers: 1,',
+        `  outputDir: ${JSON.stringify(outputDir)},`,
+        '  use: {},',
+        "  projects: [{ name: 'chromium', use: { browserName: 'chromium' } }],",
+        '  webServer: undefined,',
+        '}',
+        '',
+      ].join('\n'),
+    )
+
+    return spawnSync(
+      process.execPath,
+      [playwrightCli, 'test', '--config', configPath],
+      {
+        cwd: repositoryRoot,
+        encoding: 'utf8',
+        env: { ...process.env, CI: '', FORCE_COLOR: '0' },
+      },
+    )
+  } finally {
+    rmSync(fixtureRoot, { force: true, recursive: true })
+  }
+}
+
+const outputFrom = (result) => `${result.stdout}\n${result.stderr}`
+
+const assertPolicyFailure = (result) => {
+  assert.notEqual(result.status, 0, outputFrom(result))
+  assert.match(outputFrom(result), /release test execution policy/i)
+}
+
+const passingReleaseTest = [
+  "import { test } from '@playwright/test'",
+  '',
+  "test('passes normally', { tag: '@release:passing-control' }, async () => {})",
+  '',
+].join('\n')
+
+for (const configFile of [
+  'playwright.config.ts',
+  'playwright.website.config.ts',
+]) {
+  test(`${configFile} allows a normally passing release test`, () => {
+    const result = runFixture({ configFile, source: passingReleaseTest })
+
+    assert.equal(result.status, 0, outputFrom(result))
+  })
+
+  test(`${configFile} rejects a runtime-conditional release skip`, () => {
+    const result = runFixture({
+      configFile,
+      source: [
+        "import { test } from '@playwright/test'",
+        '',
+        'test.skip(',
+        "  ({ browserName }) => browserName === 'chromium',",
+        "  'runtime project skip',",
+        ')',
+        "test('must execute', { tag: '@release:runtime-project' }, async () => {})",
+        '',
+      ].join('\n'),
+    })
+
+    assertPolicyFailure(result)
+  })
+}
+
+test('rejects a release test skipped from its test body', () => {
+  const result = runFixture({
+    source: [
+      "import { test } from '@playwright/test'",
+      '',
+      "test('must execute', { tag: '@release:body-skip' }, async () => {",
+      "  test.skip(true, 'runtime body skip')",
+      '})',
+      '',
+    ].join('\n'),
+  })
+
+  assertPolicyFailure(result)
+})
+
+test('rejects a runtime expected failure for a release test', () => {
+  const result = runFixture({
+    source: [
+      "import { test } from '@playwright/test'",
+      '',
+      "test('must pass', { tag: '@release:runtime-fail' }, async () => {",
+      "  test.fail(true, 'runtime expected failure')",
+      "  throw new Error('expected failure')",
+      '})',
+      '',
+    ].join('\n'),
+  })
+
+  assertPolicyFailure(result)
+})
+
+test('rejects a release test marked fixme', () => {
+  const result = runFixture({
+    source: [
+      "import { test } from '@playwright/test'",
+      '',
+      "test.fixme('must execute', { tag: '@release:fixme' }, async () => {})",
+      '',
+    ].join('\n'),
+  })
+
+  assertPolicyFailure(result)
+})
+
+test('rejects a flaky release test that only passes on retry', () => {
+  const result = runFixture({
+    retries: 1,
+    source: [
+      "import { test } from '@playwright/test'",
+      '',
+      "test('must pass normally', { tag: '@release:flaky' }, async ({}, testInfo) => {",
+      "  if (testInfo.retry === 0) throw new Error('first attempt fails')",
+      '})',
+      '',
+    ].join('\n'),
+  })
+
+  assertPolicyFailure(result)
+})
+
+test('allows parameterized release tests from one registration site', () => {
+  const result = runFixture({
+    source: [
+      "import { test } from '@playwright/test'",
+      '',
+      "for (const value of ['one', 'two']) {",
+      '  test(',
+      '    `passes ${value}`,',
+      "    { tag: '@release:parameterized-control' },",
+      '    async () => {},',
+      '  )',
+      '}',
+      '',
+    ].join('\n'),
+  })
+
+  assert.equal(result.status, 0, outputFrom(result))
+})
+
+test('preserves ordinary non-release runtime skips', () => {
+  const result = runFixture({
+    source: [
+      "import { test } from '@playwright/test'",
+      '',
+      "test.skip(({ browserName }) => browserName === 'chromium', 'ordinary skip')",
+      "test('not release evidence', async () => {})",
+      '',
+    ].join('\n'),
+  })
+
+  assert.equal(result.status, 0, outputFrom(result))
+})
+
+const policyTest = ({
+  annotations = [],
+  expectedStatus = 'passed',
+  outcome = 'expected',
+  results = [{ status: 'passed' }],
+  tags = ['@release:synthetic'],
+} = {}) => ({
+  annotations,
+  expectedStatus,
+  location: { file: 'fixture.spec.mjs', line: 1, column: 1 },
+  outcome: () => outcome,
+  results,
+  tags,
+  titlePath: () => ['chromium', 'fixture.spec.mjs', 'release test'],
+})
+
+test('classifies every non-normal release result as a policy violation', () => {
+  assert.equal(releaseTestViolation(policyTest()), null)
+  assert.equal(
+    releaseTestViolation(
+      policyTest({
+        annotations: [{ type: 'skip' }],
+        expectedStatus: 'skipped',
+        outcome: 'skipped',
+        results: [{ status: 'skipped' }],
+      }),
+    ),
+    'expected skipped instead of passed',
+  )
+  assert.equal(
+    releaseTestViolation(
+      policyTest({
+        annotations: [{ type: 'fixme' }],
+        expectedStatus: 'skipped',
+        outcome: 'skipped',
+        results: [{ status: 'skipped' }],
+      }),
+    ),
+    'expected skipped instead of passed',
+  )
+  assert.equal(
+    releaseTestViolation(
+      policyTest({
+        annotations: [{ type: 'fail' }],
+        expectedStatus: 'failed',
+        results: [{ status: 'failed' }],
+      }),
+    ),
+    'expected failed instead of passed',
+  )
+  assert.equal(
+    releaseTestViolation(
+      policyTest({ outcome: 'skipped', results: [{ status: 'interrupted' }] }),
+    ),
+    'finished with interrupted instead of passed',
+  )
+  assert.equal(
+    releaseTestViolation(policyTest({ outcome: 'flaky' })),
+    'had flaky instead of expected outcome',
+  )
+  assert.equal(
+    releaseTestViolation(policyTest({ results: [] })),
+    'did not produce an execution result',
+  )
+  assert.equal(
+    releaseTestViolation(
+      policyTest({ outcome: 'unexpected', results: [{ status: 'failed' }] }),
+    ),
+    'finished with failed instead of passed',
+  )
+})
+
+test('does not classify non-release outcomes', () => {
+  assert.equal(
+    releaseTestViolation(
+      policyTest({
+        expectedStatus: 'skipped',
+        outcome: 'skipped',
+        results: [{ status: 'skipped' }],
+        tags: [],
+      }),
+    ),
+    null,
+  )
+})

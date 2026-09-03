@@ -31,8 +31,10 @@ const desktopCommands = [
   'npm run test:e2e -- --project=${{ matrix.project }}',
   'npm run test:website:e2e -- --project=${{ matrix.project }}',
 ]
+const desktopJobCommands = ['npm ci', ...desktopCommands]
 const touchInstallCommand = 'npx playwright install --with-deps chromium'
 const touchTestCommand = 'npm run test:e2e -- --project=chromium-touch'
+const touchJobCommands = ['npm ci', touchInstallCommand, touchTestCommand]
 
 const stepsWithCommand = (job, command) =>
   job?.steps.filter((step) => step.commands.includes(command)) ?? []
@@ -40,46 +42,6 @@ const stepsWithCommand = (job, command) =>
 const hasBlockingDefaultPolicy = (step) =>
   step.if === '' &&
   (step.continueOnError === '' || step.continueOnError === 'false')
-
-const shellWords = (command) =>
-  command.match(/(?:[^\s"'\\]|\\.|"(?:\\.|[^"])*"|'[^']*')+/g) ?? []
-
-const withoutWrappingQuotes = (word) => {
-  const quote = word[0]
-  return quote && quote === word.at(-1) && (quote === '"' || quote === "'")
-    ? word.slice(1, -1)
-    : word
-}
-
-const isTouchTestInvocation = (command) =>
-  command.split(/&&|\|\||[;|]/).some((segment) => {
-    const words = shellWords(segment)
-    const npmIndex = words.findIndex((word) => word === 'npm')
-    if (npmIndex === -1) return false
-
-    const wrappers = words.slice(0, npmIndex)
-    if (
-      wrappers.some(
-        (word) =>
-          word !== 'env' &&
-          word !== 'command' &&
-          word !== 'exec' &&
-          !word.startsWith('-') &&
-          !/^[A-Za-z_][A-Za-z0-9_]*=/.test(word),
-      )
-    ) {
-      return false
-    }
-
-    const args = words.slice(npmIndex + 1).map(withoutWrappingQuotes)
-    if (args[0] !== 'run' || args[1] !== 'test:e2e') return false
-
-    return args.some(
-      (argument, index) =>
-        argument === '--project=chromium-touch' ||
-        (argument === '--project' && args[index + 1] === 'chromium-touch'),
-    )
-  })
 
 const sameCommands = (actual, expected) =>
   actual.length === expected.length &&
@@ -140,14 +102,7 @@ export function validateReadinessWorkflows({ ciWorkflow, releaseWorkflow }) {
         `${label} browsers must use exactly chromium, firefox, webkit`,
       )
     }
-    if (
-      !browsers ||
-      desktopCommands.some(
-        (command) =>
-          commandsIn(browsers).filter((candidate) => candidate === command)
-            .length !== 1,
-      )
-    ) {
+    if (!browsers || !sameCommands(commandsIn(browsers), desktopJobCommands)) {
       errors.push(
         `${label} browsers must install and execute each desktop project in both suites`,
       )
@@ -158,6 +113,11 @@ export function validateReadinessWorkflows({ ciWorkflow, releaseWorkflow }) {
     if (desktopSteps.some((step) => !hasBlockingDefaultPolicy(step))) {
       errors.push(
         `${label} browser steps must be unconditional and non-tolerated`,
+      )
+    }
+    if (browsers && !hasBlockingDefaultPolicy(browsers)) {
+      errors.push(
+        `${label} browsers job must be unconditional and non-tolerated`,
       )
     }
     if (
@@ -175,22 +135,22 @@ export function validateReadinessWorkflows({ ciWorkflow, releaseWorkflow }) {
         `${label} chromium-touch steps must be unconditional and non-tolerated`,
       )
     }
-    const touchExecutions = workflowJobs.flatMap((job) =>
-      commandsIn(job).filter(isTouchTestInvocation),
+    if (touch && !hasBlockingDefaultPolicy(touch)) {
+      errors.push(
+        `${label} chromium-touch job must be unconditional and non-tolerated`,
+      )
+    }
+    const touchReferences = workflowJobs.flatMap((job) =>
+      commandsIn(job).filter((command) => command.includes('chromium-touch')),
     )
     if (
       workflowJobs.filter((job) => job.name === 'chromium-touch').length !==
         1 ||
       !touch ||
       touch.matrix.keys.length !== 0 ||
-      commandsIn(touch).filter((command) => command === touchInstallCommand)
-        .length !== 1 ||
-      commandsIn(touch).filter((command) => command === touchTestCommand)
-        .length !== 1 ||
-      commandsIn(touch).some((command) =>
-        command.startsWith('npm run test:website:e2e'),
-      ) ||
-      touchExecutions.length !== 1
+      !sameCommands(commandsIn(touch), touchJobCommands) ||
+      touchReferences.length !== 1 ||
+      touchReferences[0] !== touchTestCommand
     ) {
       errors.push(
         `${label} chromium-touch must run exactly once as a separate library-only job`,

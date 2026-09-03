@@ -1,3 +1,5 @@
+import { parse as parseYaml } from 'yaml'
+
 const withoutComments = (source) =>
   source
     .split('\n')
@@ -83,82 +85,60 @@ const commandLines = (step) =>
     .map((line) => line.trim())
     .filter((line) => line !== '' && !line.startsWith('#'))
 
-const stepScalarSetting = (step, name) => {
-  const inline = step.source.match(
-    new RegExp(`^ {6}- ${name}:\\s*(.*?)\\s*$`, 'm'),
-  )?.[1]
-  if (inline !== undefined) return inline
+const isMapping = (value) =>
+  value !== null && typeof value === 'object' && !Array.isArray(value)
 
-  return (
-    step.source.match(new RegExp(`^ {8}${name}:\\s*(.*?)\\s*$`, 'm'))?.[1] ?? ''
-  )
+const mappingValue = (mapping, name) =>
+  isMapping(mapping) && Object.hasOwn(mapping, name) ? mapping[name] : undefined
+
+const scalarValue = (mapping, name) => {
+  const value = mappingValue(mapping, name)
+  return value === undefined ? '' : String(value).trim()
 }
 
-const jobDependencies = (settings) => {
-  const inline = settings.match(/^ {4}needs:\s*(.+?)\s*$/m)?.[1]
-  if (inline) {
-    if (inline === '[]') return []
-    if (inline.startsWith('[') && inline.endsWith(']')) {
-      return inline
-        .slice(1, -1)
-        .split(',')
-        .map((dependency) => dependency.trim())
-        .filter(Boolean)
-    }
-    return [inline]
-  }
-
-  return mappingBlock(settings, 'needs', 4).flatMap((line) => {
-    const match = line.match(/^ {6}- ([\w-]+)\s*$/)
-    return match ? [match[1]] : []
-  })
+const sequenceValue = (value) => {
+  if (value === undefined) return []
+  const values = Array.isArray(value) ? value : [value]
+  return values.map((entry) => String(entry).trim())
 }
 
-const scalarSetting = (settings, name) =>
-  settings.match(new RegExp(`^ {4}${name}:\\s*([^\\s#]+)\\s*$`, 'm'))?.[1] ?? ''
+const runCommands = (step) => {
+  const run = mappingValue(step, 'run')
+  if (run === undefined) return []
 
-const sequenceSetting = (source, name, indent) => {
-  const prefix = ' '.repeat(indent)
-  const inline = source.match(
-    new RegExp(`^${prefix}${name}:\\s*\\[([^\\]]*)\\]\\s*$`, 'm'),
-  )?.[1]
-  if (inline !== undefined) {
-    return inline
-      .split(',')
-      .map((value) => value.trim())
-      .filter(Boolean)
-  }
-
-  return mappingBlock(source, name, indent).flatMap((line) => {
-    const match = line.match(new RegExp(`^ {${indent + 2}}- ([^\\s#]+)\\s*$`))
-    return match ? [match[1]] : []
-  })
-}
-
-const matrixSettings = (settings) => {
-  const strategy = mappingBlock(settings, 'strategy', 4).join('\n')
-  const matrix = mappingBlock(strategy, 'matrix', 6).join('\n')
-  const keys = [...matrix.matchAll(/^ {8}([\w-]+):(?:\s|$)/gm)].map(
-    (match) => match[1],
-  )
-
-  return { keys, project: sequenceSetting(matrix, 'project', 8) }
+  return [String(run).trim()]
 }
 
 export function parseWorkflowModel(workflow) {
-  return jobsIn(withoutComments(workflow)).map((job) => {
-    const settings = jobSettings(job)
+  const document = parseYaml(workflow)
+  const jobs = mappingValue(document, 'jobs')
+  if (!isMapping(jobs)) return []
+
+  return Object.entries(jobs).map(([name, value]) => {
+    const job = isMapping(value) ? value : {}
+    const strategy = mappingValue(job, 'strategy')
+    const matrix = mappingValue(strategy, 'matrix')
+    const matrixMapping = isMapping(matrix) ? matrix : {}
+    const steps = mappingValue(job, 'steps')
 
     return {
-      name: job.name,
-      needs: jobDependencies(settings),
-      runsOn: scalarSetting(settings, 'runs-on'),
-      matrix: matrixSettings(settings),
-      steps: stepsIn(job).map((step) => ({
-        commands: commandLines(step),
-        if: stepScalarSetting(step, 'if'),
-        continueOnError: stepScalarSetting(step, 'continue-on-error'),
-      })),
+      name,
+      needs: sequenceValue(mappingValue(job, 'needs')),
+      runsOn: scalarValue(job, 'runs-on'),
+      if: scalarValue(job, 'if'),
+      continueOnError: scalarValue(job, 'continue-on-error'),
+      matrix: {
+        keys: Object.keys(matrixMapping),
+        project: sequenceValue(mappingValue(matrixMapping, 'project')),
+      },
+      steps: (Array.isArray(steps) ? steps : []).map((value) => {
+        const step = isMapping(value) ? value : {}
+        return {
+          commands: runCommands(step),
+          if: scalarValue(step, 'if'),
+          continueOnError: scalarValue(step, 'continue-on-error'),
+        }
+      }),
     }
   })
 }

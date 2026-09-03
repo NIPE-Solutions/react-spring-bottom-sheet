@@ -269,6 +269,10 @@ test('package scripts expose readiness and keep its policy tests in check', () =
     packageJson.scripts['test:release'],
     /scripts\/verify-release-readiness\.test\.mjs/,
   )
+  assert.match(
+    packageJson.scripts['test:release'],
+    /scripts\/playwright-release-reporter\.test\.mjs/,
+  )
 })
 
 test('readiness report lists automated gates and leaves every sign-off open', () => {
@@ -340,20 +344,24 @@ test('accepts the checked workflow readiness policy', () => {
   )
 })
 
-test('models step conditions and failure tolerance separately from commands', () => {
+test('models quoted job and step policy keys separately from commands', () => {
   const [job] = parseWorkflowModel(
     [
       'jobs:',
       '  browsers:',
+      "    'if': github.event_name == 'never'",
+      "    'continue-on-error': ${{ matrix.project == 'webkit' }}",
       '    runs-on: ubuntu-latest',
       '    steps:',
-      "      - if: matrix.project != 'webkit'",
-      '        continue-on-error: true',
+      "      - 'if': matrix.project != 'webkit'",
+      "        'continue-on-error': true",
       '        run: npm run test:e2e -- --project=${{ matrix.project }}',
       '',
     ].join('\n'),
   )
 
+  assert.equal(job.if, "github.event_name == 'never'")
+  assert.equal(job.continueOnError, "${{ matrix.project == 'webkit' }}")
   assert.deepEqual(job.steps, [
     {
       commands: ['npm run test:e2e -- --project=${{ matrix.project }}'],
@@ -420,6 +428,66 @@ for (const [label, workflowName] of [
     )
   })
 
+  for (const [name, jobName, setting, expectedError] of [
+    [
+      'desktop job condition',
+      'browsers',
+      "if: ${{ github.event_name == 'never' }}",
+      `${label} browsers job must be unconditional and non-tolerated`,
+    ],
+    [
+      'desktop job failure tolerance',
+      'browsers',
+      'continue-on-error: true',
+      `${label} browsers job must be unconditional and non-tolerated`,
+    ],
+    [
+      'matrix-dependent desktop job failure tolerance',
+      'browsers',
+      "continue-on-error: ${{ matrix.project == 'webkit' }}",
+      `${label} browsers job must be unconditional and non-tolerated`,
+    ],
+    [
+      'touch job condition',
+      'chromium-touch',
+      "if: ${{ github.event_name == 'never' }}",
+      `${label} chromium-touch job must be unconditional and non-tolerated`,
+    ],
+    [
+      'touch job failure tolerance',
+      'chromium-touch',
+      'continue-on-error: true',
+      `${label} chromium-touch job must be unconditional and non-tolerated`,
+    ],
+    [
+      'quoted desktop job condition',
+      'browsers',
+      "'if': ${{ github.event_name == 'never' }}",
+      `${label} browsers job must be unconditional and non-tolerated`,
+    ],
+    [
+      'quoted touch job failure tolerance',
+      'chromium-touch',
+      "'continue-on-error': true",
+      `${label} chromium-touch job must be unconditional and non-tolerated`,
+    ],
+  ]) {
+    test(`rejects ${name} in ${label}`, () => {
+      const workflows = { ciWorkflow, releaseWorkflow }
+      workflows[workflowName] = replaceInJob(
+        workflows[workflowName],
+        jobName,
+        '    runs-on: ubuntu-latest',
+        ['    runs-on: ubuntu-latest', `    ${setting}`].join('\n'),
+      )
+
+      assert.match(
+        validateReadinessWorkflows(workflows).join('\n'),
+        new RegExp(expectedError),
+      )
+    })
+  }
+
   for (const [name, command, replacement] of [
     [
       'browser installation',
@@ -479,6 +547,54 @@ for (const [label, workflowName] of [
       validateReadinessWorkflows(workflows).join('\n'),
       new RegExp(
         `${label} browser steps must be unconditional and non-tolerated`,
+      ),
+    )
+  })
+
+  for (const [name, setting] of [
+    ['quoted WebKit-excluding condition', "'if': matrix.project != 'webkit'"],
+    ['quoted failure tolerance', "'continue-on-error': true"],
+  ]) {
+    test(`rejects a ${name} on the ${label} desktop execution`, () => {
+      const workflows = { ciWorkflow, releaseWorkflow }
+      workflows[workflowName] = replaceInJob(
+        workflows[workflowName],
+        'browsers',
+        '      - run: npm run test:e2e -- --project=${{ matrix.project }}',
+        [
+          '      - run: npm run test:e2e -- --project=${{ matrix.project }}',
+          `        ${setting}`,
+        ].join('\n'),
+      )
+
+      assert.match(
+        validateReadinessWorkflows(workflows).join('\n'),
+        new RegExp(
+          `${label} browser steps must be unconditional and non-tolerated`,
+        ),
+      )
+    })
+  }
+
+  test(`rejects a shell-conditional ${label} desktop execution`, () => {
+    const workflows = { ciWorkflow, releaseWorkflow }
+    workflows[workflowName] = replaceInJob(
+      workflows[workflowName],
+      'browsers',
+      '      - run: npm run test:e2e -- --project=${{ matrix.project }}',
+      [
+        '      - name: Conditionally run library suite',
+        '        run: |',
+        '          if false; then',
+        '            npm run test:e2e -- --project=${{ matrix.project }}',
+        '          fi',
+      ].join('\n'),
+    )
+
+    assert.match(
+      validateReadinessWorkflows(workflows).join('\n'),
+      new RegExp(
+        `${label} browsers must install and execute each desktop project in both suites`,
       ),
     )
   })
@@ -570,6 +686,29 @@ for (const [label, workflowName] of [
     )
   })
 
+  test(`rejects shell-level failure tolerance in the ${label} chromium-touch execution`, () => {
+    const workflows = { ciWorkflow, releaseWorkflow }
+    workflows[workflowName] = replaceInJob(
+      workflows[workflowName],
+      'chromium-touch',
+      '      - run: npm run test:e2e -- --project=chromium-touch',
+      [
+        '      - name: Tolerate touch failure',
+        '        run: |',
+        '          set +e',
+        '          npm run test:e2e -- --project=chromium-touch',
+        '          true',
+      ].join('\n'),
+    )
+
+    assert.match(
+      validateReadinessWorkflows(workflows).join('\n'),
+      new RegExp(
+        `${label} chromium-touch must run exactly once as a separate library-only job`,
+      ),
+    )
+  })
+
   test(`rejects website execution in the ${label} chromium-touch job`, () => {
     const workflows = { ciWorkflow, releaseWorkflow }
     workflows[workflowName] = replaceInJob(
@@ -651,6 +790,36 @@ for (const [label, workflowName] of [
       ),
     )
   })
+
+  for (const duplicate of [
+    'NAME=value npm run test:e2e -- --project chromium-touch',
+    'command env NAME=value npm run test:e2e -- --project chromium-touch',
+    "env DUPLICATE=1 npm run test:e2e -- --project='chromium-touch'",
+    'env DUPLICATE=1 npm run test:e2e -- --project chromium chromium-touch',
+    "env MARK='a|b' npm run test:e2e -- --project chromium chromium-touch",
+    '/usr/bin/env DUPLICATE=1 npm run test:e2e -- --project=chromium-touch',
+    'env DUPLICATE=1 npm --silent run test:e2e -- --project=chromium-touch',
+  ]) {
+    test(`rejects the ${label} duplicate touch form: ${duplicate}`, () => {
+      const workflows = { ciWorkflow, releaseWorkflow }
+      workflows[workflowName] = replaceInJob(
+        workflows[workflowName],
+        'browsers',
+        '      - run: npm run test:website:e2e -- --project=${{ matrix.project }}',
+        [
+          '      - run: npm run test:website:e2e -- --project=${{ matrix.project }}',
+          `      - run: ${duplicate}`,
+        ].join('\n'),
+      )
+
+      assert.match(
+        validateReadinessWorkflows(workflows).join('\n'),
+        new RegExp(
+          `${label} chromium-touch must run exactly once as a separate library-only job`,
+        ),
+      )
+    })
+  }
 }
 
 test('accepts an equivalent block-form desktop project matrix', () => {
