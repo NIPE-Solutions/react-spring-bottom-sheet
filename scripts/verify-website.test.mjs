@@ -7,14 +7,19 @@ const requiredRoutes = [
   'installation',
   'anatomy',
   'state',
+  'events',
   'snap-points',
   'gestures',
+  'portals',
   'accessibility',
   'styling',
   'examples',
   'api',
+  'testing',
+  'performance',
   'migration',
   'troubleshooting',
+  'support',
 ]
 
 test('the documentation manifest covers every required topic', async () => {

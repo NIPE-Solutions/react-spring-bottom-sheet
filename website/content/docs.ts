@@ -81,11 +81,37 @@ export const docs = [
     ],
   },
   {
+    slug: 'events',
+    title: 'Events and dismissal',
+    description:
+      'Connect state changes to application logic without guessing why they happened.',
+    group: 'learn',
+    order: 5,
+    sections: [
+      {
+        id: 'change-reasons',
+        title: 'React to intent, not DOM events',
+        body: 'onOpenChange reports the requested state and a stable reason: trigger, close, escape, backdrop, drag, or imperative. Use the reason for telemetry, routing, or workflow decisions without coupling application code to pointer and keyboard event details.',
+        code: "onOpenChange={(nextOpen, details) => {\n  setOpen(nextOpen)\n  track('sheet_changed', { reason: details.reason })\n}}",
+      },
+      {
+        id: 'prevent-dismissal',
+        title: 'Make required decisions explicit',
+        body: 'Set dismissible to false when closing would discard a decision that the user must make. Render clear actions with Sheet.Close, and avoid silently ignoring a normal dismiss request in controlled state because that makes the interface feel broken.',
+      },
+      {
+        id: 'close-completion',
+        title: 'Wait for the visual lifecycle',
+        body: 'The sheet remains mounted while its closing motion completes, then restores focus to the initiating control. Coordinate application state through the public callbacks instead of timers tied to an assumed animation duration.',
+      },
+    ],
+  },
+  {
     slug: 'snap-points',
     title: 'Snap points',
     description: 'Name every destination and express its height clearly.',
     group: 'learn',
-    order: 5,
+    order: 6,
     sections: [
       {
         id: 'values',
@@ -106,7 +132,7 @@ export const docs = [
     description:
       'Drag the handle or content without competing with nested scroll.',
     group: 'learn',
-    order: 6,
+    order: 7,
     sections: [
       {
         id: 'ownership',
@@ -121,12 +147,38 @@ export const docs = [
     ],
   },
   {
+    slug: 'portals',
+    title: 'Portals and layering',
+    description:
+      'Choose the sheet rendering boundary deliberately for pages, shells, and embedded surfaces.',
+    group: 'learn',
+    order: 8,
+    sections: [
+      {
+        id: 'default-portal',
+        title: 'Use the document boundary by default',
+        body: 'Sheet.Portal renders into the document body by default so application layout, overflow, and stacking contexts do not accidentally clip a modal sheet. This is the right boundary for most page-level workflows.',
+      },
+      {
+        id: 'custom-container',
+        title: 'Own an embedded surface',
+        body: 'Pass a concrete container when the sheet belongs inside a phone preview, editor canvas, or isolated application shell. The container must establish the size and clipping boundary that Sheet.Viewport should fill.',
+        code: '<Sheet.Portal container={previewRef.current}>\n  <Sheet.Viewport>…</Sheet.Viewport>\n</Sheet.Portal>',
+      },
+      {
+        id: 'stacking-contexts',
+        title: 'Treat z-index as a system',
+        body: 'A large z-index cannot escape an ancestor stacking context. Keep overlays in a documented application layer and inspect transformed, isolated, positioned, or opacity-adjusted ancestors when a sheet appears underneath unrelated UI.',
+      },
+    ],
+  },
+  {
     slug: 'accessibility',
     title: 'Accessibility',
     description:
       'Modal semantics, naming, focus, and restoration are built in.',
     group: 'learn',
-    order: 7,
+    order: 9,
     sections: [
       {
         id: 'accessible-name',
@@ -145,7 +197,7 @@ export const docs = [
     title: 'Styling',
     description: 'Keep mechanics, theme, and application styles independent.',
     group: 'learn',
-    order: 8,
+    order: 10,
     sections: [
       {
         id: 'entry-points',
@@ -208,6 +260,58 @@ export const docs = [
     ],
   },
   {
+    slug: 'testing',
+    title: 'Testing',
+    description:
+      'Assert user-visible sheet behavior without binding tests to animation internals.',
+    group: 'reference',
+    order: 3,
+    sections: [
+      {
+        id: 'queries',
+        title: 'Query the interface by role',
+        body: 'Open the sheet through its trigger and query the resulting dialog by its accessible name. This verifies the same semantic boundary assistive technology receives and survives internal DOM changes.',
+        code: "await user.click(screen.getByRole('button', { name: /open/i }))\nexpect(screen.getByRole('dialog', { name: /filters/i })).toBeVisible()",
+      },
+      {
+        id: 'motion',
+        title: 'Observe state instead of sleeping',
+        body: 'Wait for the dialog to appear or be removed rather than adding fixed delays. For deterministic component tests, enable reduced motion; keep a smaller browser suite with real motion to protect opening, closing, drag, and focus-restoration behavior.',
+      },
+      {
+        id: 'coverage',
+        title: 'Cover the workflow boundaries',
+        body: 'Test trigger, explicit close, Escape, backdrop, and drag only when your product enables them. Controlled integrations should also prove the callback updates application state and that focus returns after close.',
+      },
+    ],
+  },
+  {
+    slug: 'performance',
+    title: 'Performance',
+    description:
+      'Keep sheet content responsive across motion, layout changes, and long lists.',
+    group: 'reference',
+    order: 4,
+    sections: [
+      {
+        id: 'render-boundary',
+        title: 'Keep changing state close to its owner',
+        body: 'The sheet can animate independently, but expensive descendants still rerender when their props change. Keep rapidly changing form or list state in focused child components and memoize only after measurement identifies meaningful work.',
+      },
+      {
+        id: 'layout',
+        title: 'Let content measurements settle',
+        body: 'Content-sized destinations respond to layout changes. Reserve dimensions for images, avoid layout feedback loops, and prefer stable snap-point arrays when their meaning has not changed.',
+        code: "const snapPoints = useMemo(() => [\n  { id: 'compact', value: '35%' },\n  { id: 'full', value: '90%' },\n], [])",
+      },
+      {
+        id: 'large-content',
+        title: 'Virtualize where the content needs it',
+        body: 'A sheet does not make a large list inexpensive. Use the same virtualization and pagination strategy you would use on a page, and verify that the scroll owner remains the element expected by the gesture boundary.',
+      },
+    ],
+  },
+  {
     slug: 'migration',
     title: 'Migrate from version 4',
     description: 'Map legacy props and selectors to the redesigned contract.',
@@ -242,6 +346,32 @@ export const docs = [
         id: 'controlled-state',
         title: 'Controlled state does not change',
         body: 'Update open in onOpenChange and activeSnapPoint in onSnapPointChange. Controlled props remain authoritative.',
+      },
+    ],
+  },
+  {
+    slug: 'support',
+    title: 'Support and maintenance',
+    description:
+      'Report reproducible problems, follow release channels, and contribute focused changes.',
+    group: 'project',
+    order: 3,
+    sections: [
+      {
+        id: 'reporting',
+        title: 'Make a problem reproducible',
+        body: 'Include the package, React, browser, and operating-system versions; the expected and observed result; and a minimal reproduction. For interaction problems, identify whether the request came from a pointer, touch, keyboard, or assistive technology.',
+      },
+      {
+        id: 'release-channels',
+        title: 'Choose a release channel',
+        body: 'Stable releases use npm latest. Prereleases use next and may change before the final major release. Pin an exact prerelease version when evaluating it in a shared application so an install cannot move unexpectedly.',
+        code: 'npm install @nipe-solutions/react-spring-bottom-sheet@next',
+      },
+      {
+        id: 'security',
+        title: 'Report security issues privately',
+        body: 'Do not publish an exploitable vulnerability in a public issue. Use the repository security reporting channel when available, or contact the maintainer directly using the address in the site imprint.',
       },
     ],
   },

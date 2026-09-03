@@ -42,3 +42,40 @@ export function ControlledExample() {
     </BottomSheet>
   )
 }
+
+export function EventDetailsExample() {
+  const [open, setOpen] = useState(false)
+
+  return (
+    <BottomSheet
+      open={open}
+      onOpenChange={(nextOpen, details) => {
+        setOpen(nextOpen)
+        const reason: string = details.reason
+        void reason
+      }}
+      title="Filters"
+    >
+      Filter controls
+    </BottomSheet>
+  )
+}
+
+export function CustomPortalExample() {
+  const [container, setContainer] = useState<HTMLDivElement | null>(null)
+
+  return (
+    <div ref={setContainer}>
+      <Sheet.Root>
+        <Sheet.Trigger>Open preview</Sheet.Trigger>
+        <Sheet.Portal container={container}>
+          <Sheet.Viewport>
+            <Sheet.Content>
+              <Sheet.Title>Preview</Sheet.Title>
+            </Sheet.Content>
+          </Sheet.Viewport>
+        </Sheet.Portal>
+      </Sheet.Root>
+    </div>
+  )
+}

@@ -30,12 +30,28 @@ test('every documentation link resolves', async ({ page }) => {
   await page.goto('/docs/introduction/')
   const links = page.locator('.docs-sidebar a')
   const count = await links.count()
-  expect(count).toBe(12)
+  expect(count).toBe(17)
 
   for (let index = 0; index < count; index += 1) {
     const href = await links.nth(index).getAttribute('href')
     const response = await page.request.get(href ?? '')
     expect(response.ok(), href ?? 'missing href').toBe(true)
+  }
+})
+
+test('documentation navigation covers integration and operations', async ({
+  page,
+}) => {
+  await page.goto('/docs/introduction/')
+
+  for (const name of [
+    'Events and dismissal',
+    'Portals and layering',
+    'Testing',
+    'Performance',
+    'Support and maintenance',
+  ]) {
+    await expect(page.getByRole('link', { name }).first()).toBeVisible()
   }
 })
 
