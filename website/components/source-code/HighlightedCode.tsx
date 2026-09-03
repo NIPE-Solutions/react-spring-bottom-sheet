@@ -1,4 +1,4 @@
-import type { CSSProperties } from 'react'
+import { Fragment, type CSSProperties } from 'react'
 import type { HighlightedLine } from './highlighter'
 
 const FontStyle = {
@@ -24,39 +24,57 @@ export function HighlightedCode({
   lines: HighlightedLine[]
 }) {
   const lineNumberWidth = `${String(lines.length).length}ch`
+  // Literal LF nodes preserve every line boundary. Chromium otherwise drops
+  // the final LF when a selection ends on the empty trailing line; a hidden,
+  // zero-size boundary keeps that byte selectable without adding a visual row.
+  const hasTrailingNewline =
+    lines.length > 1 &&
+    lines.at(-1)?.every((token) => token.content.length === 0)
 
   return (
     <pre tabIndex={0} aria-label={`Source code for ${filename}`}>
       <code>
         {lines.map((line, lineIndex) => (
-          <span
-            data-line={lineIndex + 1}
-            key={lineIndex}
-            style={{ display: 'block' }}
-          >
-            <span
-              aria-hidden="true"
-              style={{
-                color: '#B9C0CF',
-                display: 'inline-block',
-                marginRight: '1.5rem',
-                minWidth: lineNumberWidth,
-                textAlign: 'right',
-                userSelect: 'none',
-              }}
-            >
-              {lineIndex + 1}
-            </span>
-            {line.map((token, tokenIndex) => (
+          <Fragment key={lineIndex}>
+            <span data-line={lineIndex + 1} style={{ display: 'inline-block' }}>
               <span
-                data-code-token=""
-                key={`${lineIndex}:${tokenIndex}`}
-                style={tokenStyle(token.color, token.fontStyle)}
+                aria-hidden="true"
+                style={{
+                  color: '#B9C0CF',
+                  display: 'inline-block',
+                  marginRight: '1.5rem',
+                  minWidth: lineNumberWidth,
+                  textAlign: 'right',
+                  userSelect: 'none',
+                }}
               >
-                {token.content}
+                {lineIndex + 1}
               </span>
-            ))}
-          </span>
+              {line.map((token, tokenIndex) => (
+                <span
+                  data-code-token=""
+                  key={`${lineIndex}:${tokenIndex}`}
+                  style={tokenStyle(token.color, token.fontStyle)}
+                >
+                  {token.content}
+                </span>
+              ))}
+              {hasTrailingNewline && lineIndex === lines.length - 1 ? (
+                <img
+                  alt=""
+                  aria-hidden="true"
+                  data-source-trailing-newline=""
+                  style={{
+                    display: 'block',
+                    height: 0,
+                    userSelect: 'none',
+                    width: 0,
+                  }}
+                />
+              ) : null}
+            </span>
+            {lineIndex < lines.length - 1 ? '\n' : null}
+          </Fragment>
         ))}
       </code>
     </pre>

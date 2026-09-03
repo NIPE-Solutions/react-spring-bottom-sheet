@@ -1,5 +1,3 @@
-export type Device = 'phone' | 'tablet'
-
 export type Orientation = 'portrait' | 'landscape'
 
 export type DeviceSelection = Readonly<{
@@ -10,6 +8,8 @@ export type DeviceSelection = Readonly<{
 export type DevicePreset = Readonly<{
   width: number
   height: number
+  label: string
+  radius: string
 }>
 
 export const DEFAULT_DEVICE_SELECTION: DeviceSelection = Object.freeze({
@@ -17,21 +17,39 @@ export const DEFAULT_DEVICE_SELECTION: DeviceSelection = Object.freeze({
   orientation: 'portrait',
 })
 
-const DEVICE_PRESETS: Readonly<
-  Record<Device, Readonly<Record<Orientation, DevicePreset>>>
-> = Object.freeze({
+const DEVICE_CONFIGURATIONS = Object.freeze({
   phone: Object.freeze({
-    portrait: Object.freeze({ width: 390, height: 780 }),
-    landscape: Object.freeze({ width: 780, height: 390 }),
+    label: 'Phone',
+    radius: '1.75rem',
+    presets: Object.freeze({
+      portrait: Object.freeze({ width: 390, height: 780 }),
+      landscape: Object.freeze({ width: 780, height: 390 }),
+    }),
   }),
   tablet: Object.freeze({
-    portrait: Object.freeze({ width: 768, height: 1024 }),
-    landscape: Object.freeze({ width: 1024, height: 768 }),
+    label: 'Tablet',
+    radius: '1.15rem',
+    presets: Object.freeze({
+      portrait: Object.freeze({ width: 820, height: 1080 }),
+      landscape: Object.freeze({ width: 1080, height: 820 }),
+    }),
   }),
 })
 
+export type Device = keyof typeof DEVICE_CONFIGURATIONS
+
+export const DEVICE_OPTIONS = Object.freeze(
+  Object.keys(DEVICE_CONFIGURATIONS) as Device[],
+)
+
 export function getDevicePreset(selection: DeviceSelection): DevicePreset {
-  return DEVICE_PRESETS[selection.device][selection.orientation]
+  const configuration = DEVICE_CONFIGURATIONS[selection.device]
+
+  return {
+    ...configuration.presets[selection.orientation],
+    label: configuration.label,
+    radius: configuration.radius,
+  }
 }
 
 export function parseDeviceSelection(

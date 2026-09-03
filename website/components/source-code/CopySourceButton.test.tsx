@@ -44,7 +44,7 @@ describe('CopySourceButton status lifecycle', () => {
 
   test('keeps its label aligned and mutates the live region for repeated copies', async () => {
     const writeText = mockClipboard(Promise.resolve(), Promise.resolve())
-    render(<CopySourceButton source={source} />)
+    const { unmount } = render(<CopySourceButton source={source} />)
     const button = screen.getByRole('button', { name: 'Copy source' })
     const status = screen.getByRole('status')
 
@@ -80,7 +80,61 @@ describe('CopySourceButton status lifecycle', () => {
     expect(vi.getTimerCount()).toBe(0)
 
     observer.disconnect()
+    unmount()
   })
+
+  test('restores keyboard focus without scrolling after a successful selection fallback', async () => {
+    mockClipboard(Promise.reject(new Error('Clipboard unavailable')))
+    const selectionFallback = vi
+      .mocked(document.execCommand)
+      .mockReturnValue(true)
+    const { unmount } = render(<CopySourceButton source={source} />)
+    const button = screen.getByRole('button', { name: 'Copy source' })
+    button.focus()
+    const restoreFocus = vi.spyOn(button, 'focus')
+
+    await act(async () => fireEvent.click(button))
+
+    expect(selectionFallback).toHaveBeenCalledWith('copy')
+    expect(document.querySelector('textarea')).toBeNull()
+    expect(restoreFocus).toHaveBeenCalledWith({ preventScroll: true })
+    expect(button).toHaveFocus()
+    expect(screen.getByRole('status')).toHaveTextContent('Copied')
+    unmount()
+  })
+
+  test.each(['missing', 'false', 'throwing'] as const)(
+    'restores keyboard focus after a %s selection fallback',
+    async (outcome) => {
+      mockClipboard(Promise.reject(new Error('Clipboard unavailable')))
+      Object.defineProperty(document, 'execCommand', {
+        configurable: true,
+        value:
+          outcome === 'missing'
+            ? undefined
+            : vi.fn(() => {
+                if (outcome === 'throwing') {
+                  throw new Error('Selection copy unavailable')
+                }
+                return false
+              }),
+      })
+      const { unmount } = render(<CopySourceButton source={source} />)
+      const button = screen.getByRole('button', { name: 'Copy source' })
+      button.focus()
+      const restoreFocus = vi.spyOn(button, 'focus')
+
+      await act(async () => fireEvent.click(button))
+
+      expect(document.querySelector('textarea')).toBeNull()
+      expect(restoreFocus).toHaveBeenCalledWith({ preventScroll: true })
+      expect(button).toHaveFocus()
+      expect(screen.getByRole('status')).toHaveTextContent(
+        'Select source to copy',
+      )
+      unmount()
+    },
+  )
 
   test('ignores a stale rejection after a newer copy succeeds', async () => {
     const firstCopy = deferred()
@@ -89,6 +143,7 @@ describe('CopySourceButton status lifecycle', () => {
     const selectionFallback = vi.mocked(document.execCommand)
     render(<CopySourceButton source={source} />)
     const button = screen.getByRole('button', { name: 'Copy source' })
+    const restoreFocus = vi.spyOn(button, 'focus')
 
     fireEvent.click(button)
     fireEvent.click(button)
@@ -98,6 +153,7 @@ describe('CopySourceButton status lifecycle', () => {
     await act(async () => firstCopy.reject(new Error('stale failure')))
 
     expect(selectionFallback).not.toHaveBeenCalled()
+    expect(restoreFocus).not.toHaveBeenCalled()
     expect(document.querySelector('textarea')).toBeNull()
     expect(screen.getByRole('status')).toHaveTextContent('Copied')
     expect(vi.getTimerCount()).toBe(1)
@@ -134,12 +190,15 @@ describe('CopySourceButton status lifecycle', () => {
     mockClipboard(pendingCopy.promise)
     const selectionFallback = vi.mocked(document.execCommand)
     const { unmount } = render(<CopySourceButton source={source} />)
+    const button = screen.getByRole('button', { name: 'Copy source' })
+    const restoreFocus = vi.spyOn(button, 'focus')
 
-    fireEvent.click(screen.getByRole('button', { name: 'Copy source' }))
+    fireEvent.click(button)
     unmount()
     await act(async () => pendingCopy.reject(new Error('late failure')))
 
     expect(selectionFallback).not.toHaveBeenCalled()
+    expect(restoreFocus).not.toHaveBeenCalled()
     expect(document.querySelector('textarea')).toBeNull()
     expect(vi.getTimerCount()).toBe(0)
   })

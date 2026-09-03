@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import type { MouseEvent } from 'react'
 
 const COPY_STATUS_DURATION_MS = 2_000
 
@@ -52,7 +53,15 @@ export function CopySourceButton({ source }: { source: string }) {
     statusResetTimer.current = resetTimer
   }
 
-  function copyWithSelection() {
+  function copyWithSelection(
+    operationId: number,
+    initiatingButton: HTMLButtonElement,
+  ) {
+    const activeElement = document.activeElement
+    const previouslyFocused =
+      activeElement instanceof HTMLElement && activeElement !== document.body
+        ? activeElement
+        : initiatingButton
     const input = document.createElement('textarea')
     input.value = source
     input.style.position = 'fixed'
@@ -69,10 +78,19 @@ export function CopySourceButton({ source }: { source: string }) {
       return false
     } finally {
       input.remove()
+      if (isCurrentOperation(operationId)) {
+        const focusTarget = previouslyFocused.isConnected
+          ? previouslyFocused
+          : initiatingButton.isConnected
+            ? initiatingButton
+            : null
+        focusTarget?.focus({ preventScroll: true })
+      }
     }
   }
 
-  async function copySource() {
+  async function copySource(event: MouseEvent<HTMLButtonElement>) {
+    const initiatingButton = event.currentTarget
     const operationId = latestOperation.current + 1
     latestOperation.current = operationId
 
@@ -84,7 +102,9 @@ export function CopySourceButton({ source }: { source: string }) {
 
       publishCopyStatus(
         operationId,
-        copyWithSelection() ? 'Copied' : 'Select source to copy',
+        copyWithSelection(operationId, initiatingButton)
+          ? 'Copied'
+          : 'Select source to copy',
       )
     }
   }

@@ -140,8 +140,8 @@ describe('DeviceLab iframe identity', () => {
 
     for (const [control, expectedQuery, width, height] of [
       ['Landscape', 'device=phone&orientation=landscape', 780, 390],
-      ['Tablet', 'device=tablet&orientation=landscape', 1024, 768],
-      ['Portrait', 'device=tablet&orientation=portrait', 768, 1024],
+      ['Tablet', 'device=tablet&orientation=landscape', 1080, 820],
+      ['Portrait', 'device=tablet&orientation=portrait', 820, 1080],
       ['Phone', 'device=phone&orientation=portrait', 390, 780],
     ] as const) {
       fireEvent.click(screen.getByRole('button', { name: control }))
