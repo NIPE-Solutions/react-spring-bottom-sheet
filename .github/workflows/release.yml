@@ -142,9 +142,9 @@ jobs:
           VERSION: ${{ inputs.version }}
         run: |
           NAME=$(node -p "require('./package.json').name")
-          MAX_ATTEMPTS=8
+          MAX_ATTEMPTS=18
           RETRY_DELAY_SECONDS=10
-          FETCH_TIMEOUT_MS=10000
+          FETCH_TIMEOUT_MS=3000
           attempt=1
           while test "$attempt" -le "$MAX_ATTEMPTS"; do
             PUBLISHED_VERSION=$(npm view "$NAME@$VERSION" version --fetch-timeout="$FETCH_TIMEOUT_MS" --fetch-retries=0 2>/dev/null || true)
