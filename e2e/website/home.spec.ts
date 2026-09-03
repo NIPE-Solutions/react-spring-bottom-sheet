@@ -21,6 +21,12 @@ test('homepage presents generated package evidence and useful next steps', async
     name: 'What the current build proves.',
   })
   await expect(evidence).toContainText(packageVersion)
+  await expect(evidence.getByText('Build facts', { exact: true })).toBeVisible()
+  await expect(
+    evidence.getByText('Prepared version', { exact: true }),
+  ).toBeVisible()
+  await expect(evidence.getByText('Published facts')).toHaveCount(0)
+  await expect(evidence.getByText('Current channel')).toHaveCount(0)
   await expect(evidence).toContainText('10.6 kB gzip')
   await expect(evidence).toContainText('Chromium, Firefox, WebKit')
   await expect(evidence).toContainText('React ^19.0.0')
@@ -140,7 +146,7 @@ test('homepage remains contained at 320 pixels', async ({ page }) => {
 test('homepage remains contained at the compact-layout boundary', async ({
   page,
 }) => {
-  await page.setViewportSize({ width: 801, height: 900 })
+  await page.setViewportSize({ width: 809, height: 900 })
   await page.goto('/')
 
   const dimensions = await page.evaluate(() => ({

@@ -58,6 +58,15 @@ test('documentation navigation covers integration and operations', async ({
   }
 })
 
+test('accessibility guidance describes the real close lifecycle', async ({
+  page,
+}) => {
+  await page.goto('/docs/accessibility/')
+
+  await expect(page.getByText('when close state is entered')).toBeVisible()
+  await expect(page.getByText('after the closing motion')).toHaveCount(0)
+})
+
 test('installation instructions match the package release state', async ({
   page,
 }) => {

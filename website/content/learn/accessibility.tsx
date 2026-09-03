@@ -14,8 +14,8 @@ export function AccessibilityGuide() {
         </p>
         <p>
           Modal sheets move focus inside on open, contain Tab navigation, close
-          with Escape when dismissible, and restore focus after the closing
-          motion.
+          with Escape when dismissible, and restore focus when close state is
+          entered. The visual exit then finishes independently.
         </p>
       </section>
       <section id="modal-and-non-modal">
