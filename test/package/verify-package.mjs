@@ -1,13 +1,25 @@
 import assert from 'node:assert/strict'
 import { execFileSync } from 'node:child_process'
 import { copyFileSync, mkdtempSync, readFileSync, rmSync } from 'node:fs'
+import { createRequire } from 'node:module'
 import { tmpdir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
+import {
+  validatePackedFiles,
+  verifyInstalledMetadata,
+} from './package-contract.mjs'
+
 const packageRoot = resolve(dirname(fileURLToPath(import.meta.url)), '../..')
+const sourceMetadata = JSON.parse(
+  readFileSync(join(packageRoot, 'package.json'), 'utf8'),
+)
+const expectedReactVersion = sourceMetadata.devDependencies.react.replace(
+  /^[~^]/,
+  '',
+)
 const temporaryDirectory = mkdtempSync(join(tmpdir(), 'rsbs-package-'))
-const expectedReactVersion = process.env.REACT_VERSION || '18.3.1'
 let tarball
 
 try {
@@ -15,14 +27,13 @@ try {
     execFileSync('npm', ['pack', '--json', '--ignore-scripts'], {
       cwd: packageRoot,
       encoding: 'utf8',
-    })
+    }),
   )[0]
   tarball = join(packageRoot, packResult.filename)
-  const paths = packResult.files.map(({ path }) => path)
-
-  assert.ok(paths.includes('dist/index.js'))
-  assert.ok(paths.includes('dist/index.mjs'))
-  assert.ok(!paths.some((path) => path.endsWith('.tsbuildinfo')))
+  assert.deepEqual(
+    validatePackedFiles(packResult.files.map(({ path }) => path)),
+    [],
+  )
 
   execFileSync('npm', ['init', '--yes'], {
     cwd: temporaryDirectory,
@@ -35,18 +46,63 @@ try {
       '--ignore-scripts',
       `react@${expectedReactVersion}`,
       `react-dom@${expectedReactVersion}`,
+      `typescript@${sourceMetadata.devDependencies.typescript.replace(/^[~^]/, '')}`,
+      `@types/react@${sourceMetadata.devDependencies['@types/react'].replace(/^[~^]/, '')}`,
       tarball,
     ],
     {
       cwd: temporaryDirectory,
       stdio: 'inherit',
-    }
+    },
   )
+
+  const temporaryRequire = createRequire(
+    join(temporaryDirectory, 'package.json'),
+  )
+  const installedPackageJson = temporaryRequire.resolve(
+    `${sourceMetadata.name}/package.json`,
+  )
+  const installedMetadata = JSON.parse(
+    readFileSync(installedPackageJson, 'utf8'),
+  )
+  assert.deepEqual(
+    verifyInstalledMetadata(installedMetadata, sourceMetadata),
+    [],
+  )
+
+  const installedReadme = readFileSync(
+    join(dirname(installedPackageJson), 'README.md'),
+    'utf8',
+  )
+  assert.doesNotMatch(installedReadme, /Version 5 is currently in alpha/i)
+  assert.doesNotMatch(installedReadme, /latest stable 4\.x release/i)
+
+  const coreCss = readFileSync(
+    temporaryRequire.resolve(`${sourceMetadata.name}/core.css`),
+    'utf8',
+  )
+  const themeCss = readFileSync(
+    temporaryRequire.resolve(`${sourceMetadata.name}/theme.css`),
+    'utf8',
+  )
+  const combinedCss = readFileSync(
+    temporaryRequire.resolve(`${sourceMetadata.name}/styles.css`),
+    'utf8',
+  )
+  assert.match(coreCss, /@layer rsbs\.core/)
+  assert.doesNotMatch(coreCss, /--rsbs-content-background|box-shadow/)
+  assert.match(themeCss, /@import ['"]\.\/tokens\.css['"]/)
+  assert.ok(
+    combinedCss.indexOf("@import './core.css'") <
+      combinedCss.indexOf("@import './theme.css'"),
+    'combined styles must load core mechanics before the theme',
+  )
+  assert.doesNotMatch(`${coreCss}${themeCss}`, /!important/)
 
   for (const filename of ['consumer-cjs.cjs', 'consumer-esm.mjs']) {
     copyFileSync(
       join(packageRoot, 'test/package', filename),
-      join(temporaryDirectory, filename)
+      join(temporaryDirectory, filename),
     )
     execFileSync('node', [filename], {
       cwd: temporaryDirectory,
@@ -54,14 +110,25 @@ try {
     })
   }
 
+  copyFileSync(
+    join(packageRoot, 'test/package', 'consumer-types.tsx'),
+    join(temporaryDirectory, 'consumer-types.tsx'),
+  )
+  copyFileSync(
+    join(packageRoot, 'test/package', 'tsconfig.json'),
+    join(temporaryDirectory, 'tsconfig.json'),
+  )
+  execFileSync('npm', ['exec', '--', 'tsc', '--project', 'tsconfig.json'], {
+    cwd: temporaryDirectory,
+    stdio: 'inherit',
+  })
+
   const installedReactVersion = execFileSync(
     'node',
     ['-p', "require('react/package.json').version"],
-    { cwd: temporaryDirectory, encoding: 'utf8' }
+    { cwd: temporaryDirectory, encoding: 'utf8' },
   ).trim()
   assert.equal(installedReactVersion, expectedReactVersion)
-
-  JSON.parse(readFileSync(join(temporaryDirectory, 'package.json'), 'utf8'))
 } finally {
   if (tarball) rmSync(tarball, { force: true })
   rmSync(temporaryDirectory, { recursive: true, force: true })

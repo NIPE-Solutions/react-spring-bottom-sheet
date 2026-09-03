@@ -295,9 +295,9 @@ Version 5 will be validated through `5.0.0-alpha.x` and `5.0.0-beta.x` releases 
 
 ## Project lineage
 
-The GitHub repository remains in the `JasGH/react-spring-bottom-sheet` fork network. Version 5 is a continuation of that project even though its implementation and public API are substantially redesigned.
+The GitHub repository remains in the fork network originating at `stipsan/react-spring-bottom-sheet`. The NIPE Solutions repository was forked through `JasGH/react-spring-bottom-sheet`; version 5 retains both parts of that lineage even though its implementation and public API are substantially redesigned.
 
-The original copyright and MIT license notices are preserved. The README credits the original project and maintainers, explains that this fork is independently maintained by NIPE Solutions, and links to the upstream repository. Package metadata continues to credit the original authors alongside current maintainers.
+The original copyright and MIT license notices are preserved. The README credits the original project and maintainers, acknowledges the intermediate fork, explains that this fork is independently maintained by NIPE Solutions, and links to both preceding repositories. Package metadata continues to credit the original authors alongside current maintainers.
 
 ## Success criteria
 

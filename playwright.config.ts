@@ -1,24 +1,48 @@
 import { defineConfig, devices } from '@playwright/test'
 
+import { releaseReporters } from './scripts/playwright-release-config.mjs'
+
 export default defineConfig({
   testDir: './e2e',
+  testIgnore: 'website/**',
   fullyParallel: true,
-  forbidOnly: !!process.env.CI,
+  forbidOnly: Boolean(process.env.CI),
   retries: process.env.CI ? 2 : 0,
-  reporter: process.env.CI ? 'github' : 'list',
+  reporter: releaseReporters(process.env.CI ? 'github' : 'list'),
   use: {
-    baseURL: 'http://127.0.0.1:3100',
+    baseURL: 'http://127.0.0.1:4173/e2e/fixture/',
     trace: 'on-first-retry',
-  },
-  webServer: {
-    command: 'npm run dev -- --hostname 127.0.0.1 --port 3100',
-    url: 'http://127.0.0.1:3100',
-    reuseExistingServer: !process.env.CI,
   },
   projects: [
     {
       name: 'chromium',
-      use: { ...devices['Desktop Chrome'] },
+      use: {
+        ...devices['Desktop Chrome'],
+        viewport: { width: 390, height: 800 },
+      },
+    },
+    {
+      name: 'firefox',
+      use: {
+        ...devices['Desktop Firefox'],
+        viewport: { width: 390, height: 800 },
+      },
+    },
+    {
+      name: 'webkit',
+      use: {
+        ...devices['Desktop Safari'],
+        viewport: { width: 390, height: 800 },
+      },
+    },
+    {
+      name: 'chromium-touch',
+      use: { ...devices['Pixel 7'], viewport: { width: 390, height: 800 } },
     },
   ],
+  webServer: {
+    command: 'npm run test:e2e:serve -- --port 4173',
+    url: 'http://127.0.0.1:4173/e2e/fixture/',
+    reuseExistingServer: !process.env.CI,
+  },
 })

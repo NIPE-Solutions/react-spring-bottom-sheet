@@ -1,0 +1,69 @@
+@layer rsbs.core {
+  :where(.rsbs-backdrop) {
+    position: fixed;
+    inset: 0;
+    z-index: var(--rsbs-z-index, 50);
+    border: 0;
+    touch-action: none;
+  }
+
+  :where(.rsbs-backdrop)[data-rsbs-state='closed'] {
+    visibility: hidden;
+    pointer-events: none;
+  }
+
+  :where(.rsbs-backdrop)[data-rsbs-state='closing'] {
+    pointer-events: none;
+  }
+
+  :where(.rsbs-viewport) {
+    position: fixed;
+    inset: 0;
+    z-index: calc(var(--rsbs-z-index, 50) + 1);
+    overflow: hidden;
+    pointer-events: none;
+  }
+
+  :where(.rsbs-viewport)[data-rsbs-state='closed'] {
+    visibility: hidden;
+  }
+
+  :where(.rsbs-content) {
+    --rsbs-safe-area-top: env(safe-area-inset-top, 0px);
+    --rsbs-safe-area-bottom: env(safe-area-inset-bottom, 0px);
+    position: absolute;
+    top: 0;
+    right: 0;
+    left: 0;
+    max-height: calc(100% - var(--rsbs-safe-area-top));
+    padding-bottom: var(--rsbs-safe-area-bottom);
+    transform: translate3d(0, var(--rsbs-position), 0);
+    overscroll-behavior: contain;
+    pointer-events: auto;
+    will-change: transform;
+  }
+
+  :where(.rsbs-content)[data-rsbs-state='closed'] {
+    pointer-events: none;
+  }
+
+  :where(.rsbs-content)[data-rsbs-state='closing'] {
+    pointer-events: none;
+  }
+
+  :where(.rsbs-content)::after {
+    position: fixed;
+    top: 100%;
+    right: 0;
+    left: 0;
+    height: 100vh;
+    pointer-events: auto;
+    content: '';
+    background: inherit;
+  }
+
+  :where(.rsbs-handle) {
+    touch-action: none;
+    user-select: none;
+  }
+}

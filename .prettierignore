@@ -1,0 +1,9 @@
+dist/
+node_modules/
+playwright-report/
+test-results/
+website/.next/
+website/out/
+website/AGENTS.md
+website/CLAUDE.md
+website/next-env.d.ts
