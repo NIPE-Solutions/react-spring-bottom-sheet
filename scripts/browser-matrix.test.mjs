@@ -1,7 +1,9 @@
 import assert from 'node:assert/strict'
+import { spawnSync } from 'node:child_process'
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { createRequire } from 'node:module'
 import { join } from 'node:path'
-import { fileURLToPath } from 'node:url'
+import { fileURLToPath, pathToFileURL } from 'node:url'
 import test from 'node:test'
 
 import libraryConfig from '../playwright.config.ts'
@@ -21,6 +23,13 @@ const projectNames = (config) =>
 const libraryProjects = projectNames(libraryConfig)
 const websiteProjects = projectNames(websiteConfig)
 const repositoryRoot = fileURLToPath(new URL('..', import.meta.url))
+const require = createRequire(import.meta.url)
+const playwrightCli = require.resolve('@playwright/test/cli')
+const releaseReporter = join(
+  repositoryRoot,
+  'scripts',
+  'playwright-release-reporter.mjs',
+)
 const discoverFixtureReleaseTests = (source) => {
   const directory = mkdtempSync(join(repositoryRoot, '.playwright-inventory-'))
   const testsDirectory = join(directory, 'tests')
@@ -62,14 +71,193 @@ const releaseTests = [
 
 const validate = (overrides = {}) =>
   validateBrowserMatrix({
+    libraryConfig,
     libraryProjects,
+    websiteConfig,
     websiteProjects,
     releaseTests,
     ...overrides,
   })
 
+const withProjectSetting = (config, projectName, setting) => ({
+  ...config,
+  projects: config.projects?.map((project) =>
+    project.name === projectName ? { ...project, ...setting } : project,
+  ),
+})
+
+const probeProjectSelectionBypass = async (suite) => {
+  const directory = mkdtempSync(join(repositoryRoot, '.playwright-selection-'))
+  const testDir = suite === 'library' ? './e2e' : './e2e/website'
+  const testsDirectory = join(directory, testDir)
+  const configPath = join(directory, 'playwright.config.mjs')
+  const projectNamesForSuite =
+    suite === 'library'
+      ? ['chromium', 'firefox', 'webkit', 'chromium-touch']
+      : ['chromium', 'firefox', 'webkit']
+  mkdirSync(testsDirectory, { recursive: true })
+  writeFileSync(
+    configPath,
+    [
+      "import { defineConfig } from '@playwright/test'",
+      '',
+      'export default defineConfig({',
+      `  testDir: ${JSON.stringify(testDir)},`,
+      ...(suite === 'library' ? ["  testIgnore: 'website/**',"] : []),
+      "  outputDir: './output',",
+      `  reporter: [[${JSON.stringify(releaseReporter)}], ['list']],`,
+      '  projects: [',
+      ...projectNamesForSuite.map((name) =>
+        name === 'webkit'
+          ? "    { name: 'webkit', grepInvert: /@release:target/ },"
+          : `    { name: ${JSON.stringify(name)} },`,
+      ),
+      '  ],',
+      '})',
+      '',
+    ].join('\n'),
+  )
+  writeFileSync(
+    join(testsDirectory, 'selection.spec.mjs'),
+    [
+      "import { test } from '@playwright/test'",
+      '',
+      "test('target', { tag: '@release:target' }, async () => {})",
+      "test('ordinary control', async () => {})",
+      '',
+    ].join('\n'),
+  )
+
+  try {
+    const discovered = discoverReleaseTests({ config: configPath, suite })
+    const execution = spawnSync(
+      process.execPath,
+      [playwrightCli, 'test', '--config', configPath, '--project=webkit'],
+      {
+        cwd: repositoryRoot,
+        encoding: 'utf8',
+        env: { ...process.env, CI: '', FORCE_COLOR: '0' },
+      },
+    )
+    const config = (await import(pathToFileURL(configPath).href)).default
+    const errors = validate({
+      ...(suite === 'library'
+        ? {
+            libraryConfig: config,
+            libraryProjects: projectNames(config),
+          }
+        : {
+            websiteConfig: config,
+            websiteProjects: projectNames(config),
+          }),
+      releaseTests: discovered,
+      scenarioRegistry: { target: { suite } },
+    })
+
+    return { discovered, errors, execution }
+  } finally {
+    rmSync(directory, { force: true, recursive: true })
+  }
+}
+
 test('accepts the configured browser projects and registered release tests', () => {
   assert.deepEqual(validate(), [])
+})
+
+for (const suite of ['library', 'website']) {
+  test(`rejects a project-level grepInvert that omits ${suite} release evidence from WebKit`, async () => {
+    const { discovered, errors, execution } =
+      await probeProjectSelectionBypass(suite)
+    const output = `${execution.stdout}\n${execution.stderr}`
+
+    assert.deepEqual(
+      discovered.map(({ scenario, projectName }) => ({
+        scenario,
+        projectName,
+      })),
+      [{ scenario: 'target', projectName: 'chromium' }],
+    )
+    assert.equal(execution.status, 0, output)
+    assert.doesNotMatch(output, /release test execution policy/i)
+    assert.deepEqual(errors, [
+      `${suite} project webkit must not configure release-test selection: grepInvert`,
+    ])
+  })
+}
+
+for (const [suite, configKey, config] of [
+  ['library', 'libraryConfig', libraryConfig],
+  ['website', 'websiteConfig', websiteConfig],
+]) {
+  for (const [control, value] of [
+    ['grep', /@release:modal-focus-isolation/],
+    ['grepInvert', /@release:/],
+    ['testMatch', '**/one-release-test.spec.ts'],
+  ]) {
+    test(`rejects ${suite} global ${control} release-test selection`, () => {
+      assert.deepEqual(
+        validate({ [configKey]: { ...config, [control]: value } }),
+        [
+          `${suite} config must not configure release-test selection: ${control}`,
+        ],
+      )
+    })
+  }
+
+  for (const [control, value] of [
+    ['grep', /@release:modal-focus-isolation/],
+    ['grepInvert', /@release:/],
+    ['testMatch', '**/one-release-test.spec.ts'],
+    ['testIgnore', '**/*'],
+    ['testDir', './empty-tests'],
+    ['dependencies', ['setup']],
+    ['teardown', 'cleanup'],
+  ]) {
+    test(`rejects ${suite} WebKit project ${control} selection`, () => {
+      assert.deepEqual(
+        validate({
+          [configKey]: withProjectSetting(config, 'webkit', {
+            [control]: value,
+          }),
+        }),
+        [
+          `${suite} project webkit must not configure release-test selection: ${control}`,
+        ],
+      )
+    })
+  }
+}
+
+test('requires the canonical library test directory and website exclusion', () => {
+  assert.deepEqual(
+    validate({
+      libraryConfig: {
+        ...libraryConfig,
+        testDir: './e2e/library-only',
+        testIgnore: ['website/**', '**/sheet-interactions.spec.ts'],
+      },
+    }),
+    [
+      'library config testDir must be exactly ./e2e',
+      'library config testIgnore must be exactly website/**',
+    ],
+  )
+})
+
+test('requires the canonical website test directory without exclusions', () => {
+  assert.deepEqual(
+    validate({
+      websiteConfig: {
+        ...websiteConfig,
+        testDir: './e2e',
+        testIgnore: '**/recipes.spec.ts',
+      },
+    }),
+    [
+      'website config testDir must be exactly ./e2e/website',
+      'website config must not configure release-test selection: testIgnore',
+    ],
+  )
 })
 
 test('discovers release tags only from registered Playwright test metadata', () => {

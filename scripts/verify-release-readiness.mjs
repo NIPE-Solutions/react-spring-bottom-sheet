@@ -24,11 +24,12 @@ export function runReadinessChecks({
 }
 
 const commandsIn = (job) => job?.steps.flatMap((step) => step.commands) ?? []
+const runStepsIn = (job) =>
+  job?.steps.filter((step) => step.commands.length > 0) ?? []
 
 const customizesRunShell = (job) =>
   Boolean(job) &&
-  (job.defaultShell !== '' ||
-    job.steps.some((step) => step.commands.length > 0 && step.shell !== ''))
+  (job.defaultShell !== '' || runStepsIn(job).some((step) => step.shell !== ''))
 
 const desktopProjects = ['chromium', 'firefox', 'webkit']
 const desktopCommands = [
@@ -47,6 +48,9 @@ const stepsWithCommand = (job, command) =>
 const hasBlockingDefaultPolicy = (step) =>
   step.if === '' &&
   (step.continueOnError === '' || step.continueOnError === 'false')
+
+const hasOnlyBlockingRunSteps = (job) =>
+  runStepsIn(job).every(hasBlockingDefaultPolicy)
 
 const sameCommands = (actual, expected) =>
   actual.length === expected.length &&
@@ -104,6 +108,16 @@ export function validateReadinessWorkflows({ ciWorkflow, releaseWorkflow }) {
     if (customizesRunShell(quality)) {
       errors.push(
         `${label} quality must not customize the shell for critical run steps`,
+      )
+    }
+    if (quality && !hasBlockingDefaultPolicy(quality)) {
+      errors.push(
+        `${label} quality job must be unconditional and non-tolerated`,
+      )
+    }
+    if (quality && !hasOnlyBlockingRunSteps(quality)) {
+      errors.push(
+        `${label} quality run steps must be unconditional and non-tolerated`,
       )
     }
     if (!browsers || !browsers.needs.includes('quality')) {
@@ -193,9 +207,29 @@ export function validateReadinessWorkflows({ ciWorkflow, releaseWorkflow }) {
           'release verify must not customize the shell for critical run steps',
         )
       }
+      if (verify && !hasBlockingDefaultPolicy(verify)) {
+        errors.push(
+          'release verify job must be unconditional and non-tolerated',
+        )
+      }
+      if (verify && !hasOnlyBlockingRunSteps(verify)) {
+        errors.push(
+          'release verify run steps must be unconditional and non-tolerated',
+        )
+      }
       if (customizesRunShell(publish)) {
         errors.push(
           'release publish must not customize the shell for critical run steps',
+        )
+      }
+      if (publish && !hasBlockingDefaultPolicy(publish)) {
+        errors.push(
+          'release publish job must be unconditional and non-tolerated',
+        )
+      }
+      if (publish && !hasOnlyBlockingRunSteps(publish)) {
+        errors.push(
+          'release publish run steps must be unconditional and non-tolerated',
         )
       }
       if (!publish || !dependsOn(jobs, publish.name, 'quality')) {

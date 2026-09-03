@@ -33,6 +33,15 @@ const releaseWorkflow = readFileSync(
   'utf8',
 )
 const suppressingShell = `bash -c 'source "$1" || true' -- {0}`
+const bypassingPolicies = [
+  ['an always() condition', 'if: always()'],
+  ['an explicit condition', "if: github.event_name == 'workflow_dispatch'"],
+  ['literal failure tolerance', 'continue-on-error: true'],
+  [
+    'expression failure tolerance',
+    "continue-on-error: ${{ github.event_name == 'workflow_dispatch' }}",
+  ],
+]
 
 const requiredText = (url) => {
   assert.equal(existsSync(url), true, `missing ${url.pathname}`)
@@ -501,6 +510,63 @@ for (const [label, workflowName] of [
       )
     })
   }
+
+  for (const [policyName, setting] of bypassingPolicies) {
+    test(`rejects ${policyName} on the ${label} quality job`, () => {
+      const workflows = { ciWorkflow, releaseWorkflow }
+      workflows[workflowName] = replaceInJob(
+        workflows[workflowName],
+        'quality',
+        '    runs-on: ubuntu-latest',
+        ['    runs-on: ubuntu-latest', `    ${setting}`].join('\n'),
+      )
+
+      assert.match(
+        validateReadinessWorkflows(workflows).join('\n'),
+        new RegExp(
+          `${label} quality job must be unconditional and non-tolerated`,
+        ),
+      )
+    })
+
+    test(`rejects ${policyName} on the ${label} quality check step`, () => {
+      const workflows = { ciWorkflow, releaseWorkflow }
+      workflows[workflowName] = replaceInJob(
+        workflows[workflowName],
+        'quality',
+        '      - run: npm run release:check',
+        ['      - run: npm run release:check', `        ${setting}`].join('\n'),
+      )
+
+      assert.match(
+        validateReadinessWorkflows(workflows).join('\n'),
+        new RegExp(
+          `${label} quality run steps must be unconditional and non-tolerated`,
+        ),
+      )
+    })
+  }
+
+  test(`allows explicitly disabled tolerance on the ${label} quality path`, () => {
+    const workflows = { ciWorkflow, releaseWorkflow }
+    workflows[workflowName] = replaceInJob(
+      workflows[workflowName],
+      'quality',
+      '    runs-on: ubuntu-latest',
+      ['    runs-on: ubuntu-latest', '    continue-on-error: false'].join('\n'),
+    )
+    workflows[workflowName] = replaceInJob(
+      workflows[workflowName],
+      'quality',
+      '      - run: npm run release:check',
+      [
+        '      - run: npm run release:check',
+        '        continue-on-error: false',
+      ].join('\n'),
+    )
+
+    assert.deepEqual(validateReadinessWorkflows(workflows), [])
+  })
 
   test(`rejects an independently collapsed ${label} desktop matrix`, () => {
     const workflows = { ciWorkflow, releaseWorkflow }
@@ -998,6 +1064,118 @@ for (const [jobName, runLine] of [
       new RegExp(
         `release ${jobName} must not customize the shell for critical run steps`,
       ),
+    )
+  })
+}
+
+for (const jobName of ['verify', 'publish']) {
+  for (const [policyName, setting] of bypassingPolicies) {
+    test(`rejects ${policyName} on the release ${jobName} job`, () => {
+      const releaseWithBypass = replaceInJob(
+        releaseWorkflow,
+        jobName,
+        '    runs-on: ubuntu-latest',
+        ['    runs-on: ubuntu-latest', `    ${setting}`].join('\n'),
+      )
+
+      assert.match(
+        validateReadinessWorkflows({
+          ciWorkflow,
+          releaseWorkflow: releaseWithBypass,
+        }).join('\n'),
+        new RegExp(
+          `release ${jobName} job must be unconditional and non-tolerated`,
+        ),
+      )
+    })
+  }
+}
+
+for (const [policyName, setting] of bypassingPolicies) {
+  test(`rejects ${policyName} on the release verify step`, () => {
+    const runLine =
+      '      - run: echo "Release quality and browser verification passed"'
+    const releaseWithBypass = replaceInJob(
+      releaseWorkflow,
+      'verify',
+      runLine,
+      [runLine, `        ${setting}`].join('\n'),
+    )
+
+    assert.match(
+      validateReadinessWorkflows({
+        ciWorkflow,
+        releaseWorkflow: releaseWithBypass,
+      }).join('\n'),
+      /release verify run steps must be unconditional and non-tolerated/,
+    )
+  })
+
+  test(`rejects ${policyName} on the release publish step`, () => {
+    const releaseWithBypass = replaceInJob(
+      releaseWorkflow,
+      'publish',
+      '      - name: Publish package',
+      ['      - name: Publish package', `        ${setting}`].join('\n'),
+    )
+
+    assert.match(
+      validateReadinessWorkflows({
+        ciWorkflow,
+        releaseWorkflow: releaseWithBypass,
+      }).join('\n'),
+      /release publish run steps must be unconditional and non-tolerated/,
+    )
+  })
+}
+
+test('allows explicitly disabled tolerance on release verify and publish', () => {
+  let releaseWithDisabledTolerance = replaceInJob(
+    releaseWorkflow,
+    'verify',
+    '    runs-on: ubuntu-latest',
+    ['    runs-on: ubuntu-latest', '    continue-on-error: false'].join('\n'),
+  )
+  releaseWithDisabledTolerance = replaceInJob(
+    releaseWithDisabledTolerance,
+    'publish',
+    '      - name: Publish package',
+    ['      - name: Publish package', '        continue-on-error: false'].join(
+      '\n',
+    ),
+  )
+
+  assert.deepEqual(
+    validateReadinessWorkflows({
+      ciWorkflow,
+      releaseWorkflow: releaseWithDisabledTolerance,
+    }),
+    [],
+  )
+})
+
+for (const [stepName, setting] of [
+  ['Validate release request', 'continue-on-error: true'],
+  ['Publish package', 'if: always()'],
+  [
+    'Verify registry',
+    "continue-on-error: ${{ github.event_name == 'workflow_dispatch' }}",
+  ],
+]) {
+  test(`rejects ${setting} on the release ${stepName} step`, () => {
+    const releaseWithBypass = replaceInJob(
+      releaseWorkflow,
+      'publish',
+      `      - name: ${stepName}`,
+      [`      - name: ${stepName}`, `        ${setting}`].join('\n'),
+    )
+
+    assert.match(
+      validateReadinessWorkflows({
+        ciWorkflow,
+        releaseWorkflow: releaseWithBypass,
+      }).join('\n'),
+      /release publish run steps must be unconditional and non-tolerated/,
     )
   })
 }

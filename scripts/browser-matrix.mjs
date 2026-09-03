@@ -1,5 +1,14 @@
 const desktopProjects = ['chromium', 'firefox', 'webkit']
+const requiredLibraryProjects = [...desktopProjects, 'chromium-touch']
 const nonExecutingAnnotations = new Set(['skip', 'fixme', 'fail'])
+const globalSelectionControls = ['grep', 'grepInvert', 'testMatch']
+const projectSelectionControls = [
+  ...globalSelectionControls,
+  'testIgnore',
+  'testDir',
+  'dependencies',
+  'teardown',
+]
 
 export const releaseScenarioRegistry = Object.freeze({
   'modal-focus-isolation': { suite: 'library' },
@@ -28,8 +37,58 @@ const missingFrom = (required, actual) => {
   return required.filter((item) => !available.has(item))
 }
 
+const configuredControls = (config, controls) =>
+  controls.filter((control) => config?.[control] !== undefined)
+
+const configSelectionErrors = ({
+  config,
+  expectedProjects,
+  expectedTestDir,
+  expectedTestIgnore,
+  suite,
+}) => {
+  const errors = []
+
+  if (config?.testDir !== expectedTestDir) {
+    errors.push(`${suite} config testDir must be exactly ${expectedTestDir}`)
+  }
+
+  const globalControls = configuredControls(config, globalSelectionControls)
+  if (globalControls.length > 0) {
+    errors.push(
+      `${suite} config must not configure release-test selection: ${globalControls.join(', ')}`,
+    )
+  }
+
+  if (expectedTestIgnore === undefined) {
+    if (config?.testIgnore !== undefined) {
+      errors.push(
+        `${suite} config must not configure release-test selection: testIgnore`,
+      )
+    }
+  } else if (config?.testIgnore !== expectedTestIgnore) {
+    errors.push(
+      `${suite} config testIgnore must be exactly ${expectedTestIgnore}`,
+    )
+  }
+
+  for (const projectName of expectedProjects) {
+    const project = config?.projects?.find(({ name }) => name === projectName)
+    const controls = configuredControls(project, projectSelectionControls)
+    if (controls.length > 0) {
+      errors.push(
+        `${suite} project ${projectName} must not configure release-test selection: ${controls.join(', ')}`,
+      )
+    }
+  }
+
+  return errors
+}
+
 export function validateBrowserMatrix({
+  libraryConfig,
   libraryProjects,
+  websiteConfig,
   websiteProjects,
   releaseTests,
   scenarioRegistry = releaseScenarioRegistry,
@@ -38,6 +97,23 @@ export function validateBrowserMatrix({
   const expectedScenarios = Object.keys(scenarioRegistry)
   const testsByScenario = new Map()
 
+  errors.push(
+    ...configSelectionErrors({
+      config: libraryConfig,
+      expectedProjects: requiredLibraryProjects,
+      expectedTestDir: './e2e',
+      expectedTestIgnore: 'website/**',
+      suite: 'library',
+    }),
+    ...configSelectionErrors({
+      config: websiteConfig,
+      expectedProjects: desktopProjects,
+      expectedTestDir: './e2e/website',
+      expectedTestIgnore: undefined,
+      suite: 'website',
+    }),
+  )
+
   for (const releaseTest of releaseTests) {
     const tests = testsByScenario.get(releaseTest.scenario) ?? []
     tests.push(releaseTest)
@@ -45,7 +121,7 @@ export function validateBrowserMatrix({
   }
 
   const missingLibraryProjects = missingFrom(
-    [...desktopProjects, 'chromium-touch'],
+    requiredLibraryProjects,
     libraryProjects,
   )
   const missingWebsiteProjects = missingFrom(desktopProjects, websiteProjects)
