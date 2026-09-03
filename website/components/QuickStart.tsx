@@ -1,4 +1,6 @@
 import Link from 'next/link'
+import { buildEvidence } from '../content/evidence'
+import { getReleasePresentation } from '../content/release'
 
 const quickStartSource = `import { Sheet } from '@nipe-solutions/react-spring-bottom-sheet'
 import '@nipe-solutions/react-spring-bottom-sheet/styles.css'
@@ -23,6 +25,8 @@ export function App() {
 }`
 
 export function QuickStart() {
+  const release = getReleasePresentation(buildEvidence.version)
+
   return (
     <section className="docs-quick-start" aria-labelledby="quick-start-title">
       <div>
@@ -34,7 +38,7 @@ export function QuickStart() {
           and change.
         </p>
         <pre className="docs-install" tabIndex={0}>
-          <code>npm install @nipe-solutions/react-spring-bottom-sheet</code>
+          <code>{release.installCommand}</code>
         </pre>
         <Link href="/docs/installation/">Follow the installation guide</Link>
       </div>

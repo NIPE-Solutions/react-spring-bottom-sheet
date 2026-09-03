@@ -55,6 +55,20 @@ test('documentation navigation covers integration and operations', async ({
   }
 })
 
+test('prerelease installation uses the next npm channel', async ({ page }) => {
+  await page.goto('/docs/installation/')
+
+  await expect(
+    page.getByText(
+      'npm install @nipe-solutions/react-spring-bottom-sheet@next',
+      { exact: true },
+    ),
+  ).toBeVisible()
+  await expect(
+    page.getByText('Prerelease channel', { exact: true }),
+  ).toBeVisible()
+})
+
 test('documentation shell exposes location and adjacent routes', async ({
   page,
 }) => {

@@ -13,11 +13,13 @@ export const metadata: Metadata = {
     default: 'React Spring Bottom Sheet',
     template: '%s · React Spring Bottom Sheet',
   },
-  description: 'Accessible, composable bottom sheets for React 19.',
+  description:
+    'Accessible, composable bottom sheets for React 19 with predictable gestures, explicit state, and complete styling control.',
   alternates: { canonical: '/' },
   openGraph: {
     title: 'React Spring Bottom Sheet',
-    description: 'Accessible, composable bottom sheets for React 19.',
+    description:
+      'Accessible, composable bottom sheets for React 19 with predictable gestures, explicit state, and complete styling control.',
     url: siteUrl,
     siteName: 'React Spring Bottom Sheet',
     type: 'website',
