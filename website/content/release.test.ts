@@ -7,7 +7,7 @@ test('prereleases install from the next channel', () => {
     installCommand:
       'npm install @nipe-solutions/react-spring-bottom-sheet@next',
     prerelease: true,
-    published: false,
+    published: true,
   })
 })
 

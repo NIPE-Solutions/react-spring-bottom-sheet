@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test'
 import AxeBuilder from '@axe-core/playwright'
 import { readFileSync } from 'node:fs'
+import { getReleasePresentation } from '../../website/content/release'
 
 const generatedPublicApi = JSON.parse(
   readFileSync(
@@ -73,6 +74,7 @@ test('installation instructions match the package release state', async ({
   await page.goto('/docs/installation/')
 
   const prerelease = packageVersion.includes('-')
+  const release = getReleasePresentation(packageVersion)
   await expect(
     page.getByText(
       `npm install @nipe-solutions/react-spring-bottom-sheet${
@@ -85,8 +87,15 @@ test('installation instructions match the package release state', async ({
     exact: true,
   })
   const unpublished = page.getByText('is not published yet', { exact: false })
-  await expect(plannedChannel).toHaveCount(prerelease ? 1 : 0)
-  await expect(unpublished).toHaveCount(prerelease ? 1 : 0)
+  await expect(plannedChannel).toHaveCount(
+    prerelease && !release.published ? 1 : 0,
+  )
+  await expect(unpublished).toHaveCount(
+    prerelease && !release.published ? 1 : 0,
+  )
+  await expect(
+    page.getByText('Prerelease channel', { exact: true }),
+  ).toHaveCount(prerelease && release.published ? 1 : 0)
 })
 
 test('documentation shell exposes location and adjacent routes', async ({

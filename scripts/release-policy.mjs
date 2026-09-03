@@ -171,6 +171,62 @@ const hasImmutableVersionCheck = (step) => {
   )
 }
 
+const hasBoundedRegistryVerification = (step) => {
+  const content = runContent(step)
+  const attempts = content.match(/MAX_ATTEMPTS=([1-9][0-9]*)(?:\n|$)/)
+  const delay = content.match(/RETRY_DELAY_SECONDS=([1-9][0-9]*)(?:\n|$)/)
+
+  return (
+    attempts !== null &&
+    delay !== null &&
+    Number(attempts[1]) * Number(delay[1]) <= 300 &&
+    /while test "\$attempt" -le "\$MAX_ATTEMPTS"; do/.test(content) &&
+    /sleep "\$RETRY_DELAY_SECONDS"/.test(content) &&
+    /attempt=\$\(\(attempt \+ 1\)\)/.test(content) &&
+    /Registry verification failed[^\n]*\n\s*exit 1/.test(content)
+  )
+}
+
+const hasRegistryVerification = (step) => {
+  const content = runContent(step)
+
+  return (
+    /PUBLISHED_VERSION=\$\(npm view "\$NAME@\$VERSION" version/.test(content) &&
+    /CHANNEL_VERSION=\$\(npm view "\$NAME@\$CHANNEL" version/.test(content) &&
+    /test "\$PUBLISHED_VERSION" = "\$VERSION"/.test(content) &&
+    /test "\$CHANNEL_VERSION" = "\$VERSION"/.test(content)
+  )
+}
+
+const hasBoundedRegistryNetwork = (step) => {
+  const content = runContent(step)
+  const attempts = content.match(/MAX_ATTEMPTS=([1-9][0-9]*)(?:\n|$)/)
+  const delay = content.match(/RETRY_DELAY_SECONDS=([1-9][0-9]*)(?:\n|$)/)
+  const timeout = content.match(/FETCH_TIMEOUT_MS=([1-9][0-9]*)(?:\n|$)/)
+  const publishedLookup =
+    /PUBLISHED_VERSION=\$\(npm view "\$NAME@\$VERSION" version --fetch-timeout="\$FETCH_TIMEOUT_MS" --fetch-retries=0[^\n]*\)/
+  const channelLookup =
+    /CHANNEL_VERSION=\$\(npm view "\$NAME@\$CHANNEL" version --fetch-timeout="\$FETCH_TIMEOUT_MS" --fetch-retries=0[^\n]*\)/
+
+  if (
+    !attempts ||
+    !delay ||
+    !timeout ||
+    !publishedLookup.test(content) ||
+    !channelLookup.test(content)
+  ) {
+    return false
+  }
+
+  const attemptCount = Number(attempts[1])
+  const delaySeconds = Number(delay[1])
+  const timeoutSeconds = Number(timeout[1]) / 1000
+  const maximumSeconds =
+    attemptCount * 2 * timeoutSeconds + (attemptCount - 1) * delaySeconds
+
+  return Number.isInteger(timeoutSeconds) && maximumSeconds <= 300
+}
+
 const channelInput = (workflow) => {
   const on = topLevelBlock(workflow, 'on')
   const lines = on.split('\n')
@@ -223,11 +279,9 @@ export function validateReleasePolicy({ packageJson, workflow }) {
       commandLines(step).some((line) => line.startsWith('gh release create ')),
     )
     const immutableIndex = steps.findIndex(hasImmutableVersionCheck)
-    const registryIndex = steps.findIndex((step) =>
-      commandLines(step).includes(
-        'test "$(npm view "$NAME@$CHANNEL" version)" = "$VERSION"',
-      ),
-    )
+    const registryIndex = steps.findIndex(hasRegistryVerification)
+    const registryRetryIndex = steps.findIndex(hasBoundedRegistryVerification)
+    const registryNetworkIndex = steps.findIndex(hasBoundedRegistryNetwork)
     const packageVersionIndex = steps.findIndex((step) =>
       commandLines(step).includes(
         'PACKAGE_VERSION=$(node -p "require(\'./package.json\').version")',
@@ -289,6 +343,12 @@ export function validateReleasePolicy({ packageJson, workflow }) {
       if (releaseIndex <= registryIndex) {
         errors.push('registry verification must precede release creation')
       }
+    }
+    if (registryRetryIndex !== registryIndex) {
+      errors.push('registry verification must retry with a bounded delay')
+    }
+    if (registryNetworkIndex !== registryIndex) {
+      errors.push('registry verification must use bounded network timeouts')
     }
   }
 

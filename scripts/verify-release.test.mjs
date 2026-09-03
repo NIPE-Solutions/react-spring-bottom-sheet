@@ -380,11 +380,78 @@ test('requires registry verification to compare the channel version exactly', ()
     {
       workflow: replaceOnce(
         workflow,
-        'test "$(npm view "$NAME@$CHANNEL" version)" = "$VERSION"',
-        'test "$(npm view "$NAME@$CHANNEL" version)" != "$VERSION"',
+        'test "$CHANNEL_VERSION" = "$VERSION"',
+        'test "$CHANNEL_VERSION" != "$VERSION"',
       ),
     },
     'registry verification must confirm the requested version',
+  )
+})
+
+test('requires registry verification to tolerate bounded propagation delay', () => {
+  expectPolicyError(
+    {
+      workflow: replaceOnce(
+        workflow,
+        'sleep "$RETRY_DELAY_SECONDS"',
+        'echo "retry omitted"',
+      ),
+    },
+    'registry verification must retry with a bounded delay',
+  )
+})
+
+test('caps the registry propagation wait at five minutes', () => {
+  expectPolicyError(
+    {
+      workflow: replaceOnce(workflow, 'MAX_ATTEMPTS=8', 'MAX_ATTEMPTS=99'),
+    },
+    'registry verification must retry with a bounded delay',
+  )
+})
+
+test('includes registry lookup time in the five-minute bound', () => {
+  expectPolicyError(
+    {
+      workflow: replaceOnce(
+        workflow,
+        'FETCH_TIMEOUT_MS=10000',
+        'FETCH_TIMEOUT_MS=300000',
+      ),
+    },
+    'registry verification must use bounded network timeouts',
+  )
+})
+
+test('binds network timeouts to both registry verification lookups', () => {
+  const timeoutFlags = ' --fetch-timeout="$FETCH_TIMEOUT_MS" --fetch-retries=0'
+  const unboundedLookups = workflow.replaceAll(timeoutFlags, '')
+  const spoofedBoundedLookups = replaceOnce(
+    unboundedLookups,
+    '          attempt=1',
+    [
+      '          npm view example-one version --fetch-timeout="$FETCH_TIMEOUT_MS" --fetch-retries=0',
+      '          npm view example-two version --fetch-timeout="$FETCH_TIMEOUT_MS" --fetch-retries=0',
+      '          attempt=1',
+    ].join('\n'),
+  )
+
+  expectPolicyError(
+    { workflow: spoofedBoundedLookups },
+    'registry verification must use bounded network timeouts',
+  )
+})
+
+test('requires registry verification to fail after its final attempt', () => {
+  expectPolicyError(
+    {
+      workflow: replaceOnce(
+        workflow,
+        'echo "Registry verification failed after $MAX_ATTEMPTS attempts"\n              exit 1',
+        'echo "Registry verification failed after $MAX_ATTEMPTS attempts"',
+      ),
+    },
+    'registry verification must retry with a bounded delay',
   )
 })
 
@@ -392,11 +459,11 @@ test('rejects registry verification stored only in with metadata', () => {
   const metadataRegistryCheck = replaceOnce(
     replaceOnce(
       workflow,
-      'test "$(npm view "$NAME@$CHANNEL" version)" = "$VERSION"',
+      'test "$CHANNEL_VERSION" = "$VERSION"',
       'echo "registry verification omitted"',
     ),
     '      - name: Create GitHub release',
-    '      - name: Policy note\n        with:\n          POLICY_TEXT: |\n            test "$(npm view "$NAME@$CHANNEL" version)" = "$VERSION"\n      - name: Create GitHub release',
+    '      - name: Policy note\n        with:\n          POLICY_TEXT: |\n            test "$CHANNEL_VERSION" = "$VERSION"\n      - name: Create GitHub release',
   )
 
   expectPolicyError(
@@ -427,7 +494,7 @@ test('rejects a comment that spoofs post-publish registry verification', () => {
   const commentSpoof = replaceOnce(
     checkBeforePublish,
     '      - name: Create GitHub release',
-    '      # test "$(npm view "$NAME@$CHANNEL" version)" = "$VERSION"\n      - name: Create GitHub release',
+    '      # test "$CHANNEL_VERSION" = "$VERSION"\n      - name: Create GitHub release',
   )
 
   expectPolicyError(
