@@ -1151,19 +1151,32 @@ test('highlighted source is a keyboard-readable disclosure with exact copy outpu
   )
   expect(renderedSource).toBe(BASIC_RECIPE_SOURCE)
 
-  if (browserName !== 'chromium') {
-    await page.evaluate(() => {
-      Object.defineProperty(navigator, 'clipboard', {
-        configurable: true,
-        value: {
-          writeText(value: string) {
-            ;(window as Window & { copiedSource?: string }).copiedSource = value
-            return Promise.resolve()
-          },
+  await page.evaluate((useNativeClipboard) => {
+    const originalClipboard = navigator.clipboard
+    const nativeWriteText = useNativeClipboard
+      ? originalClipboard.writeText.bind(originalClipboard)
+      : null
+    const nativeReadText = useNativeClipboard
+      ? originalClipboard.readText.bind(originalClipboard)
+      : null
+    const state = window as Window & {
+      clipboardWriteCount?: number
+      copiedSource?: string
+    }
+    state.clipboardWriteCount = 0
+
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: {
+        ...(nativeReadText ? { readText: nativeReadText } : {}),
+        async writeText(value: string) {
+          state.clipboardWriteCount = (state.clipboardWriteCount ?? 0) + 1
+          if (nativeWriteText) await nativeWriteText(value)
+          state.copiedSource = value
         },
-      })
+      },
     })
-  }
+  }, browserName === 'chromium')
 
   const copyButton = page.getByRole('button', { name: 'Copy source' })
   const copyStatus = page.getByRole('status')
@@ -1180,37 +1193,74 @@ test('highlighted source is a keyboard-readable disclosure with exact copy outpu
         )
   expect(copiedSource).toBe(BASIC_RECIPE_SOURCE)
 
+  const firstAnnouncement = await copyStatus
+    .locator(':scope > span')
+    .elementHandle()
+  expect(firstAnnouncement).not.toBeNull()
   await copyStatus.evaluate((status) => {
     const state = window as Window & {
-      copyStatusMutationCount?: number
+      copyStatusReplacementObserved?: boolean
       copyStatusObserver?: MutationObserver
     }
-    state.copyStatusMutationCount = 0
+    const firstAnnouncement = status.firstElementChild
+    if (!firstAnnouncement) throw new Error('Missing first copy announcement')
+
+    state.copyStatusReplacementObserved = false
     state.copyStatusObserver?.disconnect()
-    state.copyStatusObserver = new MutationObserver((records) => {
-      state.copyStatusMutationCount =
-        (state.copyStatusMutationCount ?? 0) +
-        records.filter((record) => record.type === 'childList').length
+    state.copyStatusObserver = new MutationObserver(() => {
+      const replacement = status.firstElementChild
+      if (
+        !firstAnnouncement.isConnected &&
+        replacement &&
+        replacement !== firstAnnouncement &&
+        replacement.textContent === 'Copied'
+      ) {
+        state.copyStatusReplacementObserved = true
+      }
     })
     state.copyStatusObserver.observe(status, {
       childList: true,
-      subtree: true,
     })
   })
   await copyButton.click()
   await expect(copyButton).toHaveText('Copy source')
-  await expect(copyStatus).toHaveText('Copied')
   await expect
     .poll(() =>
       page.evaluate(
         () =>
-          (window as Window & { copyStatusMutationCount?: number })
-            .copyStatusMutationCount ?? 0,
+          (window as Window & { clipboardWriteCount?: number })
+            .clipboardWriteCount ?? 0,
       ),
     )
-    .toBeGreaterThan(0)
-  await expect(copyStatus).toBeEmpty({ timeout: 5_000 })
-  await expect(copyButton).toHaveText('Copy source')
+    .toBe(2)
+  await expect
+    .poll(() =>
+      page.evaluate(
+        () =>
+          (window as Window & { copyStatusReplacementObserved?: boolean })
+            .copyStatusReplacementObserved ?? false,
+      ),
+    )
+    .toBe(true)
+
+  expect(await firstAnnouncement!.evaluate((node) => node.isConnected)).toBe(
+    false,
+  )
+  const replacementAnnouncement = copyStatus.locator(':scope > span')
+  await expect(replacementAnnouncement).toHaveText('Copied')
+  expect(
+    await replacementAnnouncement.evaluate(
+      (node, first) => node !== first,
+      firstAnnouncement,
+    ),
+  ).toBe(true)
+  const secondCopiedSource =
+    browserName === 'chromium'
+      ? await page.evaluate(() => navigator.clipboard.readText())
+      : await page.evaluate(
+          () => (window as Window & { copiedSource?: string }).copiedSource,
+        )
+  expect(secondCopiedSource).toBe(BASIC_RECIPE_SOURCE)
 })
 
 test('highlighted source copies exact bytes through the selection fallback', async ({
