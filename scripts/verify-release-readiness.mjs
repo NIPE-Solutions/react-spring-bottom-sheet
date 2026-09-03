@@ -25,6 +25,15 @@ export function runReadinessChecks({
 
 const commandsIn = (job) => job?.steps.flatMap((step) => step.commands) ?? []
 
+const desktopProjects = ['chromium', 'firefox', 'webkit']
+const desktopCommands = [
+  'npx playwright install --with-deps ${{ matrix.project }}',
+  'npm run test:e2e -- --project=${{ matrix.project }}',
+  'npm run test:website:e2e -- --project=${{ matrix.project }}',
+]
+const touchInstallCommand = 'npx playwright install --with-deps chromium'
+const touchTestCommand = 'npm run test:e2e -- --project=chromium-touch'
+
 const sameCommands = (actual, expected) =>
   actual.length === expected.length &&
   actual.every((command, index) => command === expected[index])
@@ -50,12 +59,20 @@ export function validateReadinessWorkflows({ ciWorkflow, releaseWorkflow }) {
     ['CI', ciWorkflow],
     ['release', releaseWorkflow],
   ]) {
-    const jobs = new Map(
-      parseWorkflowModel(workflow).map((job) => [job.name, job]),
-    )
+    const workflowJobs = parseWorkflowModel(workflow)
+    const jobs = new Map(workflowJobs.map((job) => [job.name, job]))
     const quality = jobs.get('quality')
     const browsers = jobs.get('browsers')
     const touch = jobs.get('chromium-touch')
+    const nonUbuntuJobs = workflowJobs
+      .filter((job) => job.runsOn !== 'ubuntu-latest')
+      .map((job) => job.name)
+
+    if (nonUbuntuJobs.length > 0) {
+      errors.push(
+        `${label} jobs must run on ubuntu-latest: ${nonUbuntuJobs.join(', ')}`,
+      )
+    }
 
     if (
       !sameCommands(commandsIn(quality), ['npm ci', 'npm run release:check'])
@@ -64,26 +81,57 @@ export function validateReadinessWorkflows({ ciWorkflow, releaseWorkflow }) {
         `${label} quality must run only npm ci and npm run release:check`,
       )
     }
+    if (!browsers || !browsers.needs.includes('quality')) {
+      errors.push(`${label} browsers must execute after quality`)
+    }
     if (
       !browsers ||
-      !browsers.needs.includes('quality') ||
-      !commandsIn(browsers).includes(
-        'npm run test:e2e -- --project=${{ matrix.project }}',
-      ) ||
-      !commandsIn(browsers).includes(
-        'npm run test:website:e2e -- --project=${{ matrix.project }}',
+      !sameCommands(browsers.matrix.keys, ['project']) ||
+      !sameCommands(browsers.matrix.project, desktopProjects)
+    ) {
+      errors.push(
+        `${label} browsers must use exactly chromium, firefox, webkit`,
+      )
+    }
+    if (
+      !browsers ||
+      desktopCommands.some(
+        (command) =>
+          commandsIn(browsers).filter((candidate) => candidate === command)
+            .length !== 1,
       )
     ) {
-      errors.push(`${label} browsers must execute after quality`)
+      errors.push(
+        `${label} browsers must install and execute each desktop project in both suites`,
+      )
     }
     if (
       !touch ||
       !touch.needs.includes('quality') ||
-      !commandsIn(touch).includes(
-        'npm run test:e2e -- --project=chromium-touch',
-      )
+      !commandsIn(touch).includes(touchTestCommand)
     ) {
       errors.push(`${label} chromium-touch must execute its browser project`)
+    }
+    const touchExecutions = workflowJobs.flatMap((job) =>
+      commandsIn(job).filter((command) => command === touchTestCommand),
+    )
+    if (
+      workflowJobs.filter((job) => job.name === 'chromium-touch').length !==
+        1 ||
+      !touch ||
+      touch.matrix.keys.length !== 0 ||
+      commandsIn(touch).filter((command) => command === touchInstallCommand)
+        .length !== 1 ||
+      commandsIn(touch).filter((command) => command === touchTestCommand)
+        .length !== 1 ||
+      commandsIn(touch).some((command) =>
+        command.startsWith('npm run test:website:e2e'),
+      ) ||
+      touchExecutions.length !== 1
+    ) {
+      errors.push(
+        `${label} chromium-touch must run exactly once as a separate library-only job`,
+      )
     }
 
     if (label === 'release') {

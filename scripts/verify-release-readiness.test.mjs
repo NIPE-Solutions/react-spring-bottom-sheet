@@ -42,6 +42,26 @@ const replaceOnce = (source, expected, replacement) => {
   return source.replace(expected, replacement)
 }
 
+const replaceInJob = (source, jobName, expected, replacement) => {
+  const marker = `  ${jobName}:\n`
+  const start = source.indexOf(marker)
+  assert.notEqual(start, -1, `missing job ${jobName}`)
+  const remainder = source.slice(start + marker.length)
+  const nextJob = remainder.search(/^ {2}[\w-]+:\s*$/m)
+  const end = nextJob === -1 ? source.length : start + marker.length + nextJob
+  const job = source.slice(start, end)
+  assert.notEqual(
+    job.indexOf(expected),
+    -1,
+    `missing ${expected} in ${jobName}`,
+  )
+  return (
+    source.slice(0, start) +
+    job.replace(expected, replacement) +
+    source.slice(end)
+  )
+}
+
 test('runs every readiness gate in deterministic order', () => {
   const calls = []
   const runner = (command, args, options) => {
@@ -315,6 +335,200 @@ test('prerelease instructions order clean install before readiness and sign-off'
 test('accepts the checked workflow readiness policy', () => {
   assert.deepEqual(
     validateReadinessWorkflows({ ciWorkflow, releaseWorkflow }),
+    [],
+  )
+})
+
+for (const [label, workflowName] of [
+  ['CI', 'ciWorkflow'],
+  ['release', 'releaseWorkflow'],
+]) {
+  test(`rejects an independently collapsed ${label} desktop matrix`, () => {
+    const workflows = { ciWorkflow, releaseWorkflow }
+    workflows[workflowName] = replaceInJob(
+      workflows[workflowName],
+      'browsers',
+      '        project: [chromium, firefox, webkit]',
+      '        project: [chromium]',
+    )
+
+    assert.match(
+      validateReadinessWorkflows(workflows).join('\n'),
+      new RegExp(
+        `${label} browsers must use exactly chromium, firefox, webkit`,
+      ),
+    )
+  })
+
+  test(`rejects a ${label} desktop matrix exclusion`, () => {
+    const workflows = { ciWorkflow, releaseWorkflow }
+    workflows[workflowName] = replaceInJob(
+      workflows[workflowName],
+      'browsers',
+      '        project: [chromium, firefox, webkit]',
+      [
+        '        project: [chromium, firefox, webkit]',
+        '        exclude:',
+        '          - project: webkit',
+      ].join('\n'),
+    )
+
+    assert.match(
+      validateReadinessWorkflows(workflows).join('\n'),
+      new RegExp(
+        `${label} browsers must use exactly chromium, firefox, webkit`,
+      ),
+    )
+  })
+
+  test(`requires ${label} readiness jobs to use ubuntu-latest`, () => {
+    const workflows = { ciWorkflow, releaseWorkflow }
+    workflows[workflowName] = replaceInJob(
+      workflows[workflowName],
+      'browsers',
+      '    runs-on: ubuntu-latest',
+      '    runs-on: macos-latest',
+    )
+
+    assert.match(
+      validateReadinessWorkflows(workflows).join('\n'),
+      new RegExp(`${label} jobs must run on ubuntu-latest: browsers`),
+    )
+  })
+
+  for (const [name, command, replacement] of [
+    [
+      'browser installation',
+      'npx playwright install --with-deps ${{ matrix.project }}',
+      'npx playwright install --with-deps chromium',
+    ],
+    [
+      'library project selection',
+      'npm run test:e2e -- --project=${{ matrix.project }}',
+      'npm run test:e2e -- --project=chromium',
+    ],
+    [
+      'website project selection',
+      'npm run test:website:e2e -- --project=${{ matrix.project }}',
+      'npm run test:website:e2e -- --project=chromium',
+    ],
+  ]) {
+    test(`requires matching ${label} ${name}`, () => {
+      const workflows = { ciWorkflow, releaseWorkflow }
+      workflows[workflowName] = replaceInJob(
+        workflows[workflowName],
+        'browsers',
+        command,
+        replacement,
+      )
+
+      assert.match(
+        validateReadinessWorkflows(workflows).join('\n'),
+        new RegExp(
+          `${label} browsers must install and execute each desktop project in both suites`,
+        ),
+      )
+    })
+  }
+
+  test(`requires ${label} chromium-touch to install Chromium`, () => {
+    const workflows = { ciWorkflow, releaseWorkflow }
+    workflows[workflowName] = replaceInJob(
+      workflows[workflowName],
+      'chromium-touch',
+      'npx playwright install --with-deps chromium',
+      'npx playwright install --with-deps firefox',
+    )
+
+    assert.match(
+      validateReadinessWorkflows(workflows).join('\n'),
+      new RegExp(
+        `${label} chromium-touch must run exactly once as a separate library-only job`,
+      ),
+    )
+  })
+
+  test(`rejects website execution in the ${label} chromium-touch job`, () => {
+    const workflows = { ciWorkflow, releaseWorkflow }
+    workflows[workflowName] = replaceInJob(
+      workflows[workflowName],
+      'chromium-touch',
+      '      - run: npm run test:e2e -- --project=chromium-touch',
+      [
+        '      - run: npm run test:e2e -- --project=chromium-touch',
+        '      - run: npm run test:website:e2e -- --project=chromium-touch',
+      ].join('\n'),
+    )
+
+    assert.match(
+      validateReadinessWorkflows(workflows).join('\n'),
+      new RegExp(
+        `${label} chromium-touch must run exactly once as a separate library-only job`,
+      ),
+    )
+  })
+
+  test(`rejects a matrix that repeats the ${label} chromium-touch job`, () => {
+    const workflows = { ciWorkflow, releaseWorkflow }
+    workflows[workflowName] = replaceInJob(
+      workflows[workflowName],
+      'chromium-touch',
+      '    runs-on: ubuntu-latest',
+      [
+        '    runs-on: ubuntu-latest',
+        '    strategy:',
+        '      matrix:',
+        '        shard: [one, two]',
+      ].join('\n'),
+    )
+
+    assert.match(
+      validateReadinessWorkflows(workflows).join('\n'),
+      new RegExp(
+        `${label} chromium-touch must run exactly once as a separate library-only job`,
+      ),
+    )
+  })
+
+  test(`rejects a second ${label} chromium-touch execution`, () => {
+    const workflows = { ciWorkflow, releaseWorkflow }
+    workflows[workflowName] = replaceInJob(
+      workflows[workflowName],
+      'browsers',
+      '      - run: npm run test:website:e2e -- --project=${{ matrix.project }}',
+      [
+        '      - run: npm run test:website:e2e -- --project=${{ matrix.project }}',
+        '      - run: npm run test:e2e -- --project=chromium-touch',
+      ].join('\n'),
+    )
+
+    assert.match(
+      validateReadinessWorkflows(workflows).join('\n'),
+      new RegExp(
+        `${label} chromium-touch must run exactly once as a separate library-only job`,
+      ),
+    )
+  })
+}
+
+test('accepts an equivalent block-form desktop project matrix', () => {
+  const blockMatrix = [
+    '        project:',
+    '          - chromium',
+    '          - firefox',
+    '          - webkit',
+  ].join('\n')
+
+  assert.deepEqual(
+    validateReadinessWorkflows({
+      ciWorkflow: replaceInJob(
+        ciWorkflow,
+        'browsers',
+        '        project: [chromium, firefox, webkit]',
+        blockMatrix,
+      ),
+      releaseWorkflow,
+    }),
     [],
   )
 })

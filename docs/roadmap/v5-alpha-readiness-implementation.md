@@ -1,7 +1,5 @@
 # Version 5 Alpha Readiness Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
-
 **Goal:** Produce a reproducible, reviewable `5.0.0-alpha.0` release candidate without publishing, tagging, or changing the public API.
 
 **Architecture:** Independent verification modules check repository policy, built declarations, the packed npm artifact, and the cross-browser matrix. A final side-effect-free readiness command composes those gates and a checked maintainer report separates automated evidence from external and physical-device sign-offs.

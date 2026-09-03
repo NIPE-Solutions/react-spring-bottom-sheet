@@ -103,6 +103,37 @@ const jobDependencies = (settings) => {
   })
 }
 
+const scalarSetting = (settings, name) =>
+  settings.match(new RegExp(`^ {4}${name}:\\s*([^\\s#]+)\\s*$`, 'm'))?.[1] ?? ''
+
+const sequenceSetting = (source, name, indent) => {
+  const prefix = ' '.repeat(indent)
+  const inline = source.match(
+    new RegExp(`^${prefix}${name}:\\s*\\[([^\\]]*)\\]\\s*$`, 'm'),
+  )?.[1]
+  if (inline !== undefined) {
+    return inline
+      .split(',')
+      .map((value) => value.trim())
+      .filter(Boolean)
+  }
+
+  return mappingBlock(source, name, indent).flatMap((line) => {
+    const match = line.match(new RegExp(`^ {${indent + 2}}- ([^\\s#]+)\\s*$`))
+    return match ? [match[1]] : []
+  })
+}
+
+const matrixSettings = (settings) => {
+  const strategy = mappingBlock(settings, 'strategy', 4).join('\n')
+  const matrix = mappingBlock(strategy, 'matrix', 6).join('\n')
+  const keys = [...matrix.matchAll(/^ {8}([\w-]+):(?:\s|$)/gm)].map(
+    (match) => match[1],
+  )
+
+  return { keys, project: sequenceSetting(matrix, 'project', 8) }
+}
+
 export function parseWorkflowModel(workflow) {
   return jobsIn(withoutComments(workflow)).map((job) => {
     const settings = jobSettings(job)
@@ -110,6 +141,8 @@ export function parseWorkflowModel(workflow) {
     return {
       name: job.name,
       needs: jobDependencies(settings),
+      runsOn: scalarSetting(settings, 'runs-on'),
+      matrix: matrixSettings(settings),
       steps: stepsIn(job).map((step) => ({
         commands: commandLines(step),
       })),
