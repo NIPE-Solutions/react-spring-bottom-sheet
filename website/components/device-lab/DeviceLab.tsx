@@ -4,6 +4,7 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { DeviceControls } from './DeviceControls'
 import { DeviceFrame } from './DeviceFrame'
+import type { DeviceFrameHandle } from './DeviceFrame'
 import {
   DEFAULT_DEVICE_SELECTION,
   getDevicePreset,
@@ -49,9 +50,11 @@ export function DeviceLab({ slug, title }: DeviceLabProps) {
     'loading',
   )
   const nextMorphKey = useRef(0)
+  const deviceFrameRef = useRef<DeviceFrameHandle>(null)
   const [morphRequest, setMorphRequest] = useState<
     (DeviceSelection & { key: number }) | null
   >(null)
+  const appliedMorphKey = useRef<number | undefined>(undefined)
 
   useEffect(() => {
     if (isValidSelection(searchParams)) return
@@ -71,16 +74,18 @@ export function DeviceLab({ slug, title }: DeviceLabProps) {
     )
       return
 
+    deviceFrameRef.current?.capturePresentation()
     nextMorphKey.current += 1
     setMorphRequest({ ...nextSelection, key: nextMorphKey.current })
     const nextParams = withSelection(searchParams, nextSelection)
     router.push(`${pathname}?${nextParams.toString()}`)
   }
-  const morphKey =
+  if (
     morphRequest?.device === selection.device &&
     morphRequest.orientation === selection.orientation
-      ? morphRequest.key
-      : undefined
+  ) {
+    appliedMorphKey.current = morphRequest.key
+  }
 
   return (
     <div className="docs-device-lab">
@@ -88,9 +93,10 @@ export function DeviceLab({ slug, title }: DeviceLabProps) {
       <DeviceFrame
         device={selection.device}
         embedHref={embedHref}
-        morphKey={morphKey}
+        morphKey={appliedMorphKey.current}
         orientation={selection.orientation}
         preset={preset}
+        ref={deviceFrameRef}
         status={status}
       >
         <RecipeEmbed

@@ -218,6 +218,108 @@ test('device lab keeps intermediate user morph geometry aligned and interactive'
   ).toBeVisible()
 })
 
+test('device lab interrupts a morph from its live geometry without replacing the iframe', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 600, height: 900 })
+  await page.goto('/examples/basic/?device=phone&orientation=portrait')
+  const frame = page.locator('.docs-device-frame')
+  const iframe = page.locator('[title$="interactive preview"]')
+  await expect(frame).toHaveAttribute('data-preview-ready', 'true')
+  const iframeElement = await iframe.elementHandle()
+  expect(iframeElement).not.toBeNull()
+  await recipeFrame(page)
+    .locator('#content')
+    .evaluate((element) => {
+      element.dataset.interruptionMarker = 'same-document'
+    })
+
+  const pauseAnimationsAt = (time: number) =>
+    page.locator('.docs-device-lab').evaluate(async (element, currentTime) => {
+      const animations = element.getAnimations({ subtree: true })
+      for (const animation of animations) {
+        animation.pause()
+      }
+      await Promise.all(animations.map((animation) => animation.ready))
+      for (const animation of animations) animation.currentTime = currentTime
+    }, time)
+  const readGeometry = () =>
+    page.evaluate(() => {
+      const bounds = (selector: string) => {
+        const rect = document.querySelector(selector)?.getBoundingClientRect()
+        if (!rect) throw new Error(`Missing ${selector}`)
+        return {
+          height: rect.height,
+          left: rect.left,
+          top: rect.top,
+          width: rect.width,
+        }
+      }
+      return {
+        frame: bounds('.docs-device-frame'),
+        sizer: bounds('.docs-device-frame-sizer'),
+        stage: bounds('.docs-recipe-stage'),
+      }
+    })
+
+  await page.getByRole('button', { name: 'Landscape' }).click()
+  await expect(frame).toHaveAttribute('data-morphing', 'true')
+  await pauseAnimationsAt(140)
+  const interrupted = await readGeometry()
+
+  await page.getByRole('button', { name: 'Tablet' }).click()
+  await expect(page).toHaveURL(/device=tablet&orientation=landscape$/)
+  await expect(frame).toHaveAttribute('data-morphing', 'true')
+  await pauseAnimationsAt(0)
+  const replacementStart = await readGeometry()
+
+  for (const element of ['frame', 'sizer', 'stage'] as const) {
+    for (const dimension of ['height', 'left', 'top', 'width'] as const) {
+      expect(
+        Math.abs(
+          interrupted[element][dimension] -
+            replacementStart[element][dimension],
+        ),
+        `${element}.${dimension} should remain continuous (${interrupted[element][dimension]} -> ${replacementStart[element][dimension]})`,
+      ).toBeLessThan(1)
+    }
+  }
+  expect(
+    await iframe.evaluate(
+      (element, original) => element === original,
+      iframeElement,
+    ),
+  ).toBe(true)
+  await expect(recipeFrame(page).locator('#content')).toHaveAttribute(
+    'data-interruption-marker',
+    'same-document',
+  )
+
+  await page.locator('.docs-device-lab').evaluate((element) => {
+    for (const animation of element.getAnimations({ subtree: true })) {
+      animation.play()
+    }
+  })
+  await expect(frame).toHaveAttribute('data-morphing', 'false')
+  expect(
+    await iframe.evaluate((element) => {
+      if (!(element instanceof HTMLIFrameElement)) {
+        throw new Error('Expected the recipe preview to be an iframe')
+      }
+      return {
+        height: element.contentWindow?.innerHeight,
+        width: element.contentWindow?.innerWidth,
+      }
+    }),
+  ).toEqual({ height: 768, width: 1024 })
+  await recipeFrame(page)
+    .getByRole('button', { name: 'Open basic sheet' })
+    .click()
+  await expect(
+    recipeFrame(page).getByRole('dialog', { name: 'Basic bottom sheet' }),
+  ).toBeVisible()
+})
+
 test('device lab preserves its iframe and open sheet through browser history', async ({
   page,
 }) => {
@@ -306,6 +408,7 @@ test('device lab removes frame interpolation for reduced motion', async ({
 
   await page.getByRole('button', { name: 'Landscape' }).click()
   await expect(frame).toHaveAttribute('data-orientation', 'landscape')
+  await expect(frame).toHaveAttribute('data-morphing', 'false')
   await expect(frame).toHaveCSS('--device-width', '780px')
   await expect(frame).toHaveCSS('--device-height', '390px')
   expect(
