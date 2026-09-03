@@ -125,6 +125,9 @@ test('form recipe preserves entered values and submits explicitly', async ({
 }) => {
   await page.goto('/examples/form/')
   await page.getByRole('button', { name: 'Open profile form' }).click()
+  await expect(
+    page.getByRole('dialog', { name: 'Edit profile' }),
+  ).toHaveAttribute('data-rsbs-state', 'open')
   await page.getByLabel('Display name').fill('Ada')
   await page.getByRole('button', { name: 'Save profile' }).click()
   await expect(page.getByText('Saved for Ada')).toBeVisible()
