@@ -32,6 +32,7 @@ const releaseWorkflow = readFileSync(
   new URL('../.github/workflows/release.yml', import.meta.url),
   'utf8',
 )
+const suppressingShell = `bash -c 'source "$1" || true' -- {0}`
 
 const requiredText = (url) => {
   assert.equal(existsSync(url), true, `missing ${url.pathname}`)
@@ -172,6 +173,50 @@ test('accepts the reachable readiness package-script graph', () => {
     [],
   )
 })
+
+for (const [scriptName, canonicalCommand] of [
+  ['test:e2e', 'playwright test'],
+  ['test:website:e2e', 'playwright test --config playwright.website.config.ts'],
+]) {
+  for (const suffix of [
+    '--reporter=json',
+    '--grep @release:one-scenario',
+    '--grep-invert @release:',
+    '--project=chromium',
+    'e2e/bottom-sheet.spec.ts',
+    '--pass-with-no-tests',
+    '--shard=1/2',
+    '--test-list=selected-tests.txt',
+  ]) {
+    test(`rejects ${scriptName} package-script override: ${suffix}`, () => {
+      const scripts = {
+        ...packageJson.scripts,
+        [scriptName]: `${canonicalCommand} ${suffix}`,
+      }
+
+      assert.match(
+        validateReadinessScriptGraph({ scripts }).join('\n'),
+        new RegExp(`${scriptName} must be exactly`),
+      )
+    })
+  }
+}
+
+for (const hook of [
+  'pretest:e2e',
+  'posttest:e2e',
+  'pretest:website:e2e',
+  'posttest:website:e2e',
+]) {
+  test(`rejects the ${hook} browser-runner lifecycle hook`, () => {
+    const scripts = { ...packageJson.scripts, [hook]: 'echo unexpected hook' }
+
+    assert.match(
+      validateReadinessScriptGraph({ scripts }).join('\n'),
+      new RegExp(`browser runner lifecycle hook must be absent: ${hook}`),
+    )
+  })
+}
 
 test('rejects readiness recursion through a reachable script', () => {
   const scripts = {
@@ -344,17 +389,24 @@ test('accepts the checked workflow readiness policy', () => {
   )
 })
 
-test('models quoted job and step policy keys separately from commands', () => {
+test('models workflow, job, and step shells separately from commands', () => {
   const [job] = parseWorkflowModel(
     [
+      'defaults:',
+      '  run:',
+      `    'shell': ${suppressingShell}`,
       'jobs:',
       '  browsers:',
       "    'if': github.event_name == 'never'",
       "    'continue-on-error': ${{ matrix.project == 'webkit' }}",
       '    runs-on: ubuntu-latest',
+      '    defaults:',
+      '      run:',
+      `        'shell': ${suppressingShell}`,
       '    steps:',
       "      - 'if': matrix.project != 'webkit'",
       "        'continue-on-error': true",
+      `        'shell': ${suppressingShell}`,
       '        run: npm run test:e2e -- --project=${{ matrix.project }}',
       '',
     ].join('\n'),
@@ -362,11 +414,14 @@ test('models quoted job and step policy keys separately from commands', () => {
 
   assert.equal(job.if, "github.event_name == 'never'")
   assert.equal(job.continueOnError, "${{ matrix.project == 'webkit' }}")
+  assert.equal(job.workflowShell, suppressingShell)
+  assert.equal(job.defaultShell, suppressingShell)
   assert.deepEqual(job.steps, [
     {
       commands: ['npm run test:e2e -- --project=${{ matrix.project }}'],
       if: "matrix.project != 'webkit'",
       continueOnError: 'true',
+      shell: suppressingShell,
     },
   ])
 })
@@ -375,6 +430,78 @@ for (const [label, workflowName] of [
   ['CI', 'ciWorkflow'],
   ['release', 'releaseWorkflow'],
 ]) {
+  test(`rejects a suppressing workflow-default shell in ${label}`, () => {
+    const workflows = { ciWorkflow, releaseWorkflow }
+    workflows[workflowName] = replaceOnce(
+      workflows[workflowName],
+      'jobs:\n',
+      [
+        'defaults:',
+        '  run:',
+        `    shell: ${suppressingShell}`,
+        '',
+        'jobs:',
+        '',
+      ].join('\n'),
+    )
+
+    assert.match(
+      validateReadinessWorkflows(workflows).join('\n'),
+      new RegExp(
+        `${label} workflow must not customize the shell for critical run steps`,
+      ),
+    )
+  })
+
+  for (const jobName of ['quality', 'browsers', 'chromium-touch']) {
+    test(`rejects a suppressing ${jobName} job-default shell in ${label}`, () => {
+      const workflows = { ciWorkflow, releaseWorkflow }
+      workflows[workflowName] = replaceInJob(
+        workflows[workflowName],
+        jobName,
+        '    runs-on: ubuntu-latest',
+        [
+          '    runs-on: ubuntu-latest',
+          '    defaults:',
+          '      run:',
+          `        shell: ${suppressingShell}`,
+        ].join('\n'),
+      )
+
+      assert.match(
+        validateReadinessWorkflows(workflows).join('\n'),
+        new RegExp(
+          `${label} ${jobName} must not customize the shell for critical run steps`,
+        ),
+      )
+    })
+  }
+
+  for (const [jobName, command] of [
+    ['quality', 'npm run release:check'],
+    ['browsers', 'npm run test:e2e -- --project=${{ matrix.project }}'],
+    ['chromium-touch', 'npm run test:e2e -- --project=chromium-touch'],
+  ]) {
+    test(`rejects a suppressing ${jobName} step shell in ${label}`, () => {
+      const workflows = { ciWorkflow, releaseWorkflow }
+      workflows[workflowName] = replaceInJob(
+        workflows[workflowName],
+        jobName,
+        `      - run: ${command}`,
+        [`      - run: ${command}`, `        shell: ${suppressingShell}`].join(
+          '\n',
+        ),
+      )
+
+      assert.match(
+        validateReadinessWorkflows(workflows).join('\n'),
+        new RegExp(
+          `${label} ${jobName} must not customize the shell for critical run steps`,
+        ),
+      )
+    })
+  }
+
   test(`rejects an independently collapsed ${label} desktop matrix`, () => {
     const workflows = { ciWorkflow, releaseWorkflow }
     workflows[workflowName] = replaceInJob(
@@ -820,6 +947,59 @@ for (const [label, workflowName] of [
       )
     })
   }
+}
+
+for (const jobName of ['verify', 'publish']) {
+  test(`rejects a suppressing ${jobName} job-default shell in release`, () => {
+    const releaseWithCustomShell = replaceInJob(
+      releaseWorkflow,
+      jobName,
+      '    runs-on: ubuntu-latest',
+      [
+        '    runs-on: ubuntu-latest',
+        '    defaults:',
+        '      run:',
+        `        shell: ${suppressingShell}`,
+      ].join('\n'),
+    )
+
+    assert.match(
+      validateReadinessWorkflows({
+        ciWorkflow,
+        releaseWorkflow: releaseWithCustomShell,
+      }).join('\n'),
+      new RegExp(
+        `release ${jobName} must not customize the shell for critical run steps`,
+      ),
+    )
+  })
+}
+
+for (const [jobName, runLine] of [
+  [
+    'verify',
+    '      - run: echo "Release quality and browser verification passed"',
+  ],
+  ['publish', '        run: npm publish --access public --tag "$CHANNEL"'],
+]) {
+  test(`rejects a suppressing ${jobName} step shell in release`, () => {
+    const releaseWithCustomShell = replaceInJob(
+      releaseWorkflow,
+      jobName,
+      runLine,
+      [runLine, `        shell: ${suppressingShell}`].join('\n'),
+    )
+
+    assert.match(
+      validateReadinessWorkflows({
+        ciWorkflow,
+        releaseWorkflow: releaseWithCustomShell,
+      }).join('\n'),
+      new RegExp(
+        `release ${jobName} must not customize the shell for critical run steps`,
+      ),
+    )
+  })
 }
 
 test('accepts an equivalent block-form desktop project matrix', () => {

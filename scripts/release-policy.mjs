@@ -113,9 +113,14 @@ export function parseWorkflowModel(workflow) {
   const document = parseYaml(workflow)
   const jobs = mappingValue(document, 'jobs')
   if (!isMapping(jobs)) return []
+  const workflowDefaults = mappingValue(document, 'defaults')
+  const workflowRunDefaults = mappingValue(workflowDefaults, 'run')
+  const workflowShell = scalarValue(workflowRunDefaults, 'shell')
 
   return Object.entries(jobs).map(([name, value]) => {
     const job = isMapping(value) ? value : {}
+    const jobDefaults = mappingValue(job, 'defaults')
+    const jobRunDefaults = mappingValue(jobDefaults, 'run')
     const strategy = mappingValue(job, 'strategy')
     const matrix = mappingValue(strategy, 'matrix')
     const matrixMapping = isMapping(matrix) ? matrix : {}
@@ -127,6 +132,8 @@ export function parseWorkflowModel(workflow) {
       runsOn: scalarValue(job, 'runs-on'),
       if: scalarValue(job, 'if'),
       continueOnError: scalarValue(job, 'continue-on-error'),
+      workflowShell,
+      defaultShell: scalarValue(jobRunDefaults, 'shell'),
       matrix: {
         keys: Object.keys(matrixMapping),
         project: sequenceValue(mappingValue(matrixMapping, 'project')),
@@ -137,6 +144,7 @@ export function parseWorkflowModel(workflow) {
           commands: runCommands(step),
           if: scalarValue(step, 'if'),
           continueOnError: scalarValue(step, 'continue-on-error'),
+          shell: scalarValue(step, 'shell'),
         }
       }),
     }

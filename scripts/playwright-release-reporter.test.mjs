@@ -1,11 +1,18 @@
 import assert from 'node:assert/strict'
 import { spawnSync } from 'node:child_process'
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import {
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import test from 'node:test'
 
 import { releaseTestViolation } from './playwright-release-reporter.mjs'
+import { validateReadinessScriptGraph } from './verify-release-readiness.mjs'
 
 const repositoryRoot = fileURLToPath(new URL('..', import.meta.url))
 const playwrightCli = join(
@@ -15,9 +22,13 @@ const playwrightCli = join(
   'test',
   'cli.js',
 )
+const packageScripts = JSON.parse(
+  readFileSync(join(repositoryRoot, 'package.json'), 'utf8'),
+).scripts
 
 const runFixture = ({
   configFile = 'playwright.config.ts',
+  playwrightArgs = [],
   retries = 0,
   source,
 }) => {
@@ -58,7 +69,7 @@ const runFixture = ({
 
     return spawnSync(
       process.execPath,
-      [playwrightCli, 'test', '--config', configPath],
+      [playwrightCli, 'test', '--config', configPath, ...playwrightArgs],
       {
         cwd: repositoryRoot,
         encoding: 'utf8',
@@ -110,6 +121,68 @@ for (const configFile of [
     })
 
     assertPolicyFailure(result)
+  })
+}
+
+for (const [configFile, scriptName, canonicalCommand] of [
+  ['playwright.config.ts', 'test:e2e', 'playwright test'],
+  [
+    'playwright.website.config.ts',
+    'test:website:e2e',
+    'playwright test --config playwright.website.config.ts',
+  ],
+]) {
+  test(`rejects a ${scriptName} reporter override that disables the release policy`, () => {
+    const result = runFixture({
+      configFile,
+      playwrightArgs: ['--reporter=list'],
+      source: [
+        "import { test } from '@playwright/test'",
+        '',
+        "test('must execute', { tag: '@release:reporter-override' }, async () => {",
+        "  test.skip(true, 'runtime body skip')",
+        '})',
+        '',
+      ].join('\n'),
+    })
+
+    assert.equal(result.status, 0, outputFrom(result))
+    assert.doesNotMatch(outputFrom(result), /release test execution policy/i)
+
+    const errors = validateReadinessScriptGraph({
+      scripts: {
+        ...packageScripts,
+        [scriptName]: `${canonicalCommand} --reporter=list`,
+      },
+    }).join('\n')
+    assert.match(errors, new RegExp(`${scriptName} must be exactly`))
+  })
+
+  test(`rejects a ${scriptName} filter that omits every release test`, () => {
+    const result = runFixture({
+      configFile,
+      playwrightArgs: ['--grep-invert', '@release:'],
+      source: [
+        "import { test } from '@playwright/test'",
+        '',
+        "test('omitted release case', { tag: '@release:filtered' }, async () => {",
+        "  test.skip(true, 'would violate the policy if selected')",
+        '})',
+        "test('selected ordinary case', async () => {})",
+        '',
+      ].join('\n'),
+    })
+
+    assert.equal(result.status, 0, outputFrom(result))
+    assert.doesNotMatch(outputFrom(result), /release test execution policy/i)
+
+    const errors = validateReadinessScriptGraph({
+      scripts: {
+        ...packageScripts,
+        [scriptName]: `${canonicalCommand} --grep-invert @release:`,
+      },
+    }).join('\n')
+    assert.match(errors, new RegExp(`${scriptName} must be exactly`))
   })
 }
 

@@ -25,6 +25,11 @@ export function runReadinessChecks({
 
 const commandsIn = (job) => job?.steps.flatMap((step) => step.commands) ?? []
 
+const customizesRunShell = (job) =>
+  Boolean(job) &&
+  (job.defaultShell !== '' ||
+    job.steps.some((step) => step.commands.length > 0 && step.shell !== ''))
+
 const desktopProjects = ['chromium', 'firefox', 'webkit']
 const desktopCommands = [
   'npx playwright install --with-deps ${{ matrix.project }}',
@@ -77,6 +82,12 @@ export function validateReadinessWorkflows({ ciWorkflow, releaseWorkflow }) {
       .filter((job) => job.runsOn !== 'ubuntu-latest')
       .map((job) => job.name)
 
+    if (workflowJobs.some((job) => job.workflowShell !== '')) {
+      errors.push(
+        `${label} workflow must not customize the shell for critical run steps`,
+      )
+    }
+
     if (nonUbuntuJobs.length > 0) {
       errors.push(
         `${label} jobs must run on ubuntu-latest: ${nonUbuntuJobs.join(', ')}`,
@@ -88,6 +99,11 @@ export function validateReadinessWorkflows({ ciWorkflow, releaseWorkflow }) {
     ) {
       errors.push(
         `${label} quality must run only npm ci and npm run release:check`,
+      )
+    }
+    if (customizesRunShell(quality)) {
+      errors.push(
+        `${label} quality must not customize the shell for critical run steps`,
       )
     }
     if (!browsers || !browsers.needs.includes('quality')) {
@@ -120,6 +136,11 @@ export function validateReadinessWorkflows({ ciWorkflow, releaseWorkflow }) {
         `${label} browsers job must be unconditional and non-tolerated`,
       )
     }
+    if (customizesRunShell(browsers)) {
+      errors.push(
+        `${label} browsers must not customize the shell for critical run steps`,
+      )
+    }
     if (
       !touch ||
       !touch.needs.includes('quality') ||
@@ -140,6 +161,11 @@ export function validateReadinessWorkflows({ ciWorkflow, releaseWorkflow }) {
         `${label} chromium-touch job must be unconditional and non-tolerated`,
       )
     }
+    if (customizesRunShell(touch)) {
+      errors.push(
+        `${label} chromium-touch must not customize the shell for critical run steps`,
+      )
+    }
     const touchReferences = workflowJobs.flatMap((job) =>
       commandsIn(job).filter((command) => command.includes('chromium-touch')),
     )
@@ -158,9 +184,20 @@ export function validateReadinessWorkflows({ ciWorkflow, releaseWorkflow }) {
     }
 
     if (label === 'release') {
+      const verify = jobs.get('verify')
       const publish = [...jobs.values()].find((job) =>
         commandsIn(job).some((command) => command.startsWith('npm publish ')),
       )
+      if (customizesRunShell(verify)) {
+        errors.push(
+          'release verify must not customize the shell for critical run steps',
+        )
+      }
+      if (customizesRunShell(publish)) {
+        errors.push(
+          'release publish must not customize the shell for critical run steps',
+        )
+      }
       if (!publish || !dependsOn(jobs, publish.name, 'quality')) {
         errors.push('release publish must depend on quality readiness')
       }
@@ -187,12 +224,34 @@ const referencedScripts = (command) =>
     (match) => match[1],
   )
 
+const browserRunnerScripts = [
+  ['test:e2e', 'playwright test'],
+  ['test:website:e2e', 'playwright test --config playwright.website.config.ts'],
+]
+
+const browserRunnerLifecycleHooks = browserRunnerScripts.flatMap(([name]) => [
+  `pre${name}`,
+  `post${name}`,
+])
+
 export function validateReadinessScriptGraph({
   scripts,
   commands = readinessCommands,
 }) {
   const errors = []
   const states = new Map()
+
+  for (const [name, command] of browserRunnerScripts) {
+    if (!Object.hasOwn(scripts, name) || scripts[name] !== command) {
+      errors.push(`${name} must be exactly ${command}`)
+    }
+  }
+  for (const hook of browserRunnerLifecycleHooks) {
+    if (Object.hasOwn(scripts, hook)) {
+      errors.push(`browser runner lifecycle hook must be absent: ${hook}`)
+    }
+  }
+
   const manifestScripts = commands.flatMap(([command, args]) =>
     command === 'npm' && args[0] === 'run' && args[1] ? [args[1]] : [],
   )
