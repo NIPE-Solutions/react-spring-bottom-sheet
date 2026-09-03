@@ -68,7 +68,12 @@ export function Root({
     controller.getState,
   )
   const layoutRef = useRef(layout)
+  const motionPositionRef = useRef(controllerState.position)
+  const backdropRef = useRef<HTMLElement | null>(null)
+  const backdropProgressRef = useRef(0)
   layoutRef.current = layout
+  if (controllerState.phase === 'closed')
+    motionPositionRef.current = controllerState.position
   const open = controlledOpen ?? uncontrolledOpen
   const present = open || controllerState.phase !== 'closed'
   const transitionPhase =
@@ -111,10 +116,31 @@ export function Root({
 
   const updatePosition = useCallback(
     (position: number) => {
+      motionPositionRef.current = position
       content?.style.setProperty('--rsbs-position', `${position}px`)
     },
     [content],
   )
+
+  const getPosition = useCallback(() => motionPositionRef.current, [])
+
+  const updateBackdropProgress = useCallback((progress: number) => {
+    backdropProgressRef.current = progress
+    backdropRef.current?.style.setProperty(
+      '--rsbs-backdrop-progress',
+      String(progress),
+    )
+  }, [])
+
+  const getBackdropProgress = useCallback(() => backdropProgressRef.current, [])
+
+  const registerBackdrop = useCallback((element: HTMLElement | null) => {
+    backdropRef.current = element
+    element?.style.setProperty(
+      '--rsbs-backdrop-progress',
+      String(backdropProgressRef.current),
+    )
+  }, [])
 
   const handleLayout = useCallback(
     (nextLayout: ResolvedLayout) => {
@@ -158,7 +184,10 @@ export function Root({
     closedPosition: layout?.closedPosition ?? controllerState.position,
     reducedMotion,
     adapter: motionAdapter,
+    getPosition,
     onUpdate: updatePosition,
+    getBackdropProgress,
+    onBackdropProgress: updateBackdropProgress,
   })
 
   const handleSnapPointChange = useCallback(
@@ -198,8 +227,9 @@ export function Root({
       registerDescription,
       registerViewport: setViewport,
       registerContent: setContent,
+      registerBackdrop,
       interactionHandlers,
-      position: controllerState.position,
+      position: motionPositionRef.current,
       dragging: controllerState.phase === 'dragging',
     }),
     [
@@ -213,6 +243,7 @@ export function Root({
       controllerState.position,
       interactionHandlers,
       registerDescription,
+      registerBackdrop,
       registerTitle,
       requestOpenChange,
       setContent,

@@ -16,6 +16,7 @@ export interface SheetContextValue {
   registerDescription(id: string): () => void
   registerViewport(element: HTMLElement | null): void
   registerContent(element: HTMLElement | null): void
+  registerBackdrop(element: HTMLElement | null): void
   interactionHandlers: {
     onPointerDown: PointerEventHandler<HTMLElement>
     onPointerMove: PointerEventHandler<HTMLElement>

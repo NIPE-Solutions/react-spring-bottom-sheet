@@ -1,7 +1,8 @@
-import { forwardRef } from 'react'
+import { forwardRef, useMemo } from 'react'
 import type { HTMLAttributes, MouseEvent, Ref } from 'react'
 import { Slot } from '../composition/Slot.js'
 import type { SlotProps } from '../composition/Slot.js'
+import { mergeRefs } from '../composition/merge-refs.js'
 import { useSheetContext } from '../context/sheet-context.js'
 
 export type SheetBackdropProps = HTMLAttributes<HTMLDivElement> & {
@@ -13,8 +14,16 @@ export const Backdrop = forwardRef<HTMLDivElement, SheetBackdropProps>(
     { asChild = false, children, className, onClick, ...props },
     ref,
   ) {
-    const { dismissible, requestOpenChange, transitionPhase } =
-      useSheetContext('Sheet.Backdrop')
+    const {
+      dismissible,
+      registerBackdrop,
+      requestOpenChange,
+      transitionPhase,
+    } = useSheetContext('Sheet.Backdrop')
+    const mergedRef = useMemo(
+      () => mergeRefs(registerBackdrop, ref as Ref<HTMLElement>),
+      [ref, registerBackdrop],
+    )
     const shared = {
       ...props,
       className: ['rsbs-backdrop', className].filter(Boolean).join(' '),
@@ -31,11 +40,11 @@ export const Backdrop = forwardRef<HTMLDivElement, SheetBackdropProps>(
       },
     }
     return asChild ? (
-      <Slot {...shared} ref={ref as Ref<HTMLElement>}>
+      <Slot {...shared} ref={mergedRef}>
         {children as SlotProps['children']}
       </Slot>
     ) : (
-      <div {...shared} ref={ref}>
+      <div {...shared} ref={mergedRef as Ref<HTMLDivElement>}>
         {children}
       </div>
     )

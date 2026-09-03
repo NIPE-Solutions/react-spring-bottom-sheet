@@ -3,7 +3,6 @@
 @layer rsbs.theme {
   :where(.rsbs-backdrop) {
     background: var(--rsbs-backdrop-color);
-    opacity: var(--rsbs-backdrop-opacity);
   }
 
   :where(.rsbs-content) {

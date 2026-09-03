@@ -4,7 +4,11 @@
     inset: 0;
     z-index: var(--rsbs-z-index, 50);
     border: 0;
+    opacity: calc(
+      var(--rsbs-backdrop-opacity, 1) * var(--rsbs-backdrop-progress, 0)
+    );
     touch-action: none;
+    will-change: opacity;
   }
 
   :where(.rsbs-backdrop)[data-rsbs-state='closed'] {
