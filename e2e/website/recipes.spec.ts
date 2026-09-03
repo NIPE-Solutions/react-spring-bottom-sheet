@@ -132,23 +132,90 @@ test('device lab defaults to phone portrait with visible pressed controls', asyn
     pressedColors.unpressedBackground,
   )
   expect(pressedColors.pressedText).not.toBe(pressedColors.unpressedText)
-  const transition = await page
-    .locator('.docs-device-frame')
-    .evaluate((element) => {
-      const style = getComputedStyle(element)
+  await expect(page.locator('.docs-device-frame')).toHaveCSS(
+    'transition-property',
+    'none',
+  )
+  expect(
+    await page
+      .locator('.docs-device-lab')
+      .evaluate(
+        (element) =>
+          element
+            .getAnimations({ subtree: true })
+            .filter((animation) => animation.playState !== 'finished').length,
+      ),
+  ).toBe(0)
+
+  await page.setViewportSize({ width: 720, height: 900 })
+  expect(
+    await page
+      .locator('.docs-device-lab')
+      .evaluate(
+        (element) =>
+          element
+            .getAnimations({ subtree: true })
+            .filter((animation) => animation.playState !== 'finished').length,
+      ),
+  ).toBe(0)
+})
+
+test('device lab keeps intermediate user morph geometry aligned and interactive', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 600, height: 900 })
+  await page.goto('/examples/basic/?device=phone&orientation=portrait')
+  const frame = page.locator('.docs-device-frame')
+  await expect(frame).toHaveAttribute('data-preview-ready', 'true')
+
+  const initialWidth = (await frame.boundingBox())?.width
+  expect(initialWidth).toBeDefined()
+  await page.getByRole('button', { name: 'Landscape' }).click()
+  await expect(frame).toHaveAttribute('data-morphing', 'true')
+  await page.locator('.docs-device-lab').evaluate((element) => {
+    for (const animation of element.getAnimations({ subtree: true })) {
+      animation.currentTime = 140
+      animation.pause()
+    }
+  })
+
+  const geometry = await page.evaluate(() => {
+    const bounds = (selector: string) => {
+      const rect = document.querySelector(selector)?.getBoundingClientRect()
+      if (!rect) throw new Error(`Missing ${selector}`)
       return {
-        durations: style.transitionDuration.split(', '),
-        properties: style.transitionProperty.split(', '),
+        bottom: rect.bottom,
+        height: rect.height,
+        left: rect.left,
+        right: rect.right,
+        top: rect.top,
+        width: rect.width,
       }
-    })
-  expect(transition.properties).toEqual([
-    'width',
-    'height',
-    'border-radius',
-    'transform',
-    'box-shadow',
-  ])
-  expect(new Set(transition.durations)).toEqual(new Set(['0.28s']))
+    }
+    return {
+      frame: bounds('.docs-device-frame'),
+      screen: bounds('.docs-device-screen'),
+      sizer: bounds('.docs-device-frame-sizer'),
+      stage: bounds('.docs-recipe-stage'),
+    }
+  })
+  expect(geometry.frame.width).toBeGreaterThan(initialWidth!)
+  expect(geometry.frame.right).toBeLessThanOrEqual(geometry.stage.right + 1)
+  expect(geometry.frame.left).toBeGreaterThanOrEqual(geometry.stage.left - 1)
+  expect(Math.abs(geometry.frame.width - geometry.sizer.width)).toBeLessThan(1)
+  expect(Math.abs(geometry.frame.height - geometry.stage.height)).toBeLessThan(
+    1,
+  )
+  expect(geometry.screen.left).toBeGreaterThanOrEqual(geometry.frame.left)
+  expect(geometry.screen.right).toBeLessThanOrEqual(geometry.frame.right)
+  expect(geometry.screen.bottom).toBeLessThanOrEqual(geometry.frame.bottom)
+
+  await recipeFrame(page)
+    .getByRole('button', { name: 'Open basic sheet' })
+    .click()
+  await expect(
+    recipeFrame(page).getByRole('dialog', { name: 'Basic bottom sheet' }),
+  ).toBeVisible()
 })
 
 test('device lab preserves its iframe and open sheet through browser history', async ({
@@ -203,9 +270,17 @@ test('device lab preserves its iframe and open sheet through browser history', a
     'data-orientation',
     'landscape',
   )
+  await expect(page.locator('.docs-device-frame')).toHaveAttribute(
+    'data-morphing',
+    'false',
+  )
   await page.goForward()
   await expect(page).toHaveURL(
     /campaign=spring&device=tablet&orientation=portrait$/,
+  )
+  await expect(page.locator('.docs-device-frame')).toHaveAttribute(
+    'data-morphing',
+    'false',
   )
   await expect(recipeFrame(page).locator('#content')).toHaveAttribute(
     'data-persistence-marker',
@@ -233,23 +308,44 @@ test('device lab removes frame interpolation for reduced motion', async ({
   await expect(frame).toHaveAttribute('data-orientation', 'landscape')
   await expect(frame).toHaveCSS('--device-width', '780px')
   await expect(frame).toHaveCSS('--device-height', '390px')
+  expect(
+    await page.locator('[title$="interactive preview"]').evaluate((element) => {
+      if (!(element instanceof HTMLIFrameElement)) {
+        throw new Error('Expected the recipe preview to be an iframe')
+      }
+      return {
+        height: element.contentWindow?.innerHeight,
+        width: element.contentWindow?.innerWidth,
+      }
+    }),
+  ).toEqual({ height: 390, width: 780 })
 })
 
-test('device lab recovers scaling without horizontal overflow from 320 to 1440 pixels', async ({
+test('device lab recovers scaling when initially hidden and fits three responsive widths', async ({
   page,
 }) => {
+  await page.addInitScript(() => {
+    const style = document.createElement('style')
+    style.id = 'initially-hidden-device-lab'
+    style.textContent = '.docs-recipe-stage { display: none !important; }'
+    const observer = new MutationObserver(() => {
+      if (!document.head || style.isConnected) return
+      document.head.append(style)
+      observer.disconnect()
+    })
+    observer.observe(document, { childList: true, subtree: true })
+  })
   await page.setViewportSize({ width: 320, height: 720 })
   await page.goto('/examples/basic/?device=tablet&orientation=landscape')
   const stage = page.locator('.docs-recipe-stage')
   const frame = page.locator('.docs-device-frame')
   await expect(frame).toHaveAttribute('data-preview-ready', 'true')
+  await expect(stage).toBeHidden()
 
-  await stage.evaluate((element) => {
-    element.style.display = 'none'
+  await page.evaluate(() => {
+    document.querySelector('#initially-hidden-device-lab')?.remove()
   })
-  await stage.evaluate((element) => {
-    element.style.display = ''
-  })
+  await expect(stage).toBeVisible()
   await expect
     .poll(() =>
       frame.evaluate((element) => {
@@ -258,6 +354,16 @@ test('device lab recovers scaling without horizontal overflow from 320 to 1440 p
       }),
     )
     .toBe(true)
+  expect(
+    await page
+      .locator('.docs-device-lab')
+      .evaluate(
+        (element) =>
+          element
+            .getAnimations({ subtree: true })
+            .filter((animation) => animation.playState !== 'finished').length,
+      ),
+  ).toBe(0)
 
   for (const width of [320, 768, 1440]) {
     await page.setViewportSize({ width, height: 900 })
