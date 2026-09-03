@@ -1,10 +1,20 @@
+import type { CodeLanguage } from '../components/source-code/highlighter'
+
 export type DocGroupId = 'learn' | 'reference' | 'project'
 
 export interface DocSection {
   id: string
   title: string
   body: string
-  code?: string
+  code?: {
+    source: string
+    language: CodeLanguage
+    lineNumbers?: boolean
+  }
+  link?: {
+    href: string
+    label: string
+  }
 }
 
 export interface DocPageMeta {

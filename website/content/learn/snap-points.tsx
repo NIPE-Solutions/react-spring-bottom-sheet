@@ -1,6 +1,17 @@
 import Link from 'next/link'
+import { CodeBlock } from '../../components/source-code/CodeBlock'
 
-export function SnapPointsGuide() {
+const snapPointsSource = `const snapPoints = [
+  { id: 'compact', value: '35%' },
+  { id: 'expanded', value: '82%' },
+] as const`
+
+export async function SnapPointsGuide() {
+  const snapPointsCode = await CodeBlock({
+    source: snapPointsSource,
+    language: 'tsx',
+  })
+
   return (
     <>
       <section id="values">
@@ -11,12 +22,7 @@ export function SnapPointsGuide() {
           or
           <code> content</code> for measured content height.
         </p>
-        <pre>
-          <code>{`const snapPoints = [
-  { id: 'compact', value: '35%' },
-  { id: 'expanded', value: '82%' },
-] as const`}</code>
-        </pre>
+        {snapPointsCode}
         <p>
           Prefer names such as compact, expanded, or content over numeric names.
           The ID is application state; the value is a layout decision.

@@ -36,6 +36,16 @@ test('the documentation manifest covers every required topic', async () => {
   }
 })
 
+test('the Examples documentation page links to the interactive laboratory', async () => {
+  const { docs } = await import('../website/content/docs.ts')
+  const examples = docs.find(({ slug }) => slug === 'examples')
+
+  assert.deepEqual(examples?.sections[0]?.link, {
+    href: '/examples/',
+    label: 'Open the example laboratory',
+  })
+})
+
 test('the README includes the public entry points and project lineage', () => {
   const readme = readFileSync(new URL('../README.md', import.meta.url), 'utf8')
 

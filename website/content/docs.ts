@@ -31,13 +31,20 @@ export const docs = [
         id: 'package',
         title: 'Package',
         body: 'Install @nipe-solutions/react-spring-bottom-sheet with React 19 and React DOM 19.',
-        code: 'npm install @nipe-solutions/react-spring-bottom-sheet',
+        code: {
+          source: 'npm install @nipe-solutions/react-spring-bottom-sheet',
+          language: 'shell',
+        },
       },
       {
         id: 'styles',
         title: 'Styles',
         body: 'Import styles.css for the complete default experience, or combine core.css with your own visual theme.',
-        code: "import '@nipe-solutions/react-spring-bottom-sheet/styles.css'",
+        code: {
+          source:
+            "import '@nipe-solutions/react-spring-bottom-sheet/styles.css'",
+          language: 'tsx',
+        },
       },
     ],
   },
@@ -92,7 +99,11 @@ export const docs = [
         id: 'change-reasons',
         title: 'React to intent, not DOM events',
         body: 'onOpenChange reports the requested state and a stable reason: trigger, close, escape, backdrop, drag, or imperative. Use the reason for telemetry, routing, or workflow decisions without coupling application code to pointer and keyboard event details.',
-        code: "onOpenChange={(nextOpen, details) => {\n  setOpen(nextOpen)\n  track('sheet_changed', { reason: details.reason })\n}}",
+        code: {
+          source:
+            "onOpenChange={(nextOpen, details) => {\n  setOpen(nextOpen)\n  track('sheet_changed', { reason: details.reason })\n}}",
+          language: 'tsx',
+        },
       },
       {
         id: 'prevent-dismissal',
@@ -117,7 +128,11 @@ export const docs = [
         id: 'values',
         title: 'Values',
         body: 'A snap point has a stable id and accepts a pixel number, a px string, a percentage of the viewport, or content.',
-        code: "const snaps = [{ id: 'peek', value: '35%' }, { id: 'full', value: '90%' }]",
+        code: {
+          source:
+            "const snaps = [{ id: 'peek', value: '35%' }, { id: 'full', value: '90%' }]",
+          language: 'tsx',
+        },
       },
       {
         id: 'reconciliation',
@@ -163,7 +178,11 @@ export const docs = [
         id: 'custom-container',
         title: 'Own an embedded surface',
         body: 'Pass a concrete container when the sheet belongs inside a phone preview, editor canvas, or isolated application shell. The container must establish the size and clipping boundary that Sheet.Viewport should fill.',
-        code: 'const [container, setContainer] = useState<HTMLDivElement | null>(null)\n\nreturn (\n  <div ref={setContainer}>\n    <Sheet.Portal container={container}>…</Sheet.Portal>\n  </div>\n)',
+        code: {
+          source:
+            'const [container, setContainer] = useState<HTMLDivElement | null>(null)\n\nreturn (\n  <div ref={setContainer}>\n    <Sheet.Portal container={container}>…</Sheet.Portal>\n  </div>\n)',
+          language: 'tsx',
+        },
       },
       {
         id: 'stacking-contexts',
@@ -222,6 +241,7 @@ export const docs = [
         id: 'interactive-laboratory',
         title: 'Interactive laboratory',
         body: 'The examples route demonstrates controlled state, named snap points, modal behavior, nested scrolling, a custom portal target, theme replacement, dark mode, and reduced-motion-safe behavior.',
+        link: { href: '/examples/', label: 'Open the example laboratory' },
       },
     ],
   },
@@ -271,7 +291,11 @@ export const docs = [
         id: 'queries',
         title: 'Query the interface by role',
         body: 'Open the sheet through its trigger and query the resulting dialog by its accessible name. This verifies the same semantic boundary assistive technology receives and survives internal DOM changes.',
-        code: "await user.click(screen.getByRole('button', { name: /open/i }))\nexpect(screen.getByRole('dialog', { name: /filters/i })).toBeVisible()",
+        code: {
+          source:
+            "await user.click(screen.getByRole('button', { name: /open/i }))\nexpect(screen.getByRole('dialog', { name: /filters/i })).toBeVisible()",
+          language: 'tsx',
+        },
       },
       {
         id: 'motion',
@@ -302,7 +326,11 @@ export const docs = [
         id: 'layout',
         title: 'Let content measurements settle',
         body: 'Content-sized destinations respond to layout changes. Reserve dimensions for images, avoid layout feedback loops, and prefer stable snap-point arrays when their meaning has not changed.',
-        code: "const snapPoints = useMemo(() => [\n  { id: 'compact', value: '35%' },\n  { id: 'full', value: '90%' },\n], [])",
+        code: {
+          source:
+            "const snapPoints = useMemo(() => [\n  { id: 'compact', value: '35%' },\n  { id: 'full', value: '90%' },\n], [])",
+          language: 'tsx',
+        },
       },
       {
         id: 'large-content',
@@ -366,7 +394,11 @@ export const docs = [
         id: 'release-channels',
         title: 'Choose a release channel',
         body: 'Stable releases use npm latest. Prereleases use next and may change before the final major release. Resolve next when choosing a build, then pin the resulting exact version in shared applications so later installs cannot move unexpectedly.',
-        code: 'npm view @nipe-solutions/react-spring-bottom-sheet dist-tags.next\nnpm install @nipe-solutions/react-spring-bottom-sheet@<version>',
+        code: {
+          source:
+            'npm view @nipe-solutions/react-spring-bottom-sheet dist-tags.next\nnpm install @nipe-solutions/react-spring-bottom-sheet@<version>',
+          language: 'shell',
+        },
       },
       {
         id: 'security',

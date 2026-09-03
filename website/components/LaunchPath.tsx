@@ -1,8 +1,13 @@
 import Link from 'next/link'
+import { CodeBlock } from './source-code/CodeBlock'
 import { getReleasePresentation } from '../content/release'
 
-export function LaunchPath({ version }: { version: string }) {
+export async function LaunchPath({ version }: { version: string }) {
   const release = getReleasePresentation(version)
+  const installCode = await CodeBlock({
+    source: release.installCommand,
+    language: 'shell',
+  })
 
   return (
     <section className="docs-launch-path" aria-labelledby="launch-title">
@@ -21,7 +26,7 @@ export function LaunchPath({ version }: { version: string }) {
         {!release.published ? (
           <span className="docs-launch-command-label">After publication</span>
         ) : null}
-        <code>{release.installCommand}</code>
+        {installCode}
         <Link className="docs-button" href="/docs/installation/">
           Installation details
         </Link>

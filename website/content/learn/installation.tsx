@@ -1,13 +1,22 @@
 import Link from 'next/link'
+import { CodeBlock } from '../../components/source-code/CodeBlock'
 import { buildEvidence } from '../evidence'
 import { getReleasePresentation } from '../release'
 
-export function InstallationGuide({
+export async function InstallationGuide({
   version = buildEvidence.version,
 }: {
   version?: string
 }) {
   const release = getReleasePresentation(version)
+  const installCode = await CodeBlock({
+    source: release.installCommand,
+    language: 'shell',
+  })
+  const stylesCode = await CodeBlock({
+    source: "import '@nipe-solutions/react-spring-bottom-sheet/styles.css'",
+    language: 'tsx',
+  })
 
   return (
     <>
@@ -29,9 +38,7 @@ export function InstallationGuide({
           ) : null}
         </p>
         {!release.published ? <p>After publication</p> : null}
-        <pre>
-          <code>{release.installCommand}</code>
-        </pre>
+        {installCode}
         <p>
           Import components from the package root. The package publishes ESM,
           CommonJS, and TypeScript declarations through explicit exports.
@@ -53,11 +60,7 @@ export function InstallationGuide({
             composition.
           </li>
         </ul>
-        <pre>
-          <code>
-            {"import '@nipe-solutions/react-spring-bottom-sheet/styles.css'"}
-          </code>
-        </pre>
+        {stylesCode}
         <p>
           <Link href="/examples/basic/">Build the first working sheet</Link>
         </p>
