@@ -2,8 +2,12 @@ import Link from 'next/link'
 import { buildEvidence } from '../evidence'
 import { getReleasePresentation } from '../release'
 
-export function InstallationGuide() {
-  const release = getReleasePresentation(buildEvidence.version)
+export function InstallationGuide({
+  version = buildEvidence.version,
+}: {
+  version?: string
+}) {
+  const release = getReleasePresentation(version)
 
   return (
     <>
@@ -13,15 +17,14 @@ export function InstallationGuide() {
           Install the package alongside React 19 and React DOM 19.{' '}
           {!release.published ? (
             <>
-              <strong>Prepared release</strong>: version {buildEvidence.version}{' '}
-              is not published yet. After publication, it will be available from
+              <strong>Prepared release</strong>: version {version} is not
+              published yet. After publication, it will be available from
               npm&apos;s <code>{release.channel}</code> tag.
             </>
           ) : release.prerelease ? (
             <>
-              <strong>Prerelease channel</strong>: version{' '}
-              {buildEvidence.version} is available from npm&apos;s{' '}
-              <code>{release.channel}</code> tag.
+              <strong>Prerelease channel</strong>: version {version} is
+              available from npm&apos;s <code>{release.channel}</code> tag.
             </>
           ) : null}
         </p>
