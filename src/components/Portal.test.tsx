@@ -1,8 +1,8 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { useState } from 'react'
-import type { ComponentProps } from 'react'
+import type { ComponentProps, Ref } from 'react'
 import { renderToString } from 'react-dom/server'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { Sheet } from './Sheet.js'
 
 function setDimension(
@@ -14,12 +14,16 @@ function setDimension(
     Object.defineProperty(element, property, { configurable: true, value })
 }
 
-function AnimatedPortalSheet(
-  props: Omit<ComponentProps<typeof Sheet.Root>, 'children' | 'snapPoints'>,
-) {
+function AnimatedPortalSheet({
+  backdropRef,
+  ...props
+}: Omit<ComponentProps<typeof Sheet.Root>, 'children' | 'snapPoints'> & {
+  backdropRef?: Ref<HTMLDivElement>
+}) {
   return (
     <Sheet.Root {...props} snapPoints={[{ id: 'half', value: '50%' }]}>
       <Sheet.Portal>
+        <Sheet.Backdrop ref={backdropRef} />
         <Sheet.Viewport
           ref={(element) => setDimension(element, 'clientHeight', 800)}
         >
@@ -115,6 +119,44 @@ describe('Sheet.Portal', () => {
         ).not.toBeInTheDocument(),
       { timeout: 2_000 },
     )
+  })
+
+  it('tracks backdrop motion progress before removing the portal', async () => {
+    render(<AnimatedPortalSheet defaultOpen />)
+
+    const backdrop = document.querySelector<HTMLElement>('[data-rsbs-backdrop]')
+    await waitFor(() =>
+      expect(backdrop?.style.getPropertyValue('--rsbs-backdrop-progress')).toBe(
+        '1',
+      ),
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: 'Close filters' }))
+
+    await waitFor(() => expect(backdrop).not.toBeInTheDocument(), {
+      timeout: 2_000,
+    })
+  })
+
+  it('runs Backdrop callback-ref cleanup when closing removes the portal', async () => {
+    const cleanup = vi.fn()
+    render(<AnimatedPortalSheet defaultOpen backdropRef={() => cleanup} />)
+
+    await waitFor(() =>
+      expect(document.querySelector('[data-rsbs-content]')).toHaveStyle({
+        '--rsbs-position': '400px',
+      }),
+    )
+    fireEvent.click(screen.getByRole('button', { name: 'Close filters' }))
+
+    await waitFor(
+      () =>
+        expect(
+          document.querySelector('[data-rsbs-content]'),
+        ).not.toBeInTheDocument(),
+      { timeout: 2_000 },
+    )
+    expect(cleanup).toHaveBeenCalledOnce()
   })
 
   it('interrupts closing when controlled state reopens the sheet', async () => {

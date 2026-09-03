@@ -7,7 +7,7 @@ export interface BuildEvidence {
 
 export const buildEvidence = {
   version: '5.0.0',
-  moduleGzipBytes: 7840,
+  moduleGzipBytes: 8174,
   browserEngines: ['Chromium', 'Firefox', 'WebKit'],
   reactRange: '^19.0.0',
 } as const satisfies BuildEvidence
