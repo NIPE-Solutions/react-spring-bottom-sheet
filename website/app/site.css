@@ -928,10 +928,22 @@
   }
   .docs-recipe-source .docs-recipe-section-heading {
     align-items: center;
+    flex-wrap: wrap;
   }
+  .docs-recipe-source-copy,
   .docs-recipe-source .docs-recipe-section-heading button {
     flex: none;
+  }
+  .docs-recipe-source .docs-recipe-section-heading button {
     min-width: 7.5rem;
+  }
+  .docs-recipe-source-copy-status {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
   }
   .docs-recipe-source pre {
     width: 100%;

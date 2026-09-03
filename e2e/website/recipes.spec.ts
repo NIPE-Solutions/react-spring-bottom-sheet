@@ -1074,9 +1074,12 @@ test('highlighted source is a keyboard-readable disclosure with exact copy outpu
   await page.goto('/examples/basic/')
 
   const disclosure = page.locator('.docs-recipe-source details')
-  const disclosureControl = page.getByText('View BasicSheet.tsx')
+  const disclosureControl = page.locator('.docs-recipe-source summary')
+  await expect(disclosureControl).toHaveText('View BasicSheet.tsx')
   await expect(disclosure).not.toHaveAttribute('open', '')
-  await disclosureControl.click()
+  await disclosureControl.focus()
+  await expect(disclosureControl).toBeFocused()
+  await page.keyboard.press('Enter')
   await expect(disclosure).toHaveAttribute('open', '')
 
   const scroller = page.locator(
@@ -1163,9 +1166,11 @@ test('highlighted source is a keyboard-readable disclosure with exact copy outpu
   }
 
   const copyButton = page.getByRole('button', { name: 'Copy source' })
-  await expect(copyButton).toHaveAttribute('aria-live', 'polite')
+  const copyStatus = page.getByRole('status')
+  await expect(copyStatus).toHaveAttribute('aria-live', 'polite')
   await copyButton.click()
-  await expect(page.getByRole('button', { name: 'Copied' })).toBeVisible()
+  await expect(copyButton).toHaveText('Copied')
+  await expect(copyStatus).toHaveText('Copied')
   const copiedSource =
     browserName === 'chromium'
       ? await page.evaluate(() => navigator.clipboard.readText())
@@ -1173,9 +1178,15 @@ test('highlighted source is a keyboard-readable disclosure with exact copy outpu
           () => (window as Window & { copiedSource?: string }).copiedSource,
         )
   expect(copiedSource).toBe(BASIC_RECIPE_SOURCE)
+
+  await expect(copyButton).toHaveText('Copy source')
+  await expect(copyStatus).toBeEmpty()
+  await copyButton.click()
+  await expect(copyButton).toHaveText('Copied')
+  await expect(copyStatus).toHaveText('Copied')
 })
 
-test('highlighted source reports controllable clipboard fallback outcomes', async ({
+test('highlighted source copies exact bytes through the selection fallback', async ({
   page,
 }) => {
   await page.goto('/examples/basic/')
@@ -1197,15 +1208,53 @@ test('highlighted source reports controllable clipboard fallback outcomes', asyn
   })
 
   await page.getByRole('button', { name: 'Copy source' }).click()
-  await expect(page.getByRole('button', { name: 'Copied' })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Copy source' })).toHaveText(
+    'Copied',
+  )
+  await expect(page.getByRole('status')).toHaveText('Copied')
   expect(
     await page.evaluate(
       () => (window as Window & { fallbackSource?: string }).fallbackSource,
     ),
   ).toBe(BASIC_RECIPE_SOURCE)
   await expect(page.locator('textarea')).toHaveCount(0)
+})
 
-  await page.reload()
+test('highlighted source cleans up and reports unavailable selection fallbacks', async ({
+  page,
+}) => {
+  for (const fallback of ['missing', 'throwing'] as const) {
+    await page.goto('/examples/basic/')
+    await page.evaluate((mode) => {
+      Object.defineProperty(navigator, 'clipboard', {
+        configurable: true,
+        value: {
+          writeText: () => Promise.reject(new Error('Clipboard unavailable')),
+        },
+      })
+      Object.defineProperty(document, 'execCommand', {
+        configurable: true,
+        value:
+          mode === 'missing'
+            ? undefined
+            : () => {
+                throw new Error('Selection copy unavailable')
+              },
+      })
+    }, fallback)
+
+    const copyButton = page.getByRole('button', { name: 'Copy source' })
+    await copyButton.click()
+    await expect(copyButton).toHaveText('Select source to copy')
+    await expect(page.getByRole('status')).toHaveText('Select source to copy')
+    await expect(page.locator('textarea')).toHaveCount(0)
+  }
+})
+
+test('highlighted source reports a false selection fallback result', async ({
+  page,
+}) => {
+  await page.goto('/examples/basic/')
   await page.evaluate(() => {
     Object.defineProperty(navigator, 'clipboard', {
       configurable: true,
@@ -1215,66 +1264,75 @@ test('highlighted source reports controllable clipboard fallback outcomes', asyn
     })
     document.execCommand = () => false
   })
+
   await page.getByRole('button', { name: 'Copy source' }).click()
-  await expect(
-    page.getByRole('button', { name: 'Select source to copy' }),
-  ).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Copy source' })).toHaveText(
+    'Select source to copy',
+  )
+  await expect(page.getByRole('status')).toHaveText('Select source to copy')
+  await expect(page.locator('textarea')).toHaveCount(0)
 })
 
 test('recipe lab and source split only when both columns remain readable', async ({
   page,
 }) => {
-  await page.setViewportSize({ width: 1440, height: 1000 })
-  await page.goto('/examples/basic/')
+  for (const width of [320, 720, 1440]) {
+    await page.setViewportSize({ width, height: 1000 })
+    await page.goto('/examples/basic/?device=phone&orientation=portrait')
+    const disclosure = page.locator('.docs-recipe-source details')
+    await page.locator('.docs-recipe-source summary').click()
+    await expect(disclosure).toHaveAttribute('open', '')
 
-  const wideLayout = await page.evaluate(() => {
-    const bounds = (selector: string) => {
-      const rect = document.querySelector(selector)?.getBoundingClientRect()
-      if (!rect) throw new Error(`Missing ${selector}`)
-      return {
-        bottom: rect.bottom,
-        left: rect.left,
-        right: rect.right,
-        top: rect.top,
-        width: rect.width,
+    const layout = await page.evaluate(() => {
+      const bounds = (selector: string) => {
+        const element = document.querySelector(selector)
+        const rect = element?.getBoundingClientRect()
+        if (!(element instanceof HTMLElement) || !rect) {
+          throw new Error(`Missing ${selector}`)
+        }
+        return {
+          bottom: rect.bottom,
+          clientWidth: element.clientWidth,
+          left: rect.left,
+          right: rect.right,
+          scrollWidth: element.scrollWidth,
+          top: rect.top,
+          width: rect.width,
+        }
       }
-    }
-    return {
-      documentWidth: document.documentElement.scrollWidth,
-      preview: bounds('.docs-recipe-preview'),
-      source: bounds('.docs-recipe-source'),
-      viewportWidth: window.innerWidth,
-    }
-  })
-  expect(wideLayout.source.left).toBeGreaterThanOrEqual(
-    wideLayout.preview.right,
-  )
-  expect(wideLayout.preview.width).toBeGreaterThanOrEqual(400)
-  expect(wideLayout.source.width).toBeGreaterThanOrEqual(440)
-  expect(wideLayout.documentWidth).toBe(wideLayout.viewportWidth)
+      return {
+        controlsWrap: getComputedStyle(
+          document.querySelector('.docs-device-controls')!,
+        ).flexWrap,
+        details: bounds('.docs-recipe-source details'),
+        documentWidth: document.documentElement.scrollWidth,
+        guidance: bounds('.docs-recipe-guidance'),
+        preview: bounds('.docs-recipe-preview'),
+        scroller: bounds('.docs-recipe-source pre'),
+        source: bounds('.docs-recipe-source'),
+        viewportWidth: window.innerWidth,
+      }
+    })
 
-  await page.setViewportSize({ width: 720, height: 1000 })
-  const compactLayout = await page.evaluate(() => {
-    const top = (selector: string) => {
-      const rect = document.querySelector(selector)?.getBoundingClientRect()
-      if (!rect) throw new Error(`Missing ${selector}`)
-      return rect.top
+    expect(layout.documentWidth).toBe(width)
+    expect(layout.viewportWidth).toBe(width)
+    expect(layout.source.scrollWidth).toBe(layout.source.clientWidth)
+    expect(layout.details.scrollWidth).toBe(layout.details.clientWidth)
+    expect(layout.scroller.width).toBeLessThanOrEqual(layout.source.width)
+    expect(layout.scroller.scrollWidth).toBeGreaterThan(
+      layout.scroller.clientWidth,
+    )
+
+    if (width === 1440) {
+      expect(layout.source.left).toBeGreaterThanOrEqual(layout.preview.right)
+      expect(layout.preview.width).toBeGreaterThanOrEqual(400)
+      expect(layout.source.width).toBeGreaterThanOrEqual(440)
+    } else {
+      expect(layout.controlsWrap).toBe('wrap')
+      expect(layout.preview.top).toBeLessThan(layout.guidance.top)
+      expect(layout.guidance.top).toBeLessThan(layout.source.top)
     }
-    return {
-      controlsWrap: getComputedStyle(
-        document.querySelector('.docs-device-controls')!,
-      ).flexWrap,
-      documentWidth: document.documentElement.scrollWidth,
-      guidance: top('.docs-recipe-guidance'),
-      preview: top('.docs-recipe-preview'),
-      source: top('.docs-recipe-source'),
-      viewportWidth: window.innerWidth,
-    }
-  })
-  expect(compactLayout.controlsWrap).toBe('wrap')
-  expect(compactLayout.preview).toBeLessThan(compactLayout.guidance)
-  expect(compactLayout.guidance).toBeLessThan(compactLayout.source)
-  expect(compactLayout.documentWidth).toBe(compactLayout.viewportWidth)
+  }
 })
 
 for (const route of [
