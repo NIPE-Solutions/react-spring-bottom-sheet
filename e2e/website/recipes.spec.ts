@@ -1148,10 +1148,14 @@ test('highlighted source is a keyboard-readable disclosure with exact copy outpu
   await expect(lineNumbers).toHaveCount(expectedLines.length)
   expect(
     await lineNumbers.evaluateAll((numbers) =>
-      numbers.map((number) => ({
-        text: number.textContent,
-        userSelect: getComputedStyle(number).userSelect,
-      })),
+      numbers.map((number) => {
+        const style = getComputedStyle(number)
+        return {
+          text: number.textContent,
+          userSelect:
+            style.userSelect ?? style.getPropertyValue('-webkit-user-select'),
+        }
+      }),
     ),
   ).toEqual(
     expectedLines.map((_, index) => ({
@@ -1186,8 +1190,11 @@ test('highlighted source is a keyboard-readable disclosure with exact copy outpu
     })
   }, browserName === 'chromium')
 
-  const copyButton = page.getByRole('button', { name: 'Copy source' })
-  const copyStatus = page.getByRole('status')
+  const sourceRegion = page.getByRole('region', { name: 'Source' })
+  const copyButton = sourceRegion.getByRole('button', {
+    name: 'Copy source',
+  })
+  const copyStatus = sourceRegion.getByRole('status')
   await expect(copyStatus).toHaveAttribute('aria-live', 'polite')
   await expect(copyStatus).toHaveAttribute('aria-atomic', 'true')
   await copyButton.click()
@@ -1279,12 +1286,15 @@ test('every highlighted recipe copies its native DOM selection byte-for-byte', a
   for (const { filename, slug, source } of CANONICAL_RECIPE_SOURCES) {
     await page.goto(`/examples/${slug}/`)
     await page.locator('.docs-recipe-source summary').click()
-    const code = page.locator(
-      `pre[aria-label="Source code for ${filename}"] > code`,
+    const scroller = page.locator(
+      `pre[aria-label="Source code for ${filename}"]`,
     )
+    const code = scroller.locator(':scope > code')
     await expect(code.locator('[data-line]')).toHaveCount(
       source.split('\n').length,
     )
+    await scroller.focus()
+    await expect(scroller).toBeFocused()
 
     await code.evaluate((element) => {
       const selection = window.getSelection()
@@ -1310,7 +1320,7 @@ test('every highlighted recipe copies its native DOM selection byte-for-byte', a
       )
     })
 
-    await page.keyboard.press('ControlOrMeta+C')
+    await scroller.press('ControlOrMeta+C')
     await expect
       .poll(() =>
         page.evaluate(
@@ -1347,12 +1357,15 @@ test('highlighted source copies exact bytes through the selection fallback', asy
     }
   })
 
-  const copyButton = page.getByRole('button', { name: 'Copy source' })
+  const sourceRegion = page.getByRole('region', { name: 'Source' })
+  const copyButton = sourceRegion.getByRole('button', {
+    name: 'Copy source',
+  })
   await copyButton.focus()
   await page.keyboard.press('Enter')
   await expect(copyButton).toHaveText('Copy source')
   await expect(copyButton).toBeFocused()
-  await expect(page.getByRole('status')).toHaveText('Copied')
+  await expect(sourceRegion.getByRole('status')).toHaveText('Copied')
   expect(
     await page.evaluate(
       () => (window as Window & { fallbackSource?: string }).fallbackSource,
@@ -1384,12 +1397,17 @@ test('highlighted source cleans up and reports unavailable selection fallbacks',
       })
     }, fallback)
 
-    const copyButton = page.getByRole('button', { name: 'Copy source' })
+    const sourceRegion = page.getByRole('region', { name: 'Source' })
+    const copyButton = sourceRegion.getByRole('button', {
+      name: 'Copy source',
+    })
     await copyButton.focus()
     await page.keyboard.press('Enter')
     await expect(copyButton).toHaveText('Copy source')
     await expect(copyButton).toBeFocused()
-    await expect(page.getByRole('status')).toHaveText('Select source to copy')
+    await expect(sourceRegion.getByRole('status')).toHaveText(
+      'Select source to copy',
+    )
     await expect(page.locator('textarea')).toHaveCount(0)
   }
 })
@@ -1408,12 +1426,17 @@ test('highlighted source reports a false selection fallback result', async ({
     document.execCommand = () => false
   })
 
-  const copyButton = page.getByRole('button', { name: 'Copy source' })
+  const sourceRegion = page.getByRole('region', { name: 'Source' })
+  const copyButton = sourceRegion.getByRole('button', {
+    name: 'Copy source',
+  })
   await copyButton.focus()
   await page.keyboard.press('Enter')
   await expect(copyButton).toHaveText('Copy source')
   await expect(copyButton).toBeFocused()
-  await expect(page.getByRole('status')).toHaveText('Select source to copy')
+  await expect(sourceRegion.getByRole('status')).toHaveText(
+    'Select source to copy',
+  )
   await expect(page.locator('textarea')).toHaveCount(0)
 })
 
