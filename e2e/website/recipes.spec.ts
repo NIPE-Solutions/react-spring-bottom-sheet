@@ -1168,8 +1168,9 @@ test('highlighted source is a keyboard-readable disclosure with exact copy outpu
   const copyButton = page.getByRole('button', { name: 'Copy source' })
   const copyStatus = page.getByRole('status')
   await expect(copyStatus).toHaveAttribute('aria-live', 'polite')
+  await expect(copyStatus).toHaveAttribute('aria-atomic', 'true')
   await copyButton.click()
-  await expect(copyButton).toHaveText('Copied')
+  await expect(copyButton).toHaveText('Copy source')
   await expect(copyStatus).toHaveText('Copied')
   const copiedSource =
     browserName === 'chromium'
@@ -1179,11 +1180,37 @@ test('highlighted source is a keyboard-readable disclosure with exact copy outpu
         )
   expect(copiedSource).toBe(BASIC_RECIPE_SOURCE)
 
-  await expect(copyButton).toHaveText('Copy source')
-  await expect(copyStatus).toBeEmpty()
+  await copyStatus.evaluate((status) => {
+    const state = window as Window & {
+      copyStatusMutationCount?: number
+      copyStatusObserver?: MutationObserver
+    }
+    state.copyStatusMutationCount = 0
+    state.copyStatusObserver?.disconnect()
+    state.copyStatusObserver = new MutationObserver((records) => {
+      state.copyStatusMutationCount =
+        (state.copyStatusMutationCount ?? 0) +
+        records.filter((record) => record.type === 'childList').length
+    })
+    state.copyStatusObserver.observe(status, {
+      childList: true,
+      subtree: true,
+    })
+  })
   await copyButton.click()
-  await expect(copyButton).toHaveText('Copied')
+  await expect(copyButton).toHaveText('Copy source')
   await expect(copyStatus).toHaveText('Copied')
+  await expect
+    .poll(() =>
+      page.evaluate(
+        () =>
+          (window as Window & { copyStatusMutationCount?: number })
+            .copyStatusMutationCount ?? 0,
+      ),
+    )
+    .toBeGreaterThan(0)
+  await expect(copyStatus).toBeEmpty({ timeout: 5_000 })
+  await expect(copyButton).toHaveText('Copy source')
 })
 
 test('highlighted source copies exact bytes through the selection fallback', async ({
@@ -1207,10 +1234,9 @@ test('highlighted source copies exact bytes through the selection fallback', asy
     }
   })
 
-  await page.getByRole('button', { name: 'Copy source' }).click()
-  await expect(page.getByRole('button', { name: 'Copy source' })).toHaveText(
-    'Copied',
-  )
+  const copyButton = page.getByRole('button', { name: 'Copy source' })
+  await copyButton.click()
+  await expect(copyButton).toHaveText('Copy source')
   await expect(page.getByRole('status')).toHaveText('Copied')
   expect(
     await page.evaluate(
@@ -1245,7 +1271,7 @@ test('highlighted source cleans up and reports unavailable selection fallbacks',
 
     const copyButton = page.getByRole('button', { name: 'Copy source' })
     await copyButton.click()
-    await expect(copyButton).toHaveText('Select source to copy')
+    await expect(copyButton).toHaveText('Copy source')
     await expect(page.getByRole('status')).toHaveText('Select source to copy')
     await expect(page.locator('textarea')).toHaveCount(0)
   }
@@ -1265,10 +1291,9 @@ test('highlighted source reports a false selection fallback result', async ({
     document.execCommand = () => false
   })
 
-  await page.getByRole('button', { name: 'Copy source' }).click()
-  await expect(page.getByRole('button', { name: 'Copy source' })).toHaveText(
-    'Select source to copy',
-  )
+  const copyButton = page.getByRole('button', { name: 'Copy source' })
+  await copyButton.click()
+  await expect(copyButton).toHaveText('Copy source')
   await expect(page.getByRole('status')).toHaveText('Select source to copy')
   await expect(page.locator('textarea')).toHaveCount(0)
 })

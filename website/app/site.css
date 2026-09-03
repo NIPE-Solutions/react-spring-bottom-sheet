@@ -930,7 +930,16 @@
     align-items: center;
     flex-wrap: wrap;
   }
-  .docs-recipe-source-copy,
+  .docs-recipe-source-copy {
+    display: flex;
+    flex: none;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.35rem 0.75rem;
+    min-width: 0;
+    max-width: 100%;
+  }
   .docs-recipe-source .docs-recipe-section-heading button {
     flex: none;
   }
@@ -938,12 +947,11 @@
     min-width: 7.5rem;
   }
   .docs-recipe-source-copy-status {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    overflow: hidden;
-    clip-path: inset(50%);
-    white-space: nowrap;
+    min-width: 0;
+    color: var(--docs-muted);
+    font-size: 0.82rem;
+    line-height: 1.25;
+    overflow-wrap: anywhere;
   }
   .docs-recipe-source pre {
     width: 100%;
