@@ -103,7 +103,7 @@
     "rimraf": "^6.1.2",
     "serve": "^14.2.6",
     "typescript": "^6.0.3",
-    "vite": "^7.3.6",
+    "vite": "^8.2.2",
     "vitest": "^4.1.11",
     "yaml": "^2.9.0"
   },
@@ -120,5 +120,9 @@
   "prettier": {
     "semi": false,
     "singleQuote": true
+  },
+  "allowScripts": {
+    "fsevents@2.3.3": true,
+    "fsevents@2.3.2": true
   }
 }
