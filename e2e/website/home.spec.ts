@@ -1,5 +1,10 @@
 import { expect, test } from '@playwright/test'
 import AxeBuilder from '@axe-core/playwright'
+import { readFileSync } from 'node:fs'
+
+const packageVersion = JSON.parse(
+  readFileSync(new URL('../../package.json', import.meta.url), 'utf8'),
+).version as string
 
 test('homepage presents generated package evidence and useful next steps', async ({
   page,
@@ -15,7 +20,7 @@ test('homepage presents generated package evidence and useful next steps', async
   const evidence = page.getByRole('region', {
     name: 'What the current build proves.',
   })
-  await expect(evidence).toContainText('5.0.0-alpha.0')
+  await expect(evidence).toContainText(packageVersion)
   await expect(evidence).toContainText('10.6 kB gzip')
   await expect(evidence).toContainText('Chromium, Firefox, WebKit')
   await expect(evidence).toContainText('React ^19.0.0')

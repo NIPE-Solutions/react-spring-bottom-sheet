@@ -33,9 +33,9 @@ export default function Accessibility() {
             <p>
               Automated accessibility scans, keyboard interaction tests, narrow
               viewport checks, and browser tests run in the project suite.
-              Manual assistive-technology and physical-device checks complement
-              automation because automated scans cannot verify the complete
-              screen-reader experience.
+              Manual assistive-technology and physical-device checks remain a
+              separate release sign-off because automated scans cannot verify
+              the complete screen-reader experience.
             </p>
           ),
         },

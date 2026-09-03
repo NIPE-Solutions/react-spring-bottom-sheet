@@ -2,11 +2,36 @@ import AxeBuilder from '@axe-core/playwright'
 import { expect, test } from '@playwright/test'
 
 const routes = [
-  { path: '/impressum/', heading: 'Impressum' },
-  { path: '/privacy/', heading: 'Privacy' },
-  { path: '/de/impressum/', heading: 'Impressum' },
-  { path: '/de/datenschutz/', heading: 'Datenschutz' },
-  { path: '/accessibility/', heading: 'Accessibility' },
+  {
+    path: '/impressum/',
+    heading: 'Impressum',
+    language: 'en',
+    contact: 'Operator contact',
+  },
+  {
+    path: '/privacy/',
+    heading: 'Privacy',
+    language: 'en',
+    contact: 'Operator contact',
+  },
+  {
+    path: '/de/impressum/',
+    heading: 'Impressum',
+    language: 'de',
+    contact: 'Betreiberkontakt',
+  },
+  {
+    path: '/de/datenschutz/',
+    heading: 'Datenschutz',
+    language: 'de',
+    contact: 'Kontakt des Verantwortlichen',
+  },
+  {
+    path: '/accessibility/',
+    heading: 'Accessibility',
+    language: 'en',
+    contact: 'Operator contact',
+  },
 ] as const
 
 for (const route of routes) {
@@ -19,9 +44,10 @@ for (const route of routes) {
     await expect(
       page.getByRole('heading', { level: 1, name: route.heading }),
     ).toBeVisible()
+    await expect(page.locator('main')).toHaveAttribute('lang', route.language)
     await expect(
       page
-        .getByLabel('Operator contact')
+        .getByLabel(route.contact)
         .getByRole('link', { name: 'office@nipesolutions.com' }),
     ).toHaveAttribute('href', 'mailto:office@nipesolutions.com')
 

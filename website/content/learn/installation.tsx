@@ -11,15 +11,25 @@ export function InstallationGuide() {
         <h2>Package</h2>
         <p>
           Install the package alongside React 19 and React DOM 19.{' '}
-          {release.prerelease ? (
+          {release.prerelease && !release.published ? (
             <>
-              <strong>Prerelease channel</strong>: version{' '}
-              {buildEvidence.version} is available from npm&apos;s{' '}
+              <strong>Planned prerelease channel</strong>: version{' '}
+              {buildEvidence.version} is not published yet. After publication,
+              it will be available from npm&apos;s{' '}
               <code>{release.channel}</code> tag while version 5 completes
               consumer validation.
             </>
+          ) : release.prerelease ? (
+            <>
+              <strong>Prerelease channel</strong>: version{' '}
+              {buildEvidence.version} is available from npm&apos;s{' '}
+              <code>{release.channel}</code> tag.
+            </>
           ) : null}
         </p>
+        {release.prerelease && !release.published ? (
+          <p>After prerelease publication:</p>
+        ) : null}
         <pre>
           <code>{release.installCommand}</code>
         </pre>

@@ -9,7 +9,7 @@ export function AccessibilityProof() {
         <p>
           Semantic roles are only the beginning. Modal sheets establish an
           accessible name, move and contain focus, isolate background content,
-          handle Escape, and restore focus after the closing motion.
+          handle Escape, and restore focus when the sheet closes.
         </p>
         <Link href="/docs/accessibility/">Review accessibility behavior</Link>
       </div>

@@ -532,6 +532,17 @@
     padding: 1rem;
     background: var(--docs-panel);
   }
+  .docs-install-label,
+  .docs-launch-command-label {
+    color: var(--docs-muted);
+    font-size: 0.78rem;
+  }
+  .docs-launch-command-label {
+    flex-basis: 100%;
+    margin-bottom: -0.4rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
   .docs-quick-start {
     display: grid;
     grid-template-columns: minmax(15rem, 0.72fr) minmax(0, 1.28fr);

@@ -102,7 +102,7 @@ export const docs = [
       {
         id: 'close-completion',
         title: 'Wait for the visual lifecycle',
-        body: 'The sheet remains mounted while its closing motion completes, then restores focus to the initiating control. Coordinate application state through the public callbacks instead of timers tied to an assumed animation duration.',
+        body: 'The sheet remains mounted while its closing motion completes. Focus returns to the initiating control when close state is entered, while the visual exit finishes independently. Coordinate application state through public callbacks instead of timers tied to an assumed animation duration.',
       },
     ],
   },
@@ -163,7 +163,7 @@ export const docs = [
         id: 'custom-container',
         title: 'Own an embedded surface',
         body: 'Pass a concrete container when the sheet belongs inside a phone preview, editor canvas, or isolated application shell. The container must establish the size and clipping boundary that Sheet.Viewport should fill.',
-        code: '<Sheet.Portal container={previewRef.current}>\n  <Sheet.Viewport>…</Sheet.Viewport>\n</Sheet.Portal>',
+        code: 'const [container, setContainer] = useState<HTMLDivElement | null>(null)\n\nreturn (\n  <div ref={setContainer}>\n    <Sheet.Portal container={container}>…</Sheet.Portal>\n  </div>\n)',
       },
       {
         id: 'stacking-contexts',

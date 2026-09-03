@@ -12,14 +12,23 @@ export function LegalPage({
   title,
   intro,
   sections,
+  language = 'en',
+  contactLabel = 'Operator contact',
 }: {
   eyebrow: string
   title: string
   intro: string
   sections: readonly LegalSection[]
+  language?: 'de' | 'en'
+  contactLabel?: string
 }) {
   return (
-    <main id="content" className="docs-legal-page" tabIndex={-1}>
+    <main
+      id="content"
+      className="docs-legal-page"
+      lang={language}
+      tabIndex={-1}
+    >
       <header>
         <p className="docs-route">{eyebrow}</p>
         <h1>{title}</h1>
@@ -34,7 +43,7 @@ export function LegalPage({
             </section>
           ))}
         </article>
-        <aside aria-label="Operator contact">
+        <aside aria-label={contactLabel}>
           <p>{legalOperator.company}</p>
           <p>
             {legalOperator.street}

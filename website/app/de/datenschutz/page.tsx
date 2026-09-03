@@ -17,6 +17,8 @@ export default function Datenschutz() {
     <LegalPage
       eyebrow="Rechtliches / Datenschutz"
       title="Datenschutz"
+      language="de"
+      contactLabel="Kontakt des Verantwortlichen"
       intro="Diese Erklärung beschreibt die begrenzte Verarbeitung, die für Bereitstellung und Schutz dieser statischen Dokumentationswebsite erforderlich ist."
       sections={[
         {
@@ -82,8 +84,15 @@ export default function Datenschutz() {
               Bei einer Kontaktaufnahme per E-Mail werden die übermittelten
               Daten zur Bearbeitung der Anfrage und nur so lange gespeichert,
               wie dies dafür oder aufgrund gesetzlicher Pflichten erforderlich
-              ist. Betriebsprotokolle werden nach den konfigurierten
-              Sicherheits- und Servicefristen des Hosting-Anbieters begrenzt.
+              ist. Rechtsgrundlage ist Art. 6 Abs. 1 lit. b DSGVO, soweit die
+              Anfrage einen Vertrag oder vorvertragliche Maßnahmen betrifft,
+              andernfalls Art. 6 Abs. 1 lit. f DSGVO—das berechtigte Interesse
+              an der Beantwortung von Projekt- und Geschäftskorrespondenz. Ein
+              E-Mail-Dienstleister kann die Nachricht im Auftrag und, soweit
+              erforderlich, unter geeigneten Garantien für internationale
+              Übermittlungen verarbeiten. Betriebsprotokolle werden nach den
+              konfigurierten Sicherheits- und Servicefristen des
+              Hosting-Anbieters begrenzt.
             </p>
           ),
         },

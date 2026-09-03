@@ -7,6 +7,7 @@ test('prereleases install from the next channel', () => {
     installCommand:
       'npm install @nipe-solutions/react-spring-bottom-sheet@next',
     prerelease: true,
+    published: false,
   })
 })
 
@@ -15,5 +16,6 @@ test('stable releases install from the default channel', () => {
     channel: 'latest',
     installCommand: 'npm install @nipe-solutions/react-spring-bottom-sheet',
     prerelease: false,
+    published: true,
   })
 })

@@ -82,7 +82,13 @@ export default function Privacy() {
               If you contact the operator by email, the supplied contact and
               message data is processed to answer your request and retained only
               as long as needed for that purpose or applicable legal
-              obligations. Operational log retention is limited by the hosting
+              obligations. The legal basis is Article 6(1)(b) GDPR where the
+              request concerns a contract or steps before a contract, and
+              otherwise Article 6(1)(f) GDPR—the legitimate interest in
+              answering project and business correspondence. An email service
+              provider may process the message on the controller’s behalf and,
+              where applicable, under appropriate international-transfer
+              safeguards. Operational log retention is limited by the hosting
               provider’s configured service and security requirements.
             </p>
           ),

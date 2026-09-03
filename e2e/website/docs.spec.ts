@@ -8,6 +8,9 @@ const generatedPublicApi = JSON.parse(
     'utf8',
   ),
 ) as readonly { id: string }[]
+const packageVersion = JSON.parse(
+  readFileSync(new URL('../../package.json', import.meta.url), 'utf8'),
+).version as string
 
 test('home page exposes navigation and a working sheet', async ({ page }) => {
   await page.goto('/')
@@ -55,18 +58,26 @@ test('documentation navigation covers integration and operations', async ({
   }
 })
 
-test('prerelease installation uses the next npm channel', async ({ page }) => {
+test('installation instructions match the package release state', async ({
+  page,
+}) => {
   await page.goto('/docs/installation/')
 
+  const prerelease = packageVersion.includes('-')
   await expect(
     page.getByText(
-      'npm install @nipe-solutions/react-spring-bottom-sheet@next',
+      `npm install @nipe-solutions/react-spring-bottom-sheet${
+        prerelease ? '@next' : ''
+      }`,
       { exact: true },
     ),
   ).toBeVisible()
-  await expect(
-    page.getByText('Prerelease channel', { exact: true }),
-  ).toBeVisible()
+  const plannedChannel = page.getByText('Planned prerelease channel', {
+    exact: true,
+  })
+  const unpublished = page.getByText('is not published yet', { exact: false })
+  await expect(plannedChannel).toHaveCount(prerelease ? 1 : 0)
+  await expect(unpublished).toHaveCount(prerelease ? 1 : 0)
 })
 
 test('documentation shell exposes location and adjacent routes', async ({

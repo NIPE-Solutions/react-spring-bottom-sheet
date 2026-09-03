@@ -16,6 +16,8 @@ export default function Impressum() {
     <LegalPage
       eyebrow="Rechtliches / Anbieterinformation"
       title="Impressum"
+      language="de"
+      contactLabel="Betreiberkontakt"
       intro="Anbieterkennzeichnung, Offenlegung und Medieninhaber der Website und des Open-Source-Projekts React Spring Bottom Sheet."
       sections={[
         {
