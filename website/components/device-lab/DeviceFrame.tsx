@@ -8,7 +8,12 @@ import {
   useRef,
 } from 'react'
 import type { CSSProperties, ReactNode } from 'react'
-import type { Device, DevicePreset, Orientation } from './device-config'
+import type {
+  Device,
+  DevicePreset,
+  DeviceSelection,
+  Orientation,
+} from './device-config'
 import { useScaledFrame } from './use-scaled-frame'
 
 const FRAME_INSET = 1
@@ -32,23 +37,30 @@ type InterruptedPresentation = Readonly<{
   stageHeight: number
 }>
 
+type FrozenKeyframe = Readonly<{
+  borderRadius?: string
+  height?: string
+  transform?: string
+  width?: string
+}>
+
 type DeviceFrameProps = Readonly<{
   children: ReactNode
   device: Device
   embedHref: string
-  morphKey: number | undefined
+  morphRequest: (DeviceSelection & { key: number }) | null
   orientation: Orientation
   preset: DevicePreset
   status: 'loading' | 'ready' | 'failed'
 }>
 
 export type DeviceFrameHandle = Readonly<{
-  capturePresentation(): void
+  freezePresentation(): void
 }>
 
 export const DeviceFrame = forwardRef<DeviceFrameHandle, DeviceFrameProps>(
   function DeviceFrame(
-    { children, device, embedHref, morphKey, orientation, preset, status },
+    { children, device, embedHref, morphRequest, orientation, preset, status },
     ref,
   ) {
     const outerWidth = preset.width + FRAME_INSET * 2
@@ -62,6 +74,7 @@ export const DeviceFrame = forwardRef<DeviceFrameHandle, DeviceFrameProps>(
     const sizerRef = useRef<HTMLDivElement>(null)
     const previousPresentation = useRef<FramePresentation | null>(null)
     const interruptedPresentation = useRef<InterruptedPresentation | null>(null)
+    const frozenAnimations = useRef<Animation[]>([])
     const consumedMorphKey = useRef<number | undefined>(undefined)
     const radius = device === 'phone' ? '1.75rem' : '1.15rem'
     const frameStyle = {
@@ -79,11 +92,11 @@ export const DeviceFrame = forwardRef<DeviceFrameHandle, DeviceFrameProps>(
       const screen = screenRef.current
       const sizer = sizerRef.current
       const stage = stageRef.current
-      if (!frame || !screen || !sizer || !stage) return
+      if (!frame || !screen || !sizer || !stage) return null
 
       const frameBounds = frame.getBoundingClientRect()
       const sizerBounds = sizer.getBoundingClientRect()
-      interruptedPresentation.current = {
+      const presentation = {
         frameHeight: frameBounds.height,
         frameRadius: getComputedStyle(frame).borderTopLeftRadius,
         frameWidth: frameBounds.width,
@@ -92,10 +105,52 @@ export const DeviceFrame = forwardRef<DeviceFrameHandle, DeviceFrameProps>(
         sizerWidth: sizerBounds.width,
         stageHeight: stage.getBoundingClientRect().height,
       }
+      interruptedPresentation.current = presentation
+      return presentation
     }, [stageRef])
-    useImperativeHandle(ref, () => ({ capturePresentation }), [
-      capturePresentation,
+    const freezePresentation = useCallback(() => {
+      const frame = frameRef.current
+      const screen = screenRef.current
+      const sizer = sizerRef.current
+      const stage = stageRef.current
+      if (!frame || !screen || !sizer || !stage) return
+
+      const elements = [stage, sizer, frame, screen]
+      const activeAnimations = elements.flatMap((element) =>
+        Array.from(element.getAnimations?.() ?? []),
+      )
+      const presentation = capturePresentation()
+      if (!presentation || activeAnimations.length === 0) return
+      for (const animation of activeAnimations) animation.cancel()
+      const options = { duration: MORPH_DURATION_MS, fill: 'both' as const }
+      const hold = (element: Element, keyframe: FrozenKeyframe) =>
+        element.animate([keyframe, keyframe], options)
+      frozenAnimations.current = [
+        hold(stage, {
+          height: `${presentation.stageHeight}px`,
+        }),
+        hold(sizer, {
+          height: `${presentation.sizerHeight}px`,
+          width: `${presentation.sizerWidth}px`,
+        }),
+        hold(frame, {
+          borderRadius: presentation.frameRadius,
+          transform: `scale(${presentation.frameWidth / outerWidth}, ${presentation.frameHeight / outerHeight})`,
+        }),
+        hold(screen, {
+          borderRadius: presentation.screenRadius,
+        }),
+      ]
+    }, [capturePresentation, outerHeight, outerWidth, stageRef])
+    useImperativeHandle(ref, () => ({ freezePresentation }), [
+      freezePresentation,
     ])
+
+    const acceptedMorphKey =
+      morphRequest?.device === device &&
+      morphRequest.orientation === orientation
+        ? morphRequest.key
+        : consumedMorphKey.current
 
     useLayoutEffect(() => {
       const frame = frameRef.current
@@ -110,17 +165,19 @@ export const DeviceFrame = forwardRef<DeviceFrameHandle, DeviceFrameProps>(
       previousPresentation.current = currentPresentation
       interruptedPresentation.current = null
       const shouldMorph =
-        morphKey !== undefined && morphKey !== consumedMorphKey.current
+        acceptedMorphKey !== undefined &&
+        acceptedMorphKey !== consumedMorphKey.current
 
       for (const element of [stage, sizer, frame, screen]) {
         for (const animation of element.getAnimations?.() ?? []) {
           animation.cancel()
         }
       }
+      frozenAnimations.current = []
       frame.dataset.morphing = 'false'
 
       if (!shouldMorph || !previous) return
-      consumedMorphKey.current = morphKey
+      consumedMorphKey.current = acceptedMorphKey
       if (
         window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ||
         !stage.animate ||
@@ -202,11 +259,13 @@ export const DeviceFrame = forwardRef<DeviceFrameHandle, DeviceFrameProps>(
           capturePresentation()
         unfinished = false
         for (const animation of animations) animation.cancel()
+        for (const animation of frozenAnimations.current) animation.cancel()
+        frozenAnimations.current = []
         frame.dataset.morphing = 'false'
       }
     }, [
       capturePresentation,
-      morphKey,
+      acceptedMorphKey,
       outerHeight,
       outerWidth,
       radius,

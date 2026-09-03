@@ -54,7 +54,6 @@ export function DeviceLab({ slug, title }: DeviceLabProps) {
   const [morphRequest, setMorphRequest] = useState<
     (DeviceSelection & { key: number }) | null
   >(null)
-  const appliedMorphKey = useRef<number | undefined>(undefined)
 
   useEffect(() => {
     if (isValidSelection(searchParams)) return
@@ -74,26 +73,19 @@ export function DeviceLab({ slug, title }: DeviceLabProps) {
     )
       return
 
-    deviceFrameRef.current?.capturePresentation()
+    deviceFrameRef.current?.freezePresentation()
     nextMorphKey.current += 1
     setMorphRequest({ ...nextSelection, key: nextMorphKey.current })
     const nextParams = withSelection(searchParams, nextSelection)
     router.push(`${pathname}?${nextParams.toString()}`)
   }
-  if (
-    morphRequest?.device === selection.device &&
-    morphRequest.orientation === selection.orientation
-  ) {
-    appliedMorphKey.current = morphRequest.key
-  }
-
   return (
     <div className="docs-device-lab">
       <DeviceControls selection={selection} onChange={handleChange} />
       <DeviceFrame
         device={selection.device}
         embedHref={embedHref}
-        morphKey={appliedMorphKey.current}
+        morphRequest={morphRequest}
         orientation={selection.orientation}
         preset={preset}
         ref={deviceFrameRef}
@@ -119,7 +111,7 @@ export function DeviceLabFallback({ slug, title }: DeviceLabProps) {
       <DeviceFrame
         device={DEFAULT_DEVICE_SELECTION.device}
         embedHref={embedHref}
-        morphKey={undefined}
+        morphRequest={null}
         orientation={DEFAULT_DEVICE_SELECTION.orientation}
         preset={preset}
         status="loading"

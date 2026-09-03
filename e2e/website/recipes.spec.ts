@@ -234,15 +234,24 @@ test('device lab interrupts a morph from its live geometry without replacing the
       element.dataset.interruptionMarker = 'same-document'
     })
 
-  const pauseAnimationsAt = (time: number) =>
-    page.locator('.docs-device-lab').evaluate(async (element, currentTime) => {
-      const animations = element.getAnimations({ subtree: true })
-      for (const animation of animations) {
-        animation.pause()
-      }
-      await Promise.all(animations.map((animation) => animation.ready))
-      for (const animation of animations) animation.currentTime = currentTime
-    }, time)
+  const setAnimationsAt = (time: number, paused: boolean) =>
+    page.locator('.docs-device-lab').evaluate(
+      async (element, state) => {
+        const animations = element.getAnimations({ subtree: true })
+        if (state.paused) {
+          for (const animation of animations) animation.pause()
+          await Promise.all(animations.map((animation) => animation.ready))
+          for (const animation of animations) animation.currentTime = state.time
+        } else {
+          for (const animation of animations) {
+            animation.currentTime = state.time
+            animation.play()
+          }
+          await Promise.all(animations.map((animation) => animation.ready))
+        }
+      },
+      { paused, time },
+    )
   const readGeometry = () =>
     page.evaluate(() => {
       const bounds = (selector: string) => {
@@ -261,26 +270,148 @@ test('device lab interrupts a morph from its live geometry without replacing the
         stage: bounds('.docs-recipe-stage'),
       }
     })
+  type DeviceLabGeometry = Awaited<ReturnType<typeof readGeometry>>
 
   await page.getByRole('button', { name: 'Landscape' }).click()
   await expect(frame).toHaveAttribute('data-morphing', 'true')
-  await pauseAnimationsAt(140)
-  const interrupted = await readGeometry()
+  await setAnimationsAt(90, false)
 
-  await page.getByRole('button', { name: 'Tablet' }).click()
+  let releaseNavigation = () => {}
+  let markNavigationBlocked = () => {}
+  let blockNextNavigation = true
+  const navigationBlocked = new Promise<void>((resolve) => {
+    markNavigationBlocked = resolve
+  })
+  await page.route('**/*', async (route) => {
+    const request = route.request()
+    const url = new URL(request.url())
+    if (
+      request.resourceType() === 'fetch' &&
+      url.pathname.includes('/examples/basic') &&
+      !url.pathname.includes('/embed') &&
+      blockNextNavigation
+    ) {
+      blockNextNavigation = false
+      markNavigationBlocked()
+      await new Promise<void>((resolve) => {
+        releaseNavigation = resolve
+      })
+    }
+    await route.continue()
+  })
+  await page.evaluate(() => {
+    type Geometry = {
+      frame: { height: number; left: number; top: number; width: number }
+      sizer: { height: number; left: number; top: number; width: number }
+      stage: { height: number; left: number; top: number; width: number }
+    }
+    const testWindow = window as typeof window & {
+      deviceLabInterruption?: {
+        event: Geometry | null
+        samples: Geometry[]
+        started: boolean
+        stopped: boolean
+      }
+    }
+    const read = () => {
+      const bounds = (selector: string) => {
+        const rect = document.querySelector(selector)?.getBoundingClientRect()
+        if (!rect) throw new Error(`Missing ${selector}`)
+        return {
+          height: rect.height,
+          left: rect.left,
+          top: rect.top,
+          width: rect.width,
+        }
+      }
+      return {
+        frame: bounds('.docs-device-frame'),
+        sizer: bounds('.docs-device-frame-sizer'),
+        stage: bounds('.docs-recipe-stage'),
+      }
+    }
+    const interruption: NonNullable<typeof testWindow.deviceLabInterruption> = {
+      event: null,
+      samples: [],
+      started: false,
+      stopped: false,
+    }
+    testWindow.deviceLabInterruption = interruption
+    document.addEventListener(
+      'click',
+      (event) => {
+        const target = event.target
+        if (
+          target instanceof HTMLButtonElement &&
+          target.textContent === 'Tablet'
+        ) {
+          interruption.samples = []
+          interruption.started = true
+        }
+      },
+      { once: true },
+    )
+    const sample = () => {
+      if (interruption.stopped) return
+      if (interruption.started) {
+        const geometry = read()
+        if (interruption.event) interruption.samples.push(geometry)
+        else interruption.event = geometry
+      }
+      requestAnimationFrame(sample)
+    }
+    requestAnimationFrame(sample)
+  })
+
+  await page.getByRole('button', { name: 'Tablet' }).dispatchEvent('click')
+  await navigationBlocked
+  await page.waitForTimeout(80)
+  const blockedPresentation = await page.evaluate(() => {
+    const testWindow = window as typeof window & {
+      deviceLabInterruption?: {
+        event: DeviceLabGeometry | null
+        samples: DeviceLabGeometry[]
+        started: boolean
+        stopped: boolean
+      }
+    }
+    if (testWindow.deviceLabInterruption) {
+      testWindow.deviceLabInterruption.stopped = true
+    }
+    return testWindow.deviceLabInterruption
+  })
+  if (!blockedPresentation?.event) {
+    throw new Error('Missing interruption geometry')
+  }
+  expect(blockedPresentation?.samples.length).toBeGreaterThan(1)
+  releaseNavigation()
   await expect(page).toHaveURL(/device=tablet&orientation=landscape$/)
   await expect(frame).toHaveAttribute('data-morphing', 'true')
-  await pauseAnimationsAt(0)
+  await setAnimationsAt(0, true)
   const replacementStart = await readGeometry()
+
+  const eventGeometry = blockedPresentation.event
+  for (const sample of blockedPresentation.samples) {
+    for (const element of ['frame', 'sizer', 'stage'] as const) {
+      for (const dimension of ['height', 'left', 'top', 'width'] as const) {
+        expect(
+          Math.abs(
+            eventGeometry[element][dimension] - sample[element][dimension],
+          ),
+          `${element}.${dimension} should stay frozen through URL reconciliation`,
+        ).toBeLessThan(1)
+      }
+    }
+  }
 
   for (const element of ['frame', 'sizer', 'stage'] as const) {
     for (const dimension of ['height', 'left', 'top', 'width'] as const) {
       expect(
         Math.abs(
-          interrupted[element][dimension] -
+          eventGeometry[element][dimension] -
             replacementStart[element][dimension],
         ),
-        `${element}.${dimension} should remain continuous (${interrupted[element][dimension]} -> ${replacementStart[element][dimension]})`,
+        `${element}.${dimension} should remain continuous (${eventGeometry[element][dimension]} -> ${replacementStart[element][dimension]})`,
       ).toBeLessThan(1)
     }
   }
@@ -301,6 +432,11 @@ test('device lab interrupts a morph from its live geometry without replacing the
     }
   })
   await expect(frame).toHaveAttribute('data-morphing', 'false')
+  expect(
+    await page
+      .locator('.docs-device-lab')
+      .evaluate((element) => element.getAnimations({ subtree: true }).length),
+  ).toBe(0)
   expect(
     await iframe.evaluate((element) => {
       if (!(element instanceof HTMLIFrameElement)) {
