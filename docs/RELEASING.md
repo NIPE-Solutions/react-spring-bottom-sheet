@@ -42,10 +42,12 @@ Connect; it does not use a long-lived npm write token.
 4. Confirm CI and the Vercel preview are green. Successful Ubuntu WebKit is the
    final browser integration evidence; the checked scenario inventory does not
    replace browser execution.
-5. Complete every manual sign-off in
-   [`docs/releases/v5-alpha-readiness.md`](releases/v5-alpha-readiness.md),
-   including the physical-device, accessibility, production-domain, and
-   external protection checks.
+5. Complete every manual sign-off by using
+   [`docs/releases/v5-alpha-readiness.md`](releases/v5-alpha-readiness.md) as the
+   checklist and recording results in a version-specific file such as
+   [`docs/releases/v5-alpha.0-signoff.md`](releases/v5-alpha.0-signoff.md).
+   Physical-device, accessibility, production-domain, and external protection
+   checks must remain distinguishable from automated evidence.
 6. Merge the reviewed release commit. Do not bypass branch protection.
 7. After merge, and only when a maintainer explicitly authorizes publication,
    run the `Release` workflow from the release commit with channel `next` and
