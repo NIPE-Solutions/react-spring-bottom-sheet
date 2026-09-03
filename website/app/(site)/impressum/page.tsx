@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
-import { LegalPage } from '../../components/LegalPage'
-import { legalOperator } from '../../content/legal'
+import { LegalPage } from '../../../components/LegalPage'
+import { legalOperator } from '../../../content/legal'
 
 export const metadata: Metadata = {
   title: 'Impressum',

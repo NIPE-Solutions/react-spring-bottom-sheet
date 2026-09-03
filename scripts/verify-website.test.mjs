@@ -76,13 +76,27 @@ test('the website publishes search and social metadata routes', () => {
   }
 })
 
+test('recipe embeds are statically generated and excluded from search', () => {
+  const embedPage = readFileSync(
+    new URL(
+      '../website/app/(embed)/examples/[slug]/embed/page.tsx',
+      import.meta.url,
+    ),
+    'utf8',
+  )
+
+  assert.match(embedPage, /generateStaticParams/)
+  assert.match(embedPage, /index:\s*false/)
+  assert.match(embedPage, /follow:\s*false/)
+})
+
 test('the website publishes its legal and accessibility routes', () => {
   for (const path of [
-    '../website/app/impressum/page.tsx',
-    '../website/app/privacy/page.tsx',
-    '../website/app/de/impressum/page.tsx',
-    '../website/app/de/datenschutz/page.tsx',
-    '../website/app/accessibility/page.tsx',
+    '../website/app/(site)/impressum/page.tsx',
+    '../website/app/(site)/privacy/page.tsx',
+    '../website/app/(site)/de/impressum/page.tsx',
+    '../website/app/(site)/de/datenschutz/page.tsx',
+    '../website/app/(site)/accessibility/page.tsx',
   ]) {
     assert.ok(existsSync(new URL(path, import.meta.url)), path)
   }

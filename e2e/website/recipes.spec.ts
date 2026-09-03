@@ -1,5 +1,9 @@
-import { expect, test } from '@playwright/test'
+import { expect, test, type Page } from '@playwright/test'
 import AxeBuilder from '@axe-core/playwright'
+
+function recipeFrame(page: Page) {
+  return page.frameLocator('[title$="interactive preview"]')
+}
 
 test('recipe index links to every core pattern', async ({ page }) => {
   await page.goto('/examples/')
@@ -35,14 +39,15 @@ test(
 
 test('basic recipe opens, closes, and restores focus', async ({ page }) => {
   await page.goto('/examples/basic/')
-  const trigger = page.getByRole('button', { name: 'Open basic sheet' })
+  const frame = recipeFrame(page)
+  const trigger = frame.getByRole('button', { name: 'Open basic sheet' })
 
   await trigger.click()
   await expect(
-    page.getByRole('dialog', { name: 'Basic bottom sheet' }),
+    frame.getByRole('dialog', { name: 'Basic bottom sheet' }),
   ).toBeVisible()
-  await page.getByRole('button', { name: 'Close sheet' }).click()
-  await expect(page.getByRole('dialog')).toHaveCount(0)
+  await frame.getByRole('button', { name: 'Close sheet' }).click()
+  await expect(frame.getByRole('dialog')).toHaveCount(0)
   await expect(trigger).toBeFocused()
 })
 
@@ -50,24 +55,26 @@ test('controlled recipe reflects Escape in application state', async ({
   page,
 }) => {
   await page.goto('/examples/controlled/')
-  await expect(page.getByText('State: closed')).toBeVisible()
+  const frame = recipeFrame(page)
+  await expect(frame.getByText('State: closed')).toBeVisible()
 
-  await page.getByRole('button', { name: 'Open controlled sheet' }).click()
-  await expect(page.getByText('State: open')).toBeVisible()
+  await frame.getByRole('button', { name: 'Open controlled sheet' }).click()
+  await expect(frame.getByText('State: open')).toBeVisible()
   await page.keyboard.press('Escape')
-  await expect(page.getByText('State: closed')).toBeVisible()
+  await expect(frame.getByText('State: closed')).toBeVisible()
 })
 
 test('snap-point recipe exposes and changes its named destination', async ({
   page,
 }) => {
   await page.goto('/examples/snap-points/')
-  await page.getByRole('button', { name: 'Open snap-point sheet' }).click()
+  const frame = recipeFrame(page)
+  await frame.getByRole('button', { name: 'Open snap-point sheet' }).click()
 
-  await expect(page.getByText('Active snap point: compact')).toBeVisible()
-  await page.getByRole('button', { name: 'Expanded' }).click()
-  await expect(page.getByText('Active snap point: expanded')).toBeVisible()
-  await expect(page.getByRole('button', { name: 'Expanded' })).toHaveAttribute(
+  await expect(frame.getByText('Active snap point: compact')).toBeVisible()
+  await frame.getByRole('button', { name: 'Expanded' }).click()
+  await expect(frame.getByText('Active snap point: expanded')).toBeVisible()
+  await expect(frame.getByRole('button', { name: 'Expanded' })).toHaveAttribute(
     'aria-pressed',
     'true',
   )
@@ -78,10 +85,13 @@ test(
   { tag: '@release:content-resize' },
   async ({ page }) => {
     await page.goto('/examples/content-height/')
-    await page
+    const frame = recipeFrame(page)
+    await frame
       .getByRole('button', { name: 'Open content-height sheet' })
       .click()
-    const dialog = page.getByRole('dialog', { name: 'Content-sized details' })
+    const dialog = frame.getByRole('dialog', {
+      name: 'Content-sized details',
+    })
     await expect(dialog).toHaveAttribute('data-rsbs-state', 'open')
     const initialPosition = await dialog.evaluate((element) =>
       Number.parseFloat(
@@ -110,13 +120,14 @@ test(
 
 test('scrolling recipe keeps long content operable', async ({ page }) => {
   await page.goto('/examples/scrolling/')
-  await page.getByRole('button', { name: 'Open scrolling sheet' }).click()
-  const region = page.getByRole('region', { name: 'Scrollable results' })
+  const frame = recipeFrame(page)
+  await frame.getByRole('button', { name: 'Open scrolling sheet' }).click()
+  const region = frame.getByRole('region', { name: 'Scrollable results' })
   await region.evaluate((element) => {
     element.scrollTop = element.scrollHeight
   })
   await expect(
-    page.getByRole('button', { name: 'Load more results' }),
+    frame.getByRole('button', { name: 'Load more results' }),
   ).toBeVisible()
 })
 
@@ -124,13 +135,14 @@ test('form recipe preserves entered values and submits explicitly', async ({
   page,
 }) => {
   await page.goto('/examples/form/')
-  await page.getByRole('button', { name: 'Open profile form' }).click()
+  const frame = recipeFrame(page)
+  await frame.getByRole('button', { name: 'Open profile form' }).click()
   await expect(
-    page.getByRole('dialog', { name: 'Edit profile' }),
+    frame.getByRole('dialog', { name: 'Edit profile' }),
   ).toHaveAttribute('data-rsbs-state', 'open')
-  await page.getByLabel('Display name').fill('Ada')
-  await page.getByRole('button', { name: 'Save profile' }).click()
-  await expect(page.getByText('Saved for Ada')).toBeVisible()
+  await frame.getByLabel('Display name').fill('Ada')
+  await frame.getByRole('button', { name: 'Save profile' }).click()
+  await expect(frame.getByText('Saved for Ada')).toBeVisible()
 })
 
 test(
@@ -140,28 +152,30 @@ test(
   },
   async ({ page }) => {
     await page.goto('/examples/custom-portal/')
-    await page.getByRole('button', { name: 'Open contained sheet' }).click()
+    const frame = recipeFrame(page)
+    await frame.getByRole('button', { name: 'Open contained sheet' }).click()
     await expect(
-      page.locator('.docs-custom-portal-target [role="dialog"]'),
+      frame.locator('.docs-custom-portal-target [role="dialog"]'),
     ).toBeVisible()
-    const bounds = await page.evaluate(() => {
-      const targetElement = document.querySelector('.docs-custom-portal-target')
-      const target = targetElement?.getBoundingClientRect()
-      const viewport = targetElement
-        ?.querySelector('[data-rsbs-viewport]')
-        ?.getBoundingClientRect()
-      const dialog = document
-        .querySelector('.docs-custom-portal-target [role="dialog"]')
-        ?.getBoundingClientRect()
-      return target && viewport && dialog && targetElement
-        ? {
-            target: { top: target.top, bottom: target.bottom },
-            viewport: { top: viewport.top, bottom: viewport.bottom },
-            dialog: { top: dialog.top, bottom: dialog.bottom },
-            overflow: getComputedStyle(targetElement).overflow,
-          }
-        : null
-    })
+    const bounds = await frame
+      .locator('.docs-custom-portal-target')
+      .evaluate((targetElement) => {
+        const target = targetElement?.getBoundingClientRect()
+        const viewport = targetElement
+          ?.querySelector('[data-rsbs-viewport]')
+          ?.getBoundingClientRect()
+        const dialog = document
+          .querySelector('.docs-custom-portal-target [role="dialog"]')
+          ?.getBoundingClientRect()
+        return target && viewport && dialog && targetElement
+          ? {
+              target: { top: target.top, bottom: target.bottom },
+              viewport: { top: viewport.top, bottom: viewport.bottom },
+              dialog: { top: dialog.top, bottom: dialog.bottom },
+              overflow: getComputedStyle(targetElement).overflow,
+            }
+          : null
+      })
     expect(bounds).not.toBeNull()
     expect(bounds!.viewport.top).toBeGreaterThanOrEqual(bounds!.target.top)
     expect(bounds!.viewport.bottom).toBeLessThanOrEqual(bounds!.target.bottom)
@@ -178,12 +192,13 @@ test(
   },
   async ({ page }) => {
     await page.goto('/examples/non-modal/')
-    await page.getByRole('button', { name: 'Open non-modal sheet' }).click()
+    const frame = recipeFrame(page)
+    await frame.getByRole('button', { name: 'Open non-modal sheet' }).click()
     await expect(
-      page.getByRole('dialog', { name: 'Persistent filters' }),
+      frame.getByRole('dialog', { name: 'Persistent filters' }),
     ).not.toHaveAttribute('aria-modal')
-    await page.getByRole('button', { name: 'Update page counter' }).click()
-    await expect(page.getByText('Page updates: 1')).toBeVisible()
+    await frame.getByRole('button', { name: 'Update page counter' }).click()
+    await expect(frame.getByText('Page updates: 1')).toBeVisible()
   },
 )
 
@@ -195,7 +210,8 @@ test(
   async ({ page }) => {
     await page.emulateMedia({ reducedMotion: 'reduce' })
     await page.goto('/examples/reduced-motion/')
-    const trigger = page.getByRole('button', {
+    const frame = recipeFrame(page)
+    const trigger = frame.getByRole('button', {
       name: 'Open reduced-motion sheet',
     })
     await expect(trigger).toBeVisible()
@@ -213,7 +229,7 @@ test(
     })
     expect(openState).toBe('open')
 
-    const closeState = await page
+    const closeState = await frame
       .getByRole('button', { name: 'Close sheet' })
       .evaluate(async (element) => {
         if (!(element instanceof HTMLElement)) {
@@ -235,19 +251,21 @@ test('confirmation recipe cannot dismiss without an explicit choice', async ({
   page,
 }) => {
   await page.goto('/examples/confirmation/')
-  await page.getByRole('button', { name: 'Delete workspace' }).click()
+  const frame = recipeFrame(page)
+  await frame.getByRole('button', { name: 'Delete workspace' }).click()
   await page.keyboard.press('Escape')
   await expect(
-    page.getByRole('dialog', { name: 'Delete this workspace?' }),
+    frame.getByRole('dialog', { name: 'Delete this workspace?' }),
   ).toBeVisible()
-  await page.getByRole('button', { name: 'Keep workspace' }).click()
-  await expect(page.getByRole('dialog')).toHaveCount(0)
+  await frame.getByRole('button', { name: 'Keep workspace' }).click()
+  await expect(frame.getByRole('dialog')).toHaveCount(0)
 })
 
 test('custom theme replaces the default sheet visuals', async ({ page }) => {
   await page.goto('/examples/custom-theme/')
-  await page.getByRole('button', { name: 'Open field-note sheet' }).click()
-  const dialog = page.getByRole('dialog', { name: 'Field notes' })
+  const frame = recipeFrame(page)
+  await frame.getByRole('button', { name: 'Open field-note sheet' }).click()
+  const dialog = frame.getByRole('dialog', { name: 'Field notes' })
 
   await expect(dialog).toHaveCSS('background-color', 'rgb(248, 250, 255)')
   await expect(dialog).toHaveCSS('border-radius', '0px')
@@ -258,10 +276,11 @@ test('dark theme is explicit instead of depending on system mode', async ({
 }) => {
   await page.emulateMedia({ colorScheme: 'light' })
   await page.goto('/examples/dark-theme/')
-  await page
+  const frame = recipeFrame(page)
+  await frame
     .getByRole('button', { name: 'Open night-instrument sheet' })
     .click()
-  const dialog = page.getByRole('dialog', { name: 'Night instrument' })
+  const dialog = frame.getByRole('dialog', { name: 'Night instrument' })
 
   await expect(dialog).toHaveCSS('background-color', 'rgb(14, 23, 38)')
   await expect(dialog).toHaveCSS('color', 'rgb(232, 241, 247)')

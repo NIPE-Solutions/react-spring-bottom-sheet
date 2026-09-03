@@ -1,14 +1,14 @@
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
-import { DocsShell } from '../../../components/DocsShell'
-import { docs } from '../../../content/docs'
+import { DocsShell } from '../../../../components/DocsShell'
+import { docs } from '../../../../content/docs'
 import {
   getAdjacentDocs,
   getDoc,
   getDocHeadings,
-} from '../../../content/navigation'
-import { getLearnGuide } from '../../../content/learn'
-import { getReferenceGuide } from '../../../content/reference'
+} from '../../../../content/navigation'
+import { getLearnGuide } from '../../../../content/learn'
+import { getReferenceGuide } from '../../../../content/reference'
 
 export const dynamicParams = false
 

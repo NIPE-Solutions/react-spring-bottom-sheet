@@ -1,9 +1,9 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
-import { RecipePreview } from '../../../components/RecipePreview'
-import { RecipeSource } from '../../../components/RecipeSource'
-import { getRecipe, recipes } from '../../../recipes/registry'
+import { RecipePreview } from '../../../../components/RecipePreview'
+import { RecipeSource } from '../../../../components/RecipeSource'
+import { getRecipe, recipes } from '../../../../recipes/registry'
 
 export const dynamicParams = false
 
@@ -42,7 +42,7 @@ export default async function RecipePage({
         <p>{recipe.summary}</p>
         <Link href="/examples/">All recipes</Link>
       </header>
-      <RecipePreview component={recipe.component} />
+      <RecipePreview slug={recipe.slug} title={recipe.title} />
       <div className="docs-recipe-guidance">
         <section>
           <h2>Prerequisites</h2>

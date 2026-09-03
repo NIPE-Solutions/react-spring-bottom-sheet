@@ -1,7 +1,5 @@
 import type { Metadata } from 'next'
 import type { ReactNode } from 'react'
-import { SiteFooter } from '../components/SiteFooter'
-import { SiteHeader } from '../components/SiteHeader'
 import '../../src/styles/styles.css'
 import './site.css'
 
@@ -29,14 +27,7 @@ export const metadata: Metadata = {
 export default function Layout({ children }: { children: ReactNode }) {
   return (
     <html lang="en">
-      <body>
-        <a className="docs-skip-link" href="#content">
-          Skip to content
-        </a>
-        <SiteHeader />
-        {children}
-        <SiteFooter />
-      </body>
+      <body>{children}</body>
     </html>
   )
 }

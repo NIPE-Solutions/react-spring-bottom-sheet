@@ -1,9 +1,9 @@
-import type { ComponentType } from 'react'
-
 export function RecipePreview({
-  component: Component,
+  slug,
+  title,
 }: {
-  component: ComponentType
+  slug: string
+  title: string
 }) {
   return (
     <section
@@ -15,7 +15,11 @@ export function RecipePreview({
         <h2 id="recipe-preview-title">Preview</h2>
       </div>
       <div className="docs-recipe-stage">
-        <Component />
+        <iframe
+          className="docs-recipe-frame"
+          src={`/examples/${slug}/embed/`}
+          title={`${title} interactive preview`}
+        />
       </div>
     </section>
   )

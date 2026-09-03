@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import { recipes } from '../../recipes/registry'
+import { recipes } from '../../../recipes/registry'
 
 export const metadata: Metadata = {
   title: 'Examples',
