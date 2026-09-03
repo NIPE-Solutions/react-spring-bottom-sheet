@@ -67,7 +67,7 @@
     "test:css": "node --test scripts/check-css-namespace.test.mjs && node scripts/check-css-namespace.mjs src/styles/core.css src/styles/theme.css src/styles/tokens.css website/recipes/custom-theme/theme.css website/recipes/dark-theme/theme.css",
     "test:package": "node --test test/package/verify-package.test.mjs && node test/package/verify-package.mjs",
     "test:release": "node --test scripts/check-bundle-size.test.mjs scripts/dependabot-config.test.mjs scripts/playwright-release-reporter.test.mjs scripts/verify-release-readiness.test.mjs scripts/verify-release.test.mjs",
-    "test:size": "node scripts/check-bundle-size.mjs",
+    "test:size": "node scripts/check-bundle-size.mjs && node scripts/check-bundle-externals.mjs",
     "test:unit": "vitest run --passWithNoTests",
     "test:website": "node --test scripts/check-website-css.test.mjs scripts/verify-website.test.mjs scripts/write-website-evidence.test.mjs && node scripts/check-website-css.mjs website/app/site.css",
     "test:website:e2e": "playwright test --config playwright.website.config.ts",
