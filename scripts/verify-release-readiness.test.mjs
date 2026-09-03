@@ -681,6 +681,37 @@ for (const [label, workflowName] of [
     })
   }
 
+  for (const [jobName, expectedError] of [
+    [
+      'browsers',
+      `${label} browser steps must be unconditional and non-tolerated`,
+    ],
+    [
+      'chromium-touch',
+      `${label} chromium-touch steps must be unconditional and non-tolerated`,
+    ],
+  ]) {
+    for (const [policyName, setting] of [
+      ['condition', 'if: always()'],
+      ['failure tolerance', 'continue-on-error: true'],
+    ]) {
+      test(`rejects a ${policyName} on ${label} ${jobName} npm ci`, () => {
+        const workflows = { ciWorkflow, releaseWorkflow }
+        workflows[workflowName] = replaceInJob(
+          workflows[workflowName],
+          jobName,
+          '      - run: npm ci',
+          ['      - run: npm ci', `        ${setting}`].join('\n'),
+        )
+
+        assert.match(
+          validateReadinessWorkflows(workflows).join('\n'),
+          new RegExp(expectedError),
+        )
+      })
+    }
+  }
+
   for (const [name, command, replacement] of [
     [
       'browser installation',

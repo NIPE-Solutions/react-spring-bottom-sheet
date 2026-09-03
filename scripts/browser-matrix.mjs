@@ -1,14 +1,34 @@
+import { releaseReporterPath } from './playwright-release-config.mjs'
+
 const desktopProjects = ['chromium', 'firefox', 'webkit']
 const requiredLibraryProjects = [...desktopProjects, 'chromium-touch']
 const nonExecutingAnnotations = new Set(['skip', 'fixme', 'fail'])
-const globalSelectionControls = ['grep', 'grepInvert', 'testMatch']
-const projectSelectionControls = [
-  ...globalSelectionControls,
-  'testIgnore',
-  'testDir',
-  'dependencies',
-  'teardown',
-]
+const globalSelectionContract = Object.freeze({
+  grep: undefined,
+  grepInvert: undefined,
+  respectGitIgnore: undefined,
+  shard: undefined,
+  testMatch: undefined,
+})
+const projectSelectionContract = Object.freeze({
+  ...globalSelectionContract,
+  dependencies: undefined,
+  teardown: undefined,
+  testDir: undefined,
+  testIgnore: undefined,
+})
+const releaseConfigContracts = Object.freeze({
+  library: Object.freeze({
+    projects: requiredLibraryProjects,
+    testDir: './e2e',
+    testIgnore: 'website/**',
+  }),
+  website: Object.freeze({
+    projects: desktopProjects,
+    testDir: './e2e/website',
+    testIgnore: undefined,
+  }),
+})
 
 export const releaseScenarioRegistry = Object.freeze({
   'modal-focus-isolation': { suite: 'library' },
@@ -37,44 +57,63 @@ const missingFrom = (required, actual) => {
   return required.filter((item) => !available.has(item))
 }
 
-const configuredControls = (config, controls) =>
-  controls.filter((control) => config?.[control] !== undefined)
+const configuredOutsideContract = (config, contract) =>
+  Object.entries(contract)
+    .filter(([control, allowedValue]) => config?.[control] !== allowedValue)
+    .map(([control]) => control)
 
-const configSelectionErrors = ({
-  config,
-  expectedProjects,
-  expectedTestDir,
-  expectedTestIgnore,
-  suite,
-}) => {
+const hasRequiredReporterConfig = (reporter) =>
+  Array.isArray(reporter) &&
+  reporter.length === 2 &&
+  Array.isArray(reporter[0]) &&
+  reporter[0].length === 1 &&
+  reporter[0][0] === releaseReporterPath &&
+  Array.isArray(reporter[1]) &&
+  reporter[1].length === 1 &&
+  ['github', 'list'].includes(reporter[1][0])
+
+export function validatePlaywrightReleaseConfig({ config, suite }) {
   const errors = []
+  const contract = releaseConfigContracts[suite]
 
-  if (config?.testDir !== expectedTestDir) {
-    errors.push(`${suite} config testDir must be exactly ${expectedTestDir}`)
+  if (config?.testDir !== contract.testDir) {
+    errors.push(`${suite} config testDir must be exactly ${contract.testDir}`)
   }
 
-  const globalControls = configuredControls(config, globalSelectionControls)
+  const globalControls = configuredOutsideContract(
+    config,
+    globalSelectionContract,
+  )
   if (globalControls.length > 0) {
     errors.push(
       `${suite} config must not configure release-test selection: ${globalControls.join(', ')}`,
     )
   }
 
-  if (expectedTestIgnore === undefined) {
+  if (contract.testIgnore === undefined) {
     if (config?.testIgnore !== undefined) {
       errors.push(
         `${suite} config must not configure release-test selection: testIgnore`,
       )
     }
-  } else if (config?.testIgnore !== expectedTestIgnore) {
+  } else if (config?.testIgnore !== contract.testIgnore) {
     errors.push(
-      `${suite} config testIgnore must be exactly ${expectedTestIgnore}`,
+      `${suite} config testIgnore must be exactly ${contract.testIgnore}`,
     )
   }
 
-  for (const projectName of expectedProjects) {
+  if (!hasRequiredReporterConfig(config?.reporter)) {
+    errors.push(
+      `${suite} config reporter must be exactly the release reporter followed by list or github`,
+    )
+  }
+
+  for (const projectName of contract.projects) {
     const project = config?.projects?.find(({ name }) => name === projectName)
-    const controls = configuredControls(project, projectSelectionControls)
+    const controls = configuredOutsideContract(
+      project,
+      projectSelectionContract,
+    )
     if (controls.length > 0) {
       errors.push(
         `${suite} project ${projectName} must not configure release-test selection: ${controls.join(', ')}`,
@@ -82,7 +121,7 @@ const configSelectionErrors = ({
     }
   }
 
-  return errors
+  return Object.freeze(errors)
 }
 
 export function validateBrowserMatrix({
@@ -98,18 +137,12 @@ export function validateBrowserMatrix({
   const testsByScenario = new Map()
 
   errors.push(
-    ...configSelectionErrors({
+    ...validatePlaywrightReleaseConfig({
       config: libraryConfig,
-      expectedProjects: requiredLibraryProjects,
-      expectedTestDir: './e2e',
-      expectedTestIgnore: 'website/**',
       suite: 'library',
     }),
-    ...configSelectionErrors({
+    ...validatePlaywrightReleaseConfig({
       config: websiteConfig,
-      expectedProjects: desktopProjects,
-      expectedTestDir: './e2e/website',
-      expectedTestIgnore: undefined,
       suite: 'website',
     }),
   )

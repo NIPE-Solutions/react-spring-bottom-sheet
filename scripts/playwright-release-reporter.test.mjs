@@ -26,14 +26,22 @@ const packageScripts = JSON.parse(
   readFileSync(join(repositoryRoot, 'package.json'), 'utf8'),
 ).scripts
 
+const fixtureEnvironment = (ci) => {
+  const env = { ...process.env, FORCE_COLOR: '0' }
+  if (ci) env.CI = 'true'
+  else delete env.CI
+  return env
+}
+
 const runFixture = ({
+  ci = false,
   configFile = 'playwright.config.ts',
   playwrightArgs = [],
   retries = 0,
   source,
 }) => {
   const fixtureRoot = mkdtempSync(
-    join(repositoryRoot, 'test-results', 'release-policy-'),
+    join(repositoryRoot, '.playwright-release-policy-'),
   )
   const configPath = join(fixtureRoot, 'playwright.config.mjs')
   const testPath = join(fixtureRoot, 'policy.spec.mjs')
@@ -73,7 +81,7 @@ const runFixture = ({
       {
         cwd: repositoryRoot,
         encoding: 'utf8',
-        env: { ...process.env, CI: '', FORCE_COLOR: '0' },
+        env: fixtureEnvironment(ci),
       },
     )
   } finally {
@@ -99,29 +107,35 @@ for (const configFile of [
   'playwright.config.ts',
   'playwright.website.config.ts',
 ]) {
-  test(`${configFile} allows a normally passing release test`, () => {
-    const result = runFixture({ configFile, source: passingReleaseTest })
+  for (const [environment, ci] of [
+    ['with CI unset', false],
+    ['with CI=true', true],
+  ]) {
+    test(`${configFile} allows a normally passing release test ${environment}`, () => {
+      const result = runFixture({ ci, configFile, source: passingReleaseTest })
 
-    assert.equal(result.status, 0, outputFrom(result))
-  })
-
-  test(`${configFile} rejects a runtime-conditional release skip`, () => {
-    const result = runFixture({
-      configFile,
-      source: [
-        "import { test } from '@playwright/test'",
-        '',
-        'test.skip(',
-        "  ({ browserName }) => browserName === 'chromium',",
-        "  'runtime project skip',",
-        ')',
-        "test('must execute', { tag: '@release:runtime-project' }, async () => {})",
-        '',
-      ].join('\n'),
+      assert.equal(result.status, 0, outputFrom(result))
     })
 
-    assertPolicyFailure(result)
-  })
+    test(`${configFile} rejects a runtime-conditional release skip ${environment}`, () => {
+      const result = runFixture({
+        ci,
+        configFile,
+        source: [
+          "import { test } from '@playwright/test'",
+          '',
+          'test.skip(',
+          "  ({ browserName }) => browserName === 'chromium',",
+          "  'runtime project skip',",
+          ')',
+          "test('must execute', { tag: '@release:runtime-project' }, async () => {})",
+          '',
+        ].join('\n'),
+      })
+
+      assertPolicyFailure(result)
+    })
+  }
 }
 
 for (const [configFile, scriptName, canonicalCommand] of [
@@ -297,6 +311,26 @@ const policyTest = ({
 
 test('classifies every non-normal release result as a policy violation', () => {
   assert.equal(releaseTestViolation(policyTest()), null)
+  assert.equal(
+    releaseTestViolation(
+      policyTest({ results: [{ status: 'passed' }, { status: 'passed' }] }),
+    ),
+    null,
+  )
+  for (const status of [
+    'failed',
+    'timedOut',
+    'skipped',
+    'interrupted',
+    undefined,
+  ]) {
+    assert.equal(
+      releaseTestViolation(
+        policyTest({ results: [{ status: 'passed' }, { status }] }),
+      ),
+      `finished with ${status ?? 'no status'} instead of passed`,
+    )
+  }
   assert.equal(
     releaseTestViolation(
       policyTest({

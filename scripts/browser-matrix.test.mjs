@@ -30,6 +30,80 @@ const releaseReporter = join(
   'scripts',
   'playwright-release-reporter.mjs',
 )
+const browserMatrixUrl = pathToFileURL(
+  join(repositoryRoot, 'scripts', 'browser-matrix.mjs'),
+).href
+
+const environmentWithCi = (ci) => {
+  const env = { ...process.env, FORCE_COLOR: '0' }
+  if (ci) env.CI = 'true'
+  else delete env.CI
+  return env
+}
+
+const probeConfigPolicy = ({ configPath, suite, ci }) => {
+  const configUrl = pathToFileURL(configPath).href
+  const result = spawnSync(
+    process.execPath,
+    [
+      '--input-type=module',
+      '--eval',
+      [
+        `import config from ${JSON.stringify(configUrl)}`,
+        `import { validatePlaywrightReleaseConfig } from ${JSON.stringify(browserMatrixUrl)}`,
+        `const errors = validatePlaywrightReleaseConfig({ config, suite: ${JSON.stringify(suite)} })`,
+        'process.stdout.write(JSON.stringify(errors))',
+      ].join('\n'),
+    ],
+    {
+      cwd: repositoryRoot,
+      encoding: 'utf8',
+      env: environmentWithCi(ci),
+    },
+  )
+
+  assert.equal(result.status, 0, `${result.stdout}\n${result.stderr}`)
+  return JSON.parse(result.stdout)
+}
+
+const reporterConfigSource = ({ reporterExpression, suite }) => {
+  const projectNamesForSuite =
+    suite === 'library'
+      ? ['chromium', 'firefox', 'webkit', 'chromium-touch']
+      : ['chromium', 'firefox', 'webkit']
+
+  return [
+    "import { defineConfig } from '@playwright/test'",
+    '',
+    `const releaseReporter = ${JSON.stringify(releaseReporter)}`,
+    '',
+    'export default defineConfig({',
+    `  testDir: ${JSON.stringify(suite === 'library' ? './e2e' : './e2e/website')},`,
+    ...(suite === 'library' ? ["  testIgnore: 'website/**',"] : []),
+    ...(reporterExpression ? [`  reporter: ${reporterExpression},`] : []),
+    '  projects: [',
+    ...projectNamesForSuite.map((name) => `    { name: '${name}' },`),
+    '  ],',
+    '})',
+    '',
+  ].join('\n')
+}
+
+const probeReporterPolicy = ({ reporterExpression, suite }) => {
+  const directory = mkdtempSync(join(repositoryRoot, '.playwright-reporter-'))
+  const configPath = join(directory, 'playwright.config.mjs')
+  writeFileSync(configPath, reporterConfigSource({ reporterExpression, suite }))
+
+  try {
+    return {
+      ci: probeConfigPolicy({ configPath, suite, ci: true }),
+      local: probeConfigPolicy({ configPath, suite, ci: false }),
+    }
+  } finally {
+    rmSync(directory, { force: true, recursive: true })
+  }
+}
+
 const discoverFixtureReleaseTests = (source) => {
   const directory = mkdtempSync(join(repositoryRoot, '.playwright-inventory-'))
   const testsDirectory = join(directory, 'tests')
@@ -160,9 +234,138 @@ const probeProjectSelectionBypass = async (suite) => {
   }
 }
 
+const probeGlobalShardBypass = async (suite) => {
+  const directory = mkdtempSync(join(repositoryRoot, '.playwright-shard-'))
+  const testDir = suite === 'library' ? './e2e' : './e2e/website'
+  const testsDirectory = join(directory, testDir)
+  const configPath = join(directory, 'playwright.config.mjs')
+  const unshardedConfigPath = join(directory, 'playwright.unsharded.config.mjs')
+  const projectNamesForSuite =
+    suite === 'library'
+      ? ['chromium', 'firefox', 'webkit', 'chromium-touch']
+      : ['chromium', 'firefox', 'webkit']
+  const configSource = (sharded) =>
+    [
+      "import { defineConfig } from '@playwright/test'",
+      '',
+      'export default defineConfig({',
+      `  testDir: ${JSON.stringify(testDir)},`,
+      ...(suite === 'library' ? ["  testIgnore: 'website/**',"] : []),
+      "  outputDir: './output',",
+      '  fullyParallel: true,',
+      `  reporter: [[${JSON.stringify(releaseReporter)}], ['list']],`,
+      ...(sharded ? ['  shard: { current: 1, total: 2 },'] : []),
+      '  projects: [',
+      ...projectNamesForSuite.map((name) => `    { name: '${name}' },`),
+      '  ],',
+      '})',
+      '',
+    ].join('\n')
+
+  mkdirSync(testsDirectory, { recursive: true })
+  writeFileSync(configPath, configSource(true))
+  writeFileSync(unshardedConfigPath, configSource(false))
+  writeFileSync(
+    join(testsDirectory, 'shard.spec.mjs'),
+    [
+      "import { test } from '@playwright/test'",
+      '',
+      "for (const title of ['first', 'second']) {",
+      "  test(title, { tag: '@release:target' }, async () => {})",
+      '}',
+      '',
+    ].join('\n'),
+  )
+
+  try {
+    const allDiscovered = discoverReleaseTests({
+      config: unshardedConfigPath,
+      suite,
+    })
+    const discovered = discoverReleaseTests({ config: configPath, suite })
+    const execution = spawnSync(
+      process.execPath,
+      [playwrightCli, 'test', '--config', configPath, '--project=chromium'],
+      {
+        cwd: repositoryRoot,
+        encoding: 'utf8',
+        env: environmentWithCi(false),
+      },
+    )
+    const importedConfig = (await import(pathToFileURL(configPath).href))
+      .default
+
+    return {
+      allDiscovered,
+      discovered,
+      errors: validate({
+        ...(suite === 'library'
+          ? {
+              libraryConfig: importedConfig,
+              libraryProjects: projectNames(importedConfig),
+            }
+          : {
+              websiteConfig: importedConfig,
+              websiteProjects: projectNames(importedConfig),
+            }),
+        releaseTests: discovered,
+        scenarioRegistry: { target: { suite } },
+      }),
+      execution,
+    }
+  } finally {
+    rmSync(directory, { force: true, recursive: true })
+  }
+}
+
 test('accepts the configured browser projects and registered release tests', () => {
   assert.deepEqual(validate(), [])
 })
+
+for (const [suite, configPath] of [
+  ['library', join(repositoryRoot, 'playwright.config.ts')],
+  ['website', join(repositoryRoot, 'playwright.website.config.ts')],
+]) {
+  for (const [environment, ci] of [
+    ['with CI unset', false],
+    ['with CI=true', true],
+  ]) {
+    test(`accepts the real ${suite} config ${environment}`, () => {
+      assert.deepEqual(probeConfigPolicy({ configPath, suite, ci }), [])
+    })
+  }
+
+  const reporterError = `${suite} config reporter must be exactly the release reporter followed by list or github`
+  for (const [mutation, reporterExpression, expected] of [
+    [
+      'with the release reporter only in CI',
+      "process.env.CI ? [[releaseReporter], ['github']] : [['list']]",
+      { ci: [], local: [reporterError] },
+    ],
+    [
+      'with the release reporter only outside CI',
+      "process.env.CI ? [['github']] : [[releaseReporter], ['list']]",
+      { ci: [reporterError], local: [] },
+    ],
+    [
+      'without a reporter',
+      undefined,
+      { ci: [reporterError], local: [reporterError] },
+    ],
+    [
+      'with the release reporter replaced',
+      "[[`${releaseReporter}.replacement`], [process.env.CI ? 'github' : 'list']]",
+      { ci: [reporterError], local: [reporterError] },
+    ],
+  ]) {
+    test(`rejects a real ${suite} config ${mutation}`, () => {
+      assert.deepEqual(
+        probeReporterPolicy({ reporterExpression, suite }),
+        expected,
+      )
+    })
+  }
+}
 
 for (const suite of ['library', 'website']) {
   test(`rejects a project-level grepInvert that omits ${suite} release evidence from WebKit`, async () => {
@@ -183,6 +386,28 @@ for (const suite of ['library', 'website']) {
       `${suite} project webkit must not configure release-test selection: grepInvert`,
     ])
   })
+
+  test(`rejects global sharding that omits a same-site parameterized ${suite} release instance`, async () => {
+    const { allDiscovered, discovered, errors, execution } =
+      await probeGlobalShardBypass(suite)
+    const output = `${execution.stdout}\n${execution.stderr}`
+
+    assert.equal(allDiscovered.length, 2)
+    assert.equal(discovered.length, 1)
+    assert.equal(
+      new Set(
+        allDiscovered.map(
+          ({ file, line, column }) => `${file}:${line}:${column}`,
+        ),
+      ).size,
+      1,
+    )
+    assert.equal(execution.status, 0, output)
+    assert.doesNotMatch(output, /release test execution policy/i)
+    assert.deepEqual(errors, [
+      `${suite} config must not configure release-test selection: shard`,
+    ])
+  })
 }
 
 for (const [suite, configKey, config] of [
@@ -193,6 +418,8 @@ for (const [suite, configKey, config] of [
     ['grep', /@release:modal-focus-isolation/],
     ['grepInvert', /@release:/],
     ['testMatch', '**/one-release-test.spec.ts'],
+    ['respectGitIgnore', true],
+    ['shard', { current: 1, total: 2 }],
   ]) {
     test(`rejects ${suite} global ${control} release-test selection`, () => {
       assert.deepEqual(
@@ -211,6 +438,8 @@ for (const [suite, configKey, config] of [
     ['testIgnore', '**/*'],
     ['testDir', './empty-tests'],
     ['dependencies', ['setup']],
+    ['respectGitIgnore', true],
+    ['shard', { current: 1, total: 2 }],
     ['teardown', 'cleanup'],
   ]) {
     test(`rejects ${suite} WebKit project ${control} selection`, () => {

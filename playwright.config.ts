@@ -1,9 +1,6 @@
 import { defineConfig, devices } from '@playwright/test'
-import { fileURLToPath } from 'node:url'
 
-const releaseReporter = fileURLToPath(
-  new URL('./scripts/playwright-release-reporter.mjs', import.meta.url),
-)
+import { releaseReporters } from './scripts/playwright-release-config.mjs'
 
 export default defineConfig({
   testDir: './e2e',
@@ -11,7 +8,7 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: Boolean(process.env.CI),
   retries: process.env.CI ? 2 : 0,
-  reporter: [[releaseReporter], [process.env.CI ? 'github' : 'list']],
+  reporter: releaseReporters(process.env.CI ? 'github' : 'list'),
   use: {
     baseURL: 'http://127.0.0.1:4173/e2e/fixture/',
     trace: 'on-first-retry',

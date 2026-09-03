@@ -42,9 +42,6 @@ const touchInstallCommand = 'npx playwright install --with-deps chromium'
 const touchTestCommand = 'npm run test:e2e -- --project=chromium-touch'
 const touchJobCommands = ['npm ci', touchInstallCommand, touchTestCommand]
 
-const stepsWithCommand = (job, command) =>
-  job?.steps.filter((step) => step.commands.includes(command)) ?? []
-
 const hasBlockingDefaultPolicy = (step) =>
   step.if === '' &&
   (step.continueOnError === '' || step.continueOnError === 'false')
@@ -137,10 +134,7 @@ export function validateReadinessWorkflows({ ciWorkflow, releaseWorkflow }) {
         `${label} browsers must install and execute each desktop project in both suites`,
       )
     }
-    const desktopSteps = desktopCommands.flatMap((command) =>
-      stepsWithCommand(browsers, command),
-    )
-    if (desktopSteps.some((step) => !hasBlockingDefaultPolicy(step))) {
+    if (browsers && !hasOnlyBlockingRunSteps(browsers)) {
       errors.push(
         `${label} browser steps must be unconditional and non-tolerated`,
       )
@@ -162,10 +156,7 @@ export function validateReadinessWorkflows({ ciWorkflow, releaseWorkflow }) {
     ) {
       errors.push(`${label} chromium-touch must execute its browser project`)
     }
-    const touchSteps = [touchInstallCommand, touchTestCommand].flatMap(
-      (command) => stepsWithCommand(touch, command),
-    )
-    if (touchSteps.some((step) => !hasBlockingDefaultPolicy(step))) {
+    if (touch && !hasOnlyBlockingRunSteps(touch)) {
       errors.push(
         `${label} chromium-touch steps must be unconditional and non-tolerated`,
       )
