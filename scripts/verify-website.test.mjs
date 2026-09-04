@@ -147,6 +147,53 @@ test('the website publishes search and social metadata routes', () => {
   }
 })
 
+test('the website identifies its NIPE primitive without a release eyebrow', () => {
+  const header = readFileSync(
+    new URL('../website/components/SiteHeader.tsx', import.meta.url),
+    'utf8',
+  )
+  const home = readFileSync(
+    new URL('../website/app/(site)/page.tsx', import.meta.url),
+    'utf8',
+  )
+
+  assert.match(header, /NIPE primitives \/ 02/i)
+  assert.doesNotMatch(home, /Version \{buildEvidence\.version\} · React 19/)
+  assert.doesNotMatch(home, /docs-status/)
+})
+
+test('the website publishes a complete browser icon family', () => {
+  const icon = readFileSync(
+    new URL('../website/app/icon.svg', import.meta.url),
+    'utf8',
+  )
+  const manifest = readFileSync(
+    new URL('../website/app/manifest.ts', import.meta.url),
+    'utf8',
+  )
+  const layout = readFileSync(
+    new URL('../website/app/layout.tsx', import.meta.url),
+    'utf8',
+  )
+  const appleIcon = readFileSync(
+    new URL('../website/app/apple-icon.png', import.meta.url),
+  )
+  const favicon = readFileSync(
+    new URL('../website/public/favicon-32x32.png', import.meta.url),
+  )
+
+  assert.match(icon, /aria-label="React Spring Bottom Sheet"/)
+  assert.match(icon, /#3157d5/i)
+  assert.match(manifest, /React Spring Bottom Sheet/)
+  assert.match(manifest, /theme_color:\s*'#171a20'/)
+  assert.match(layout, /favicon-32x32\.png/)
+  assert.deepEqual(
+    [...appleIcon.subarray(16, 24)],
+    [0, 0, 0, 180, 0, 0, 0, 180],
+  )
+  assert.deepEqual([...favicon.subarray(16, 24)], [0, 0, 0, 32, 0, 0, 0, 32])
+})
+
 test('recipe embeds are statically generated and excluded from search', () => {
   const embedPage = readFileSync(
     new URL(

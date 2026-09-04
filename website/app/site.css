@@ -93,9 +93,9 @@
   }
   .docs-header {
     min-height: 4.5rem;
-    display: flex;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
     align-items: center;
-    justify-content: space-between;
     gap: 2rem;
     padding: 0 clamp(1.2rem, 4vw, 4rem);
     border-top: 0.3rem solid var(--docs-signal);
@@ -117,7 +117,13 @@
   }
   .docs-header nav {
     display: flex;
+    justify-self: end;
     gap: clamp(0.8rem, 3vw, 2rem);
+  }
+  .docs-collection {
+    color: var(--docs-muted);
+    font-size: 0.78rem;
+    letter-spacing: 0.01em;
   }
   .docs-header nav a {
     text-decoration: none;
@@ -223,26 +229,18 @@
     overflow-wrap: anywhere;
   }
   .docs-hero {
-    min-height: calc(100vh - 4.5rem);
+    min-height: calc(100svh - 4.5rem);
     display: grid;
     grid-template-columns: minmax(0, 1.1fr) minmax(18rem, 0.9fr);
     align-items: center;
     gap: clamp(2rem, 6vw, 7rem);
-    padding: clamp(3rem, 7vw, 7rem);
+    padding: clamp(2rem, 5vw, 5rem) clamp(3rem, 7vw, 7rem)
+      clamp(3rem, 7vw, 7rem);
     overflow: hidden;
   }
-  .docs-status,
   .docs-route {
     color: var(--docs-muted);
     font-size: 0.86rem;
-  }
-  .docs-status span {
-    display: inline-block;
-    width: 0.55rem;
-    height: 0.55rem;
-    margin-right: 0.45rem;
-    border-radius: 50%;
-    background: #3a9b70;
   }
   .docs-lede {
     max-width: 44rem;
@@ -1407,15 +1405,18 @@
 
 @media (max-width: 809px) {
   .docs-header {
-    align-items: flex-start;
-    flex-wrap: wrap;
+    grid-template-columns: minmax(0, 1fr) auto;
     gap: 0.8rem;
     padding-block: 0.9rem;
   }
   .docs-wordmark {
-    flex-basis: 100%;
+    min-width: 0;
+  }
+  .docs-collection {
+    justify-self: end;
   }
   .docs-header nav {
+    grid-column: 1 / -1;
     width: 100%;
     justify-content: space-between;
   }

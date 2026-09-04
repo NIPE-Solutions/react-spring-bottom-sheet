@@ -14,9 +14,6 @@ export default function Home() {
     <main id="content" className="docs-home" tabIndex={-1}>
       <section className="docs-hero">
         <div className="docs-hero-copy">
-          <p className="docs-status">
-            <span /> Version {buildEvidence.version} · React 19
-          </p>
           <h1>A bottom sheet with boundaries you can trust.</h1>
           <p className="docs-lede">
             Accessible composition, predictable gestures, and a styling contract
