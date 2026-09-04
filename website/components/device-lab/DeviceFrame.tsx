@@ -77,7 +77,7 @@ export const DeviceFrame = forwardRef<DeviceFrameHandle, DeviceFrameProps>(
     const interruptedPresentation = useRef<InterruptedPresentation | null>(null)
     const frozenAnimations = useRef<Animation[]>([])
     const consumedMorphKey = useRef<number | undefined>(undefined)
-    const radius = device === 'phone' ? '1.75rem' : '1.15rem'
+    const radius = preset.radius
     const frameStyle = {
       '--device-height': `${preset.height}px`,
       '--device-radius': radius,
@@ -294,8 +294,7 @@ export const DeviceFrame = forwardRef<DeviceFrameHandle, DeviceFrameProps>(
     return (
       <>
         <p className="docs-device-readout" aria-live="polite">
-          {device === 'phone' ? 'Phone' : 'Tablet'} viewport: {preset.width} ×{' '}
-          {preset.height}
+          {preset.label} viewport: {preset.width} × {preset.height}
         </p>
         <div
           className="docs-recipe-stage"

@@ -18,18 +18,33 @@ describe('device configuration', () => {
     [
       'tablet portrait',
       { device: 'tablet', orientation: 'portrait' },
-      768,
-      1024,
+      820,
+      1080,
     ],
     [
       'tablet landscape',
       { device: 'tablet', orientation: 'landscape' },
-      1024,
-      768,
+      1080,
+      820,
     ],
   ] as const)('%s uses its exact dimensions', (_, selection, width, height) => {
     expect(getDevicePreset(selection)).toMatchObject({ width, height })
   })
+
+  test.each([
+    ['phone', { device: 'phone', orientation: 'portrait' }, 'Phone', '1.75rem'],
+    [
+      'tablet',
+      { device: 'tablet', orientation: 'portrait' },
+      'Tablet',
+      '1.15rem',
+    ],
+  ] as const)(
+    '%s exposes its display label and frame radius with the preset',
+    (_, selection, label, radius) => {
+      expect(getDevicePreset(selection)).toMatchObject({ label, radius })
+    },
+  )
 
   test('provides a phone portrait default', () => {
     expect(DEFAULT_DEVICE_SELECTION).toEqual({

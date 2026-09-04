@@ -899,13 +899,91 @@
   }
   .docs-recipe-source details {
     margin-top: 1.5rem;
+    min-width: 0;
+    max-width: 100%;
+    border: 1px solid #464b58;
+    border-radius: 0.35rem;
+    background: #181a25;
+    color: #f3f4fb;
   }
   .docs-recipe-source summary {
     cursor: pointer;
+    padding: 0.8rem 1rem;
+    border-bottom: 0 solid #464b58;
+    background: #20232e;
+    color: #f3f4fb;
+    font-family:
+      'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+    font-size: 0.82rem;
     font-weight: 650;
   }
+  .docs-recipe-source details[open] summary {
+    border-bottom-width: 1px;
+  }
+  .docs-recipe-source summary::marker {
+    color: #a8b8ff;
+  }
+  .docs-recipe-source {
+    min-width: 0;
+  }
+  .docs-recipe-source .docs-recipe-section-heading {
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  .docs-recipe-source-copy {
+    display: flex;
+    flex: none;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.35rem 0.75rem;
+    min-width: 0;
+    max-width: 100%;
+  }
+  .docs-recipe-source .docs-recipe-section-heading button {
+    flex: none;
+  }
+  .docs-recipe-source .docs-recipe-section-heading button {
+    min-width: 7.5rem;
+  }
+  .docs-recipe-source-copy-status {
+    min-width: 0;
+    color: var(--docs-muted);
+    font-size: 0.82rem;
+    line-height: 1.25;
+    overflow-wrap: anywhere;
+  }
   .docs-recipe-source pre {
+    width: 100%;
+    max-width: 100%;
     max-height: 36rem;
+    margin: 0;
+    overflow-x: auto;
+    border: 0;
+    border-radius: 0;
+    background: #181a25;
+    padding: 1rem 0;
+    color: #f3f4fb;
+    line-height: 1.65;
+    scrollbar-gutter: stable;
+  }
+  .docs-recipe-source pre:focus-visible {
+    outline: 3px solid #a8b8ff;
+    outline-offset: 3px;
+  }
+  .docs-recipe-source code {
+    font-family:
+      'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+    font-size: 0.86rem;
+  }
+  .docs-recipe-source [data-line] {
+    min-width: max-content;
+    padding-inline: 1rem 1.5rem;
+  }
+  .docs-recipe-source [data-line] > [aria-hidden='true'] {
+    color: #b9c0cf;
+    font-variant-numeric: tabular-nums;
+    user-select: none;
   }
   .docs-related-docs {
     display: flex;
@@ -1064,6 +1142,41 @@
   }
 }
 
+@media (min-width: 90rem) {
+  .docs-recipe-page {
+    display: grid;
+    grid-template-columns: minmax(0, 0.92fr) minmax(0, 1.08fr);
+    column-gap: clamp(2rem, 3vw, 3rem);
+  }
+  .docs-recipe-page > header,
+  .docs-related-docs {
+    grid-column: 1 / -1;
+  }
+  .docs-recipe-preview {
+    grid-row: 2;
+    grid-column: 1;
+  }
+  .docs-recipe-guidance {
+    grid-row: 3;
+    grid-column: 1;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 2rem;
+  }
+  .docs-recipe-notes {
+    grid-row: 4;
+    grid-column: 1;
+  }
+  .docs-recipe-source {
+    grid-row: 2 / span 3;
+    grid-column: 2;
+    align-self: start;
+    min-width: 0;
+  }
+  .docs-related-docs {
+    grid-row: 5;
+  }
+}
+
 @media (max-width: 809px) {
   .docs-header {
     align-items: flex-start;
@@ -1176,6 +1289,15 @@
   .docs-recipe-grid article,
   .docs-recipe-grid article:first-child {
     border-left: 1px solid var(--docs-rule);
+  }
+  .docs-recipe-page {
+    display: block;
+  }
+  .docs-recipe-source {
+    min-width: 0;
+  }
+  .docs-device-controls {
+    flex-wrap: wrap;
   }
   .docs-device-controls,
   .docs-device-controls fieldset {

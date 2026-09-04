@@ -1,4 +1,8 @@
-import type { DeviceSelection } from './device-config'
+import {
+  DEVICE_OPTIONS,
+  getDevicePreset,
+  type DeviceSelection,
+} from './device-config'
 
 type DeviceControlsProps = Readonly<{
   selection: DeviceSelection
@@ -11,16 +15,20 @@ export function DeviceControls({ selection, onChange }: DeviceControlsProps) {
       <fieldset>
         <legend>Device</legend>
         <div>
-          {(['phone', 'tablet'] as const).map((device) => (
-            <button
-              type="button"
-              aria-pressed={selection.device === device}
-              key={device}
-              onClick={() => onChange({ ...selection, device })}
-            >
-              {device === 'phone' ? 'Phone' : 'Tablet'}
-            </button>
-          ))}
+          {DEVICE_OPTIONS.map((device) => {
+            const preset = getDevicePreset({ ...selection, device })
+
+            return (
+              <button
+                type="button"
+                aria-pressed={selection.device === device}
+                key={device}
+                onClick={() => onChange({ ...selection, device })}
+              >
+                {preset.label}
+              </button>
+            )
+          })}
         </div>
       </fieldset>
       <fieldset>
