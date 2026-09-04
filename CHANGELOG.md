@@ -1,3 +1,10 @@
+## [5.0.1](https://github.com/NIPE-Solutions/react-spring-bottom-sheet/compare/v5.0.0...v5.0.1) (2026-09-04)
+
+### Fixed
+
+- Fade the sheet surface elevation with the closing motion so its shadow no
+  longer disappears abruptly when the portal unmounts.
+
 ## [5.0.0](https://github.com/NIPE-Solutions/react-spring-bottom-sheet/compare/4.1.0...v5.0.0) (2026-09-03)
 
 Version 5 is a stable breaking redesign for React 19. Applications upgrading
