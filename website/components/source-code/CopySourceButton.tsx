@@ -63,10 +63,13 @@ export function CopySourceButton({ source }: { source: string }) {
         ? activeElement
         : initiatingButton
     const input = document.createElement('textarea')
+    const fallbackRoot =
+      initiatingButton.closest<HTMLElement>('[data-copy-fallback-root]') ??
+      document.body
     input.value = source
     input.style.position = 'fixed'
     input.style.opacity = '0'
-    document.body.append(input)
+    fallbackRoot.append(input)
 
     try {
       input.select()

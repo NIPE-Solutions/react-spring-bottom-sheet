@@ -59,6 +59,79 @@ test('homepage presents generated package evidence and useful next steps', async
   ).toHaveAttribute('href', '/examples/controlled/')
 })
 
+test(
+  'homepage code is server-highlighted and contained by its layout',
+  { tag: '@workbench' },
+  async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 })
+    const response = await page.goto('/')
+    expect(await response?.text()).toContain('data-code-token')
+
+    const install = page.locator('.docs-quick-start .docs-install')
+    const quickStart = page.locator('.docs-quick-start-code')
+    const launch = page.locator('.docs-launch-actions .docs-code-block')
+    await expect(install.locator('[data-code-token]')).not.toHaveCount(0)
+    await expect(quickStart.locator('[data-code-token]')).not.toHaveCount(0)
+    await expect(launch.locator('[data-code-token]')).not.toHaveCount(0)
+
+    const tokenColorCount = (block: typeof quickStart) =>
+      block
+        .locator('[data-code-token]')
+        .evaluateAll(
+          (tokens) =>
+            new Set(tokens.map((token) => getComputedStyle(token).color)).size,
+        )
+    expect(await tokenColorCount(quickStart)).toBeGreaterThanOrEqual(4)
+    expect(await tokenColorCount(install)).toBeGreaterThanOrEqual(2)
+
+    const quickStartSource = quickStart.getByRole('region', {
+      name: 'tsx code',
+    })
+    await page
+      .getByRole('link', { name: 'Follow the installation guide' })
+      .focus()
+    await page.keyboard.press('Tab')
+    await expect(quickStartSource).toBeFocused()
+    await expect(quickStartSource).toHaveCSS('outline-style', 'solid')
+    await expect(quickStartSource).toHaveCSS('white-space', 'pre')
+    await expect(quickStartSource).toHaveCSS('overflow-x', 'auto')
+    await expect(quickStartSource).toHaveCSS('max-height', '544px')
+
+    const launchGeometry = await launch.evaluate((block) => {
+      const parent = block.parentElement?.getBoundingClientRect()
+      const bounds = block.getBoundingClientRect()
+      if (!parent) throw new Error('Missing launch actions')
+      return {
+        blockLeft: bounds.left,
+        blockRight: bounds.right,
+        blockWidth: bounds.width,
+        parentLeft: parent.left,
+        parentRight: parent.right,
+        parentWidth: parent.width,
+      }
+    })
+    expect(launchGeometry.blockLeft).toBeCloseTo(launchGeometry.parentLeft, 0)
+    expect(launchGeometry.blockRight).toBeCloseTo(launchGeometry.parentRight, 0)
+    expect(launchGeometry.blockWidth).toBeCloseTo(launchGeometry.parentWidth, 0)
+
+    await page.setViewportSize({ width: 320, height: 720 })
+    const containment = await page.evaluate(() => ({
+      documentWidth: document.documentElement.scrollWidth,
+      quickStartClientWidth: document.querySelector(
+        '.docs-quick-start-code pre',
+      )?.clientWidth,
+      quickStartScrollWidth: document.querySelector(
+        '.docs-quick-start-code pre',
+      )?.scrollWidth,
+      viewportWidth: window.innerWidth,
+    }))
+    expect(containment.documentWidth).toBe(containment.viewportWidth)
+    expect(containment.quickStartScrollWidth).toBeGreaterThan(
+      containment.quickStartClientWidth ?? Number.POSITIVE_INFINITY,
+    )
+  },
+)
+
 test('live sheet opens, changes destination, and restores focus', async ({
   page,
 }) => {
@@ -146,10 +219,10 @@ test('homepage remains contained at 320 pixels', async ({ page }) => {
   expect(stylingColumns.trim().split(/\s+/)).toHaveLength(1)
 })
 
-test('homepage remains contained at the compact-layout boundary', async ({
+test('homepage launch grid remains contained just above the compact-layout boundary', async ({
   page,
 }) => {
-  await page.setViewportSize({ width: 809, height: 900 })
+  await page.setViewportSize({ width: 810, height: 900 })
   await page.goto('/')
 
   const dimensions = await page.evaluate(() => ({

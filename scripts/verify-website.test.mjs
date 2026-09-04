@@ -22,6 +22,21 @@ const requiredRoutes = [
   'support',
 ]
 
+const highlightedLanguageSamples = [
+  {
+    language: 'tsx',
+    source: 'export function Demo() { return <Sheet.Root open /> }',
+  },
+  {
+    language: 'css',
+    source: '.checkout-sheet { color: var(--checkout-text); }',
+  },
+  {
+    language: 'shell',
+    source: 'npm install --save @nipe-solutions/react-spring-bottom-sheet',
+  },
+]
+
 test('the documentation manifest covers every required topic', async () => {
   const { docs } = await import('../website/content/docs.ts')
 
@@ -33,6 +48,39 @@ test('the documentation manifest covers every required topic', async () => {
     assert.ok(page.title)
     assert.ok(page.description)
     assert.ok(page.sections.length > 0)
+  }
+})
+
+test('the Examples documentation page links to the interactive laboratory', async () => {
+  const { docs } = await import('../website/content/docs.ts')
+  const examples = docs.find(({ slug }) => slug === 'examples')
+
+  assert.deepEqual(examples?.sections[0]?.link, {
+    href: '/examples/',
+    label: 'Open the example laboratory',
+  })
+})
+
+test('the server highlighter emits exact, semantically distinct output for every supported language', async () => {
+  const { highlightCode } =
+    await import('../website/components/source-code/highlighter.ts')
+
+  for (const { language, source } of highlightedLanguageSamples) {
+    const lines = await highlightCode(source, language)
+    const tokens = lines.flat()
+
+    assert.equal(
+      lines
+        .map((line) => line.map(({ content }) => content).join(''))
+        .join('\n'),
+      source,
+      language,
+    )
+    assert.ok(tokens.length > 3, `${language} emits token markup`)
+    assert.ok(
+      new Set(tokens.map(({ color }) => color)).size >= 4,
+      `${language} keeps semantic color distinctions`,
+    )
   }
 })
 

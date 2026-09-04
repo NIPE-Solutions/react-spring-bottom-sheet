@@ -147,6 +147,7 @@ describe('DeviceLab iframe identity', () => {
       fireEvent.click(screen.getByRole('button', { name: control }))
       expect(navigation.push).toHaveBeenLastCalledWith(
         `/examples/basic/?${expectedQuery}`,
+        { scroll: false },
       )
       vi.mocked(useSearchParams).mockReturnValue(currentSearchParams())
       rerender(<DeviceLab slug="basic" title="Basic" />)
@@ -172,6 +173,7 @@ describe('DeviceLab navigation', () => {
 
     expect(navigation.push).toHaveBeenCalledWith(
       '/examples/basic/?campaign=spring&device=tablet&orientation=portrait',
+      { scroll: false },
     )
     expect(navigation.replace).not.toHaveBeenCalled()
   })
@@ -245,6 +247,7 @@ describe('DeviceLab navigation', () => {
 
     expect(navigation.replace).toHaveBeenCalledWith(
       '/examples/basic/?campaign=spring&device=phone&orientation=portrait',
+      { scroll: false },
     )
     expect(navigation.push).not.toHaveBeenCalled()
   })

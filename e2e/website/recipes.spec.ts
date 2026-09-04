@@ -1,5 +1,5 @@
 import { readFileSync } from 'node:fs'
-import { expect, test, type Page } from '@playwright/test'
+import { expect, test, type Locator, type Page } from '@playwright/test'
 import AxeBuilder from '@axe-core/playwright'
 
 const RECIPE_SOURCES = [
@@ -30,6 +30,114 @@ const BASIC_RECIPE_SOURCE = CANONICAL_RECIPE_SOURCES[0]!.source
 
 function recipeFrame(page: Page) {
   return page.frameLocator('[title$="interactive preview"]')
+}
+
+async function openSourceInspector(page: Page, filename: string) {
+  const trigger = page.getByRole('button', { name: 'View source' })
+  await expect(
+    page.getByRole('dialog', { name: `${filename} source` }),
+  ).toHaveCount(0)
+  await trigger.click()
+
+  const dialog = page.getByRole('dialog', { name: `${filename} source` })
+  const close = dialog.getByRole('button', { name: 'Close source' })
+  const source = dialog.getByRole('region', {
+    name: `${filename} source code`,
+  })
+  await expect(dialog).toBeVisible()
+  await expect(close).toBeFocused()
+
+  return { close, dialog, source, trigger }
+}
+
+async function tabToContainedTarget(
+  page: Page,
+  target: Locator,
+  container: Locator,
+) {
+  for (let step = 0; step < 4; step += 1) {
+    await page.keyboard.press('Tab')
+    if (
+      await target.evaluate((element) => element === document.activeElement)
+    ) {
+      return
+    }
+    expect(
+      await container.evaluate((element) =>
+        element.contains(document.activeElement),
+      ),
+    ).toBe(true)
+  }
+
+  throw new Error('Keyboard focus did not reach the contained source region')
+}
+
+type ScrollTrace = Readonly<{ stop: () => Promise<number[]> }>
+
+async function beginScrollTrace(page: Page): Promise<ScrollTrace> {
+  await page.evaluate(() => {
+    type Trace = {
+      animationFrame: number
+      onScroll: () => void
+      samples: number[]
+    }
+    type TestWindow = typeof window & { deviceLabScrollTrace?: Trace }
+    const testWindow = window as TestWindow
+    if (testWindow.deviceLabScrollTrace) {
+      throw new Error('A device-lab scroll trace is already active')
+    }
+
+    const samples = [window.scrollY]
+    const onScroll = () => samples.push(window.scrollY)
+    const sampleAnimationFrame = () => {
+      samples.push(window.scrollY)
+      testWindow.deviceLabScrollTrace!.animationFrame =
+        window.requestAnimationFrame(sampleAnimationFrame)
+    }
+    testWindow.deviceLabScrollTrace = {
+      animationFrame: window.requestAnimationFrame(sampleAnimationFrame),
+      onScroll,
+      samples,
+    }
+    window.addEventListener('scroll', onScroll, { passive: true })
+  })
+
+  return {
+    stop: () =>
+      page.evaluate(() => {
+        type Trace = {
+          animationFrame: number
+          onScroll: () => void
+          samples: number[]
+        }
+        type TestWindow = typeof window & { deviceLabScrollTrace?: Trace }
+        const testWindow = window as TestWindow
+        const trace = testWindow.deviceLabScrollTrace
+        if (!trace) throw new Error('A device-lab scroll trace is not active')
+        window.cancelAnimationFrame(trace.animationFrame)
+        window.removeEventListener('scroll', trace.onScroll)
+        trace.samples.push(window.scrollY)
+        delete testWindow.deviceLabScrollTrace
+        return trace.samples
+      }),
+  }
+}
+
+function expectScrollTraceToStayAt(
+  samples: number[],
+  expectedScrollY: number,
+  navigation: string,
+) {
+  expect(
+    samples.length,
+    `${navigation} should record scroll samples`,
+  ).toBeGreaterThan(0)
+  for (const [index, scrollY] of samples.entries()) {
+    expect(
+      Math.abs(scrollY - expectedScrollY),
+      `${navigation} scroll sample ${index} should stay within one CSS pixel`,
+    ).toBeLessThanOrEqual(1)
+  }
 }
 
 const DEVICE_STATES = [
@@ -717,6 +825,93 @@ test('device lab preserves its iframe and open sheet through browser history', a
   ).toBeVisible()
 })
 
+test(
+  'device lab preserves document scroll through orientation and device navigation',
+  { tag: '@scroll' },
+  async ({ page }) => {
+    await page.setViewportSize({ width: 1200, height: 720 })
+    await page.goto(
+      '/examples/basic/?campaign=spring&device=phone&orientation=portrait',
+    )
+    const frame = page.locator('.docs-device-frame')
+    const iframe = page.locator('[title$="interactive preview"]')
+    await expect(frame).toHaveAttribute('data-preview-ready', 'true')
+    const iframeElement = await iframe.elementHandle()
+    expect(iframeElement).not.toBeNull()
+
+    await recipeFrame(page)
+      .getByRole('button', { name: 'Open basic sheet' })
+      .click()
+    await expect(
+      recipeFrame(page).getByRole('dialog', { name: 'Basic bottom sheet' }),
+    ).toBeVisible()
+
+    const initialScrollY = await page
+      .locator('.docs-device-controls')
+      .evaluate((controls) => {
+        const previousScrollBehavior =
+          document.documentElement.style.scrollBehavior
+        document.documentElement.style.scrollBehavior = 'auto'
+        try {
+          window.scrollTo({
+            top: window.scrollY + controls.getBoundingClientRect().top - 24,
+          })
+          return window.scrollY
+        } finally {
+          document.documentElement.style.scrollBehavior = previousScrollBehavior
+        }
+      })
+    expect(initialScrollY).toBeGreaterThan(0)
+
+    const orientationTrace = await beginScrollTrace(page)
+    await page.getByRole('button', { name: 'Landscape' }).click()
+    await expect(page).toHaveURL(
+      /campaign=spring&device=phone&orientation=landscape$/,
+    )
+    await expect(frame).toHaveAttribute('data-morphing', 'true')
+    await expect(frame).toHaveAttribute('data-morphing', 'false')
+    const orientationSamples = await orientationTrace.stop()
+    const scrollAfterOrientation = await page.evaluate(() => window.scrollY)
+    expect(
+      Math.abs(scrollAfterOrientation - initialScrollY),
+    ).toBeLessThanOrEqual(1)
+    expectScrollTraceToStayAt(
+      orientationSamples,
+      initialScrollY,
+      'orientation navigation',
+    )
+
+    const deviceTrace = await beginScrollTrace(page)
+    await page.getByRole('button', { name: 'Tablet' }).click()
+    await expect(page).toHaveURL(
+      /campaign=spring&device=tablet&orientation=landscape$/,
+    )
+    await expect(frame).toHaveAttribute('data-morphing', 'true')
+    await expect(frame).toHaveAttribute('data-morphing', 'false')
+    const deviceSamples = await deviceTrace.stop()
+    const scrollAfterDevice = await page.evaluate(() => window.scrollY)
+
+    expect(Math.abs(scrollAfterDevice - initialScrollY)).toBeLessThanOrEqual(1)
+    expectScrollTraceToStayAt(
+      deviceSamples,
+      initialScrollY,
+      'device navigation',
+    )
+    expect(
+      await iframe.evaluate(
+        (element, original) => element === original,
+        iframeElement,
+      ),
+    ).toBe(true)
+    await expect(
+      recipeFrame(page).getByRole('dialog', { name: 'Basic bottom sheet' }),
+    ).toBeVisible()
+    await expect(frame).toHaveAttribute('data-device', 'tablet')
+    await expect(frame).toHaveAttribute('data-orientation', 'landscape')
+    await expect(frame).toHaveAttribute('data-morphing', 'false')
+  },
+)
+
 test('device lab removes frame interpolation for reduced motion', async ({
   page,
 }) => {
@@ -1088,199 +1283,239 @@ test('dark theme is explicit instead of depending on system mode', async ({
   await expect(dialog).toHaveCSS('color', 'rgb(232, 241, 247)')
 })
 
-test('highlighted source is a keyboard-readable disclosure with exact copy output', async ({
-  browserName,
-  context,
-  page,
-}) => {
-  if (browserName === 'chromium') {
-    await context.grantPermissions(['clipboard-read', 'clipboard-write'])
-  }
-  await page.goto('/examples/basic/')
+test(
+  'highlighted source is a keyboard-readable inspector with exact copy output',
+  { tag: '@workbench' },
+  async ({ browserName, context, page }) => {
+    if (browserName === 'chromium') {
+      await context.grantPermissions(['clipboard-read', 'clipboard-write'])
+    }
+    await page.goto('/examples/basic/')
 
-  const disclosure = page.locator('.docs-recipe-source details')
-  const disclosureControl = page.locator('.docs-recipe-source summary')
-  await expect(disclosureControl).toHaveText('View BasicSheet.tsx')
-  await expect(disclosure).not.toHaveAttribute('open', '')
-  await disclosureControl.focus()
-  await expect(disclosureControl).toBeFocused()
-  await page.keyboard.press('Enter')
-  await expect(disclosure).toHaveAttribute('open', '')
+    const { dialog, source } = await openSourceInspector(page, 'BasicSheet.tsx')
+    await expect(source).toHaveAttribute('tabindex', '0')
+    await tabToContainedTarget(page, source, dialog)
+    await expect(source).toBeFocused()
+    await expect(source).toHaveCSS('overflow-x', 'auto')
+    await expect(source).toHaveCSS('white-space', 'pre')
+    await expect(source).toHaveCSS('outline-style', 'solid')
 
-  const scroller = page.locator(
-    'pre[aria-label="Source code for BasicSheet.tsx"]',
-  )
-  await expect(scroller).toHaveAttribute('tabindex', '0')
-  await page.keyboard.press('Tab')
-  await expect(scroller).toBeFocused()
-  await expect(scroller).toHaveCSS('overflow-x', 'auto')
-  await expect(scroller).toHaveCSS('outline-style', 'solid')
-
-  const tokenColors = await page
-    .locator('.docs-recipe-source [data-code-token]')
-    .evaluateAll((tokens) => [
-      ...new Set(tokens.map((token) => getComputedStyle(token).color)),
-    ])
-  expect(tokenColors.length).toBeGreaterThanOrEqual(4)
-  const semanticTokenColors = await page
-    .locator('.docs-recipe-source [data-code-token]')
-    .evaluateAll((tokens) => {
-      const colorFor = (content: string) =>
-        tokens.find((token) => token.textContent === content)
-          ? getComputedStyle(
-              tokens.find((token) => token.textContent === content)!,
-            ).color
-          : undefined
-      return {
-        keyword: colorFor('import'),
-        string: colorFor("'@library'"),
-      }
-    })
-  expect(semanticTokenColors.keyword).toBeDefined()
-  expect(semanticTokenColors.string).toBeDefined()
-  expect(semanticTokenColors.keyword).not.toBe(semanticTokenColors.string)
-
-  const sourceLines = page.locator('.docs-recipe-source [data-line]')
-  const expectedLines = BASIC_RECIPE_SOURCE.split('\n')
-  await expect(sourceLines).toHaveCount(expectedLines.length)
-  expect(
-    await sourceLines.evaluateAll((lines) =>
-      lines.map((line) => line.getAttribute('data-line')),
-    ),
-  ).toEqual(expectedLines.map((_, index) => String(index + 1)))
-  const lineNumbers = sourceLines.locator(':scope > span[aria-hidden="true"]')
-  await expect(lineNumbers).toHaveCount(expectedLines.length)
-  expect(
-    await lineNumbers.evaluateAll((numbers) =>
-      numbers.map((number) => {
-        const style = getComputedStyle(number)
+    const tokenColors = await dialog
+      .locator('[data-code-token]')
+      .evaluateAll((tokens) => [
+        ...new Set(tokens.map((token) => getComputedStyle(token).color)),
+      ])
+    expect(tokenColors.length).toBeGreaterThanOrEqual(4)
+    const semanticTokenColors = await dialog
+      .locator('[data-code-token]')
+      .evaluateAll((tokens) => {
+        const colorFor = (content: string) =>
+          tokens.find((token) => token.textContent === content)
+            ? getComputedStyle(
+                tokens.find((token) => token.textContent === content)!,
+              ).color
+            : undefined
         return {
-          text: number.textContent,
-          userSelect:
-            style.userSelect ?? style.getPropertyValue('-webkit-user-select'),
+          keyword: colorFor('import'),
+          string: colorFor("'@library'"),
         }
+      })
+    expect(semanticTokenColors.keyword).toBeDefined()
+    expect(semanticTokenColors.string).toBeDefined()
+    expect(semanticTokenColors.keyword).not.toBe(semanticTokenColors.string)
+
+    const sourceLines = source.locator('[data-line]')
+    const expectedLines = BASIC_RECIPE_SOURCE.split('\n')
+    await expect(sourceLines).toHaveCount(expectedLines.length)
+    expect(
+      await sourceLines.evaluateAll((lines) =>
+        lines.map((line) => line.getAttribute('data-line')),
+      ),
+    ).toEqual(expectedLines.map((_, index) => String(index + 1)))
+    const lineNumbers = dialog.locator('[data-code-line-numbers] > span')
+    await expect(lineNumbers).toHaveCount(expectedLines.length)
+    expect(
+      await lineNumbers.evaluateAll((numbers) =>
+        numbers.map((number) => number.textContent),
+      ),
+    ).toEqual(expectedLines.map((_, index) => String(index + 1)))
+    expect(
+      await dialog.locator('[data-code-line-numbers]').evaluate((element) => {
+        const styles = getComputedStyle(element)
+        return styles.userSelect || styles.webkitUserSelect
       }),
-    ),
-  ).toEqual(
-    expectedLines.map((_, index) => ({
-      text: String(index + 1),
-      userSelect: 'none',
-    })),
-  )
-  await page.evaluate((useNativeClipboard) => {
-    const originalClipboard = navigator.clipboard
-    const nativeWriteText = useNativeClipboard
-      ? originalClipboard.writeText.bind(originalClipboard)
-      : null
-    const nativeReadText = useNativeClipboard
-      ? originalClipboard.readText.bind(originalClipboard)
-      : null
-    const state = window as Window & {
-      clipboardWriteCount?: number
-      copiedSource?: string
-    }
-    state.clipboardWriteCount = 0
-
-    Object.defineProperty(navigator, 'clipboard', {
-      configurable: true,
-      value: {
-        ...(nativeReadText ? { readText: nativeReadText } : {}),
-        async writeText(value: string) {
-          state.clipboardWriteCount = (state.clipboardWriteCount ?? 0) + 1
-          if (nativeWriteText) await nativeWriteText(value)
-          state.copiedSource = value
-        },
-      },
+    ).toBe('none')
+    const rowAlignment = await dialog.evaluate(() => {
+      const lines = [...document.querySelectorAll<HTMLElement>('[data-line]')]
+      const numbers = [
+        ...document.querySelectorAll<HTMLElement>(
+          '[data-code-line-numbers] > span',
+        ),
+      ]
+      return [0, 2, 4].map((index) =>
+        Math.abs(
+          lines[index]!.getBoundingClientRect().top -
+            numbers[index]!.getBoundingClientRect().top,
+        ),
+      )
     })
-  }, browserName === 'chromium')
+    expect(rowAlignment.every((difference) => difference <= 5)).toBe(true)
+    await page.evaluate((useNativeClipboard) => {
+      const originalClipboard = navigator.clipboard
+      const nativeWriteText = useNativeClipboard
+        ? originalClipboard.writeText.bind(originalClipboard)
+        : null
+      const nativeReadText = useNativeClipboard
+        ? originalClipboard.readText.bind(originalClipboard)
+        : null
+      const state = window as Window & {
+        clipboardWriteCount?: number
+        copiedSource?: string
+      }
+      state.clipboardWriteCount = 0
 
-  const sourceRegion = page.getByRole('region', { name: 'Source' })
-  const copyButton = sourceRegion.getByRole('button', {
-    name: 'Copy source',
-  })
-  const copyStatus = sourceRegion.getByRole('status')
-  await expect(copyStatus).toHaveAttribute('aria-live', 'polite')
-  await expect(copyStatus).toHaveAttribute('aria-atomic', 'true')
-  await copyButton.click()
-  await expect(copyButton).toHaveText('Copy source')
-  await expect(copyStatus).toHaveText('Copied')
-  const copiedSource =
-    browserName === 'chromium'
-      ? await page.evaluate(() => navigator.clipboard.readText())
-      : await page.evaluate(
-          () => (window as Window & { copiedSource?: string }).copiedSource,
+      Object.defineProperty(navigator, 'clipboard', {
+        configurable: true,
+        value: {
+          ...(nativeReadText ? { readText: nativeReadText } : {}),
+          async writeText(value: string) {
+            state.clipboardWriteCount = (state.clipboardWriteCount ?? 0) + 1
+            if (nativeWriteText) await nativeWriteText(value)
+            state.copiedSource = value
+          },
+        },
+      })
+    }, browserName === 'chromium')
+
+    const copyButton = page.getByRole('button', { name: 'Copy source' })
+    const copyStatus = page.getByRole('status')
+    await copyButton.focus()
+    await expect(copyButton).toBeFocused()
+    await expect(copyButton).toHaveCSS('outline-style', 'solid')
+    const controlContrast = await copyButton.evaluate((button) => {
+      const header = button.closest('.docs-code-block-header')
+      if (!(header instanceof HTMLElement)) {
+        throw new Error('Missing code block header')
+      }
+
+      const channels = (color: string) => {
+        const values = color
+          .match(/[\d.]+/g)
+          ?.slice(0, 3)
+          .map(Number)
+        if (!values || values.length !== 3) {
+          throw new Error(`Cannot parse ${color}`)
+        }
+        return values as [number, number, number]
+      }
+      const luminance = (color: string) => {
+        const [red, green, blue] = channels(color).map((value) => {
+          const channel = value / 255
+          return channel <= 0.04045
+            ? channel / 12.92
+            : ((channel + 0.055) / 1.055) ** 2.4
+        }) as [number, number, number]
+        return red * 0.2126 + green * 0.7152 + blue * 0.0722
+      }
+      const contrast = (first: string, second: string) => {
+        const values = [luminance(first), luminance(second)].sort(
+          (left, right) => right - left,
         )
-  expect(copiedSource).toBe(BASIC_RECIPE_SOURCE)
+        return (values[0]! + 0.05) / (values[1]! + 0.05)
+      }
+      const buttonStyle = getComputedStyle(button)
+      const headerBackground = getComputedStyle(header).backgroundColor
 
-  const firstAnnouncement = await copyStatus
-    .locator(':scope > span')
-    .elementHandle()
-  expect(firstAnnouncement).not.toBeNull()
-  await copyStatus.evaluate((status) => {
-    const state = window as Window & {
-      copyStatusReplacementObserved?: boolean
-      copyStatusObserver?: MutationObserver
-    }
-    const firstAnnouncement = status.firstElementChild
-    if (!firstAnnouncement) throw new Error('Missing first copy announcement')
-
-    state.copyStatusReplacementObserved = false
-    state.copyStatusObserver?.disconnect()
-    state.copyStatusObserver = new MutationObserver(() => {
-      const replacement = status.firstElementChild
-      if (
-        !firstAnnouncement.isConnected &&
-        replacement &&
-        replacement !== firstAnnouncement &&
-        replacement.textContent === 'Copied'
-      ) {
-        state.copyStatusReplacementObserved = true
+      return {
+        boundary: contrast(buttonStyle.borderTopColor, headerBackground),
+        focus: contrast(buttonStyle.outlineColor, headerBackground),
       }
     })
-    state.copyStatusObserver.observe(status, {
-      childList: true,
-    })
-  })
-  await copyButton.click()
-  await expect(copyButton).toHaveText('Copy source')
-  await expect
-    .poll(() =>
-      page.evaluate(
-        () =>
-          (window as Window & { clipboardWriteCount?: number })
-            .clipboardWriteCount ?? 0,
-      ),
-    )
-    .toBe(2)
-  await expect
-    .poll(() =>
-      page.evaluate(
-        () =>
-          (window as Window & { copyStatusReplacementObserved?: boolean })
-            .copyStatusReplacementObserved ?? false,
-      ),
-    )
-    .toBe(true)
+    expect(controlContrast.focus).toBeGreaterThanOrEqual(3)
+    expect(controlContrast.boundary).toBeGreaterThanOrEqual(3)
+    await expect(copyStatus).toHaveAttribute('aria-live', 'polite')
+    await expect(copyStatus).toHaveAttribute('aria-atomic', 'true')
+    await copyButton.click()
+    await expect(copyButton).toHaveText('Copy source')
+    await expect(copyStatus).toHaveText('Copied')
+    const copiedSource =
+      browserName === 'chromium'
+        ? await page.evaluate(() => navigator.clipboard.readText())
+        : await page.evaluate(
+            () => (window as Window & { copiedSource?: string }).copiedSource,
+          )
+    expect(copiedSource).toBe(BASIC_RECIPE_SOURCE)
 
-  expect(await firstAnnouncement!.evaluate((node) => node.isConnected)).toBe(
-    false,
-  )
-  const replacementAnnouncement = copyStatus.locator(':scope > span')
-  await expect(replacementAnnouncement).toHaveText('Copied')
-  expect(
-    await replacementAnnouncement.evaluate(
-      (node, first) => node !== first,
-      firstAnnouncement,
-    ),
-  ).toBe(true)
-  const secondCopiedSource =
-    browserName === 'chromium'
-      ? await page.evaluate(() => navigator.clipboard.readText())
-      : await page.evaluate(
-          () => (window as Window & { copiedSource?: string }).copiedSource,
-        )
-  expect(secondCopiedSource).toBe(BASIC_RECIPE_SOURCE)
-})
+    const firstAnnouncement = await copyStatus
+      .locator(':scope > span')
+      .elementHandle()
+    expect(firstAnnouncement).not.toBeNull()
+    await copyStatus.evaluate((status) => {
+      const state = window as Window & {
+        copyStatusReplacementObserved?: boolean
+        copyStatusObserver?: MutationObserver
+      }
+      const firstAnnouncement = status.firstElementChild
+      if (!firstAnnouncement) throw new Error('Missing first copy announcement')
+
+      state.copyStatusReplacementObserved = false
+      state.copyStatusObserver?.disconnect()
+      state.copyStatusObserver = new MutationObserver(() => {
+        const replacement = status.firstElementChild
+        if (
+          !firstAnnouncement.isConnected &&
+          replacement &&
+          replacement !== firstAnnouncement &&
+          replacement.textContent === 'Copied'
+        ) {
+          state.copyStatusReplacementObserved = true
+        }
+      })
+      state.copyStatusObserver.observe(status, {
+        childList: true,
+      })
+    })
+    await copyButton.click()
+    await expect(copyButton).toHaveText('Copy source')
+    await expect
+      .poll(() =>
+        page.evaluate(
+          () =>
+            (window as Window & { clipboardWriteCount?: number })
+              .clipboardWriteCount ?? 0,
+        ),
+      )
+      .toBe(2)
+    await expect
+      .poll(() =>
+        page.evaluate(
+          () =>
+            (window as Window & { copyStatusReplacementObserved?: boolean })
+              .copyStatusReplacementObserved ?? false,
+        ),
+      )
+      .toBe(true)
+
+    expect(await firstAnnouncement!.evaluate((node) => node.isConnected)).toBe(
+      false,
+    )
+    const replacementAnnouncement = copyStatus.locator(':scope > span')
+    await expect(replacementAnnouncement).toHaveText('Copied')
+    expect(
+      await replacementAnnouncement.evaluate(
+        (node, first) => node !== first,
+        firstAnnouncement,
+      ),
+    ).toBe(true)
+    const secondCopiedSource =
+      browserName === 'chromium'
+        ? await page.evaluate(() => navigator.clipboard.readText())
+        : await page.evaluate(
+            () => (window as Window & { copiedSource?: string }).copiedSource,
+          )
+    expect(secondCopiedSource).toBe(BASIC_RECIPE_SOURCE)
+  },
+)
 
 test('every highlighted recipe preserves its native DOM selection byte-for-byte', async ({
   browserName,
@@ -1291,16 +1526,11 @@ test('every highlighted recipe preserves its native DOM selection byte-for-byte'
 
   for (const { filename, slug, source } of CANONICAL_RECIPE_SOURCES) {
     await page.goto(`/examples/${slug}/`)
-    await page.locator('.docs-recipe-source summary').click()
-    const scroller = page.locator(
-      `pre[aria-label="Source code for ${filename}"]`,
-    )
-    const code = scroller.locator(':scope > code')
+    const inspector = await openSourceInspector(page, filename)
+    const code = inspector.source.locator(':scope > code')
     await expect(code.locator('[data-line]')).toHaveCount(
       source.split('\n').length,
     )
-    await scroller.focus()
-    await expect(scroller).toBeFocused()
 
     await code.evaluate((element, observeTrustedCopy) => {
       const selection = window.getSelection()
@@ -1373,15 +1603,15 @@ test('highlighted source copies exact bytes through the selection fallback', asy
     }
   })
 
-  const sourceRegion = page.getByRole('region', { name: 'Source' })
-  const copyButton = sourceRegion.getByRole('button', {
+  const inspector = await openSourceInspector(page, 'BasicSheet.tsx')
+  const copyButton = inspector.dialog.getByRole('button', {
     name: 'Copy source',
   })
   await copyButton.focus()
   await page.keyboard.press('Enter')
   await expect(copyButton).toHaveText('Copy source')
   await expect(copyButton).toBeFocused()
-  await expect(sourceRegion.getByRole('status')).toHaveText('Copied')
+  await expect(page.getByRole('status')).toHaveText('Copied')
   expect(
     await page.evaluate(
       () => (window as Window & { fallbackSource?: string }).fallbackSource,
@@ -1413,17 +1643,15 @@ test('highlighted source cleans up and reports unavailable selection fallbacks',
       })
     }, fallback)
 
-    const sourceRegion = page.getByRole('region', { name: 'Source' })
-    const copyButton = sourceRegion.getByRole('button', {
+    const inspector = await openSourceInspector(page, 'BasicSheet.tsx')
+    const copyButton = inspector.dialog.getByRole('button', {
       name: 'Copy source',
     })
     await copyButton.focus()
     await page.keyboard.press('Enter')
     await expect(copyButton).toHaveText('Copy source')
     await expect(copyButton).toBeFocused()
-    await expect(sourceRegion.getByRole('status')).toHaveText(
-      'Select source to copy',
-    )
+    await expect(page.getByRole('status')).toHaveText('Select source to copy')
     await expect(page.locator('textarea')).toHaveCount(0)
   }
 })
@@ -1442,29 +1670,120 @@ test('highlighted source reports a false selection fallback result', async ({
     document.execCommand = () => false
   })
 
-  const sourceRegion = page.getByRole('region', { name: 'Source' })
-  const copyButton = sourceRegion.getByRole('button', {
+  const inspector = await openSourceInspector(page, 'BasicSheet.tsx')
+  const copyButton = inspector.dialog.getByRole('button', {
     name: 'Copy source',
   })
   await copyButton.focus()
   await page.keyboard.press('Enter')
   await expect(copyButton).toHaveText('Copy source')
   await expect(copyButton).toBeFocused()
-  await expect(sourceRegion.getByRole('status')).toHaveText(
-    'Select source to copy',
-  )
+  await expect(page.getByRole('status')).toHaveText('Select source to copy')
   await expect(page.locator('textarea')).toHaveCount(0)
 })
 
-test('recipe lab and source split only when both columns remain readable', async ({
-  page,
-}) => {
-  for (const width of [320, 720, 1440]) {
-    await page.setViewportSize({ width, height: 1000 })
+test(
+  'wide source inspector overlays the inline end without preview reflow',
+  { tag: '@workbench' },
+  async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 })
     await page.goto('/examples/basic/?device=phone&orientation=portrait')
-    const disclosure = page.locator('.docs-recipe-source details')
-    await page.locator('.docs-recipe-source summary').click()
-    await expect(disclosure).toHaveAttribute('open', '')
+    const iframe = page.locator('[title$="interactive preview"]')
+    const iframeElement = await iframe.elementHandle()
+    expect(iframeElement).not.toBeNull()
+
+    const trigger = page.getByRole('button', { name: 'View source' })
+    await trigger.focus()
+    await expect(trigger).toBeFocused()
+    await expect(trigger).toHaveCSS('outline-style', 'solid')
+    const before = await page.evaluate(() => {
+      const bounds = (selector: string) => {
+        const rect = document.querySelector(selector)?.getBoundingClientRect()
+        if (!rect) throw new Error(`Missing ${selector}`)
+        return {
+          height: rect.height,
+          left: rect.left,
+          top: rect.top,
+          width: rect.width,
+        }
+      }
+      return {
+        preview: bounds('.docs-recipe-preview'),
+        stage: bounds('.docs-recipe-stage'),
+        scrollY: window.scrollY,
+      }
+    })
+
+    await trigger.press('Enter')
+    const dialog = page.getByRole('dialog', { name: 'BasicSheet.tsx source' })
+    const close = dialog.getByRole('button', { name: 'Close source' })
+    await expect(dialog).toBeVisible()
+    await expect(close).toBeFocused()
+    await expect
+      .poll(async () => {
+        const bounds = await dialog.boundingBox()
+        return bounds ? bounds.x + bounds.width : 0
+      })
+      .toBeCloseTo(1440, 0)
+    const after = await page.evaluate(() => {
+      const bounds = (selector: string) => {
+        const rect = document.querySelector(selector)?.getBoundingClientRect()
+        if (!rect) throw new Error(`Missing ${selector}`)
+        return {
+          height: rect.height,
+          left: rect.left,
+          top: rect.top,
+          width: rect.width,
+        }
+      }
+      const backdrop = document.querySelector('.docs-source-inspector-backdrop')
+      return {
+        backdropTransition: backdrop
+          ? getComputedStyle(backdrop).transitionProperty
+          : '',
+        panel: bounds('.docs-source-inspector-panel'),
+        preview: bounds('.docs-recipe-preview'),
+        scrollY: window.scrollY,
+        stage: bounds('.docs-recipe-stage'),
+      }
+    })
+
+    expect(after.panel.left + after.panel.width).toBeCloseTo(1440, 0)
+    expect(after.panel.width).toBeCloseTo(768, 0)
+    expect(after.panel.width).toBeLessThan(1440 * 0.72 + 1)
+    expect(after.preview).toEqual(before.preview)
+    expect(after.stage).toEqual(before.stage)
+    expect(after.scrollY).toBe(before.scrollY)
+    expect(after.backdropTransition).toBe('opacity')
+    expect(
+      await iframe.evaluate(
+        (node, previous) => node === previous,
+        iframeElement,
+      ),
+    ).toBe(true)
+    await expect(dialog.locator('[data-code-token]')).not.toHaveCount(0)
+
+    await page.keyboard.press('Escape')
+    await expect(dialog).toHaveCount(0)
+    await expect(trigger).toBeFocused()
+  },
+)
+
+test(
+  'compact source inspector contains source and keeps every action reachable',
+  { tag: '@workbench' },
+  async ({ page }) => {
+    await page.setViewportSize({ width: 320, height: 720 })
+    await page.goto('/examples/basic/?device=phone&orientation=portrait')
+    const { close, dialog, source } = await openSourceInspector(
+      page,
+      'BasicSheet.tsx',
+    )
+    const copy = dialog.getByRole('button', { name: 'Copy source' })
+    await expect(copy).toBeVisible()
+    await expect
+      .poll(async () => (await dialog.boundingBox())?.x ?? Number.NaN)
+      .toBe(0)
 
     const layout = await page.evaluate(() => {
       const bounds = (selector: string) => {
@@ -1484,39 +1803,82 @@ test('recipe lab and source split only when both columns remain readable', async
         }
       }
       return {
-        controlsWrap: getComputedStyle(
-          document.querySelector('.docs-device-controls')!,
-        ).flexWrap,
-        details: bounds('.docs-recipe-source details'),
+        close: bounds('.docs-source-inspector-header button'),
+        copy: bounds('.docs-code-block-header button'),
         documentWidth: document.documentElement.scrollWidth,
-        guidance: bounds('.docs-recipe-guidance'),
-        preview: bounds('.docs-recipe-preview'),
-        scroller: bounds('.docs-recipe-source pre'),
-        source: bounds('.docs-recipe-source'),
+        panel: bounds('.docs-source-inspector-panel'),
+        source: bounds('.docs-source-inspector pre'),
+        viewportHeight: window.innerHeight,
         viewportWidth: window.innerWidth,
       }
     })
 
-    expect(layout.documentWidth).toBe(width)
-    expect(layout.viewportWidth).toBe(width)
-    expect(layout.source.scrollWidth).toBe(layout.source.clientWidth)
-    expect(layout.details.scrollWidth).toBe(layout.details.clientWidth)
-    expect(layout.scroller.width).toBeLessThanOrEqual(layout.source.width)
-    expect(layout.scroller.scrollWidth).toBeGreaterThan(
-      layout.scroller.clientWidth,
-    )
-
-    if (width === 1440) {
-      expect(layout.source.left).toBeGreaterThanOrEqual(layout.preview.right)
-      expect(layout.preview.width).toBeGreaterThanOrEqual(400)
-      expect(layout.source.width).toBeGreaterThanOrEqual(440)
-    } else {
-      expect(layout.controlsWrap).toBe('wrap')
-      expect(layout.preview.top).toBeLessThan(layout.guidance.top)
-      expect(layout.guidance.top).toBeLessThan(layout.source.top)
+    expect(layout.documentWidth).toBe(layout.viewportWidth)
+    expect(layout.panel).toMatchObject({
+      left: 0,
+      right: 320,
+      top: 0,
+      width: 320,
+    })
+    expect(layout.panel.bottom).toBe(layout.viewportHeight)
+    expect(layout.source.left).toBeGreaterThanOrEqual(0)
+    expect(layout.source.right).toBeLessThanOrEqual(layout.viewportWidth)
+    expect(layout.source.scrollWidth).toBeGreaterThan(layout.source.clientWidth)
+    for (const action of [layout.close, layout.copy]) {
+      expect(action.left).toBeGreaterThanOrEqual(0)
+      expect(action.right).toBeLessThanOrEqual(layout.viewportWidth)
+      expect(action.top).toBeGreaterThanOrEqual(0)
+      expect(action.bottom).toBeLessThanOrEqual(layout.viewportHeight)
     }
-  }
-})
+
+    await tabToContainedTarget(page, source, dialog)
+    await expect(source).toBeFocused()
+    await expect(source).toHaveCSS('outline-style', 'solid')
+    await source.evaluate((element) => {
+      element.scrollLeft = element.scrollWidth
+    })
+    expect(
+      await source.evaluate((element) => element.scrollLeft),
+    ).toBeGreaterThan(0)
+
+    await close.click()
+    await expect(dialog).toHaveCount(0)
+  },
+)
+
+test(
+  'source inspector removes drawer and backdrop motion for reduced-motion users',
+  { tag: '@workbench' },
+  async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: 'reduce' })
+    await page.goto('/examples/basic/')
+    const { close, dialog, trigger } = await openSourceInspector(
+      page,
+      'BasicSheet.tsx',
+    )
+    const motion = await page.evaluate(() => {
+      const panel = document.querySelector('.docs-source-inspector-panel')
+      const backdrop = document.querySelector('.docs-source-inspector-backdrop')
+      if (!panel || !backdrop) throw new Error('Missing source inspector')
+      return {
+        activeAnimations: document
+          .querySelector('.docs-source-inspector')!
+          .getAnimations({ subtree: true }).length,
+        backdropDuration: getComputedStyle(backdrop).transitionDuration,
+        panelDuration: getComputedStyle(panel).transitionDuration,
+      }
+    })
+    expect(motion).toEqual({
+      activeAnimations: 0,
+      backdropDuration: '0s',
+      panelDuration: '0s',
+    })
+
+    await close.click()
+    await expect(dialog).toHaveCount(0)
+    await expect(trigger).toBeFocused()
+  },
+)
 
 for (const route of [
   '/examples/basic/',

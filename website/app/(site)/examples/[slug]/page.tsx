@@ -1,11 +1,7 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
-import { Suspense } from 'react'
-import {
-  RecipePreview,
-  RecipePreviewFallback,
-} from '../../../../components/RecipePreview'
+import { RecipePreview } from '../../../../components/RecipePreview'
 import { RecipeSource } from '../../../../components/RecipeSource'
 import { getRecipe, recipes } from '../../../../recipes/registry'
 import { loadRecipeSource } from '../../../../recipes/source'
@@ -39,6 +35,10 @@ export default async function RecipePage({
   const recipe = getRecipe((await params).slug)
   if (!recipe) notFound()
   const source = await loadRecipeSource(recipe.sourceFile)
+  const sourceAction = await RecipeSource({
+    filename: source.filename,
+    source: source.source,
+  })
 
   return (
     <main id="content" className="docs-page docs-recipe-page" tabIndex={-1}>
@@ -48,14 +48,12 @@ export default async function RecipePage({
         <p>{recipe.summary}</p>
         <Link href="/examples/">All recipes</Link>
       </header>
-      <Suspense
-        fallback={
-          <RecipePreviewFallback slug={recipe.slug} title={recipe.title} />
-        }
-      >
-        <RecipePreview slug={recipe.slug} title={recipe.title} />
-      </Suspense>
-      <div className="docs-recipe-guidance">
+      <RecipePreview
+        slug={recipe.slug}
+        sourceAction={sourceAction}
+        title={recipe.title}
+      />
+      <section aria-label="Recipe guidance" className="docs-recipe-guidance">
         <section>
           <h2>Prerequisites</h2>
           <ul>
@@ -72,19 +70,15 @@ export default async function RecipePage({
             ))}
           </ul>
         </section>
-      </div>
-      <section
-        className="docs-recipe-notes"
-        aria-labelledby="recipe-notes-title"
-      >
-        <h2 id="recipe-notes-title">Accessibility notes</h2>
-        <ul>
-          {recipe.accessibility.map((note) => (
-            <li key={note}>{note}</li>
-          ))}
-        </ul>
+        <section>
+          <h2>Accessibility notes</h2>
+          <ul>
+            {recipe.accessibility.map((note) => (
+              <li key={note}>{note}</li>
+            ))}
+          </ul>
+        </section>
       </section>
-      <RecipeSource filename={source.filename} source={source.source} />
       <nav className="docs-related-docs" aria-label="Related documentation">
         <p>Related documentation</p>
         {recipe.relatedDocs.map((slug) => (

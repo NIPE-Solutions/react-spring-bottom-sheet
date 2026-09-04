@@ -89,7 +89,7 @@ export function DeviceLab({ slug, title }: DeviceLabProps) {
     if (isValidSelection(searchParams)) return
 
     const normalized = withSelection(searchParams, DEFAULT_DEVICE_SELECTION)
-    router.replace(`${pathname}?${normalized.toString()}`)
+    router.replace(`${pathname}?${normalized.toString()}`, { scroll: false })
   }, [pathname, router, readonlySearchParams])
 
   useEffect(() => setStatus('loading'), [slug])
@@ -158,7 +158,7 @@ export function DeviceLab({ slug, title }: DeviceLabProps) {
     )
     const nextParams = withSelection(searchParams, nextSelection)
     try {
-      router.push(`${pathname}?${nextParams.toString()}`)
+      router.push(`${pathname}?${nextParams.toString()}`, { scroll: false })
     } catch {
       rollbackMorphRequest(request.key)
     }

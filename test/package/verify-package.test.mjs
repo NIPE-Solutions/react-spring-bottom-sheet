@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict'
+import { readFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
 import test from 'node:test'
 
@@ -9,6 +10,17 @@ import {
 
 const require = createRequire(import.meta.url)
 const sourceMetadata = require('../../package.json')
+const verificationScript = readFileSync(
+  new URL('./verify-package.mjs', import.meta.url),
+  'utf8',
+)
+
+test('isolated consumer install does not depend on the npm audit endpoint', () => {
+  assert.match(
+    verificationScript,
+    /'install',\s*'--ignore-scripts',\s*'--no-audit'/,
+  )
+})
 
 const validPaths = [
   'LICENSE',

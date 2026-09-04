@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { CodeBlock } from './source-code/CodeBlock'
 import { buildEvidence } from '../content/evidence'
 import { getReleasePresentation } from '../content/release'
 
@@ -24,8 +25,19 @@ export function App() {
   )
 }`
 
-export function QuickStart() {
+export async function QuickStart() {
   const release = getReleasePresentation(buildEvidence.version)
+  const installCode = await CodeBlock({
+    source: release.installCommand,
+    language: 'shell',
+    label: 'Quick start install command',
+    className: 'docs-install',
+  })
+  const quickStartCode = await CodeBlock({
+    source: quickStartSource,
+    language: 'tsx',
+    className: 'docs-quick-start-code',
+  })
 
   return (
     <section className="docs-quick-start" aria-labelledby="quick-start-title">
@@ -40,14 +52,10 @@ export function QuickStart() {
         {!release.published ? (
           <p className="docs-install-label">After publication</p>
         ) : null}
-        <pre className="docs-install" tabIndex={0}>
-          <code>{release.installCommand}</code>
-        </pre>
+        {installCode}
         <Link href="/docs/installation/">Follow the installation guide</Link>
       </div>
-      <pre className="docs-quick-start-code" tabIndex={0}>
-        <code>{quickStartSource}</code>
-      </pre>
+      {quickStartCode}
     </section>
   )
 }

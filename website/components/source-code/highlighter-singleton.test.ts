@@ -5,7 +5,7 @@ afterEach(() => {
   vi.resetModules()
 })
 
-test('constructs one highlighter for multiple tokenization calls', async () => {
+test('constructs one highlighter for tokenization across languages', async () => {
   vi.resetModules()
   const shikiCore =
     await vi.importActual<typeof import('shiki/core')>('shiki/core')
@@ -14,10 +14,11 @@ test('constructs one highlighter for multiple tokenization calls', async () => {
     ...shikiCore,
     createHighlighterCore: createHighlighter,
   }))
-  const { highlightTsx } = await import('./highlighter')
+  const { highlightCode } = await import('./highlighter')
 
-  await highlightTsx('const first = true')
-  await highlightTsx('const second = false')
+  await highlightCode('const first = true', 'tsx')
+  await highlightCode('.sheet { color: red; }', 'css')
+  await highlightCode('npm install vitest', 'shell')
 
   expect(createHighlighter).toHaveBeenCalledTimes(1)
 })

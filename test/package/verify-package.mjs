@@ -44,6 +44,7 @@ try {
     [
       'install',
       '--ignore-scripts',
+      '--no-audit',
       `react@${expectedReactVersion}`,
       `react-dom@${expectedReactVersion}`,
       `typescript@${sourceMetadata.devDependencies.typescript.replace(/^[~^]/, '')}`,

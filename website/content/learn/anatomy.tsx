@@ -1,17 +1,7 @@
 import Link from 'next/link'
+import { CodeBlock } from '../../components/source-code/CodeBlock'
 
-export function AnatomyGuide() {
-  return (
-    <>
-      <section id="compound-components">
-        <h2>Compound components</h2>
-        <p>
-          <code>Sheet.Root</code> owns behavior. Trigger and Close request state
-          changes; Portal chooses the DOM boundary; Backdrop, Viewport, Content,
-          Handle, Title, and Description describe the rendered interface.
-        </p>
-        <pre>
-          <code>{`<Sheet.Root>
+const anatomySource = `<Sheet.Root>
   <Sheet.Trigger>Open</Sheet.Trigger>
   <Sheet.Portal>
     <Sheet.Backdrop />
@@ -24,8 +14,24 @@ export function AnatomyGuide() {
       </Sheet.Content>
     </Sheet.Viewport>
   </Sheet.Portal>
-</Sheet.Root>`}</code>
-        </pre>
+</Sheet.Root>`
+
+export async function AnatomyGuide() {
+  const anatomyCode = await CodeBlock({
+    source: anatomySource,
+    language: 'tsx',
+  })
+
+  return (
+    <>
+      <section id="compound-components">
+        <h2>Compound components</h2>
+        <p>
+          <code>Sheet.Root</code> owns behavior. Trigger and Close request state
+          changes; Portal chooses the DOM boundary; Backdrop, Viewport, Content,
+          Handle, Title, and Description describe the rendered interface.
+        </p>
+        {anatomyCode}
       </section>
       <section id="convenience-composition">
         <h2>Convenience composition</h2>

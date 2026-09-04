@@ -1,7 +1,29 @@
 import Link from 'next/link'
+import { CodeBlock } from '../../components/source-code/CodeBlock'
 import { StylesReference } from '../reference/styles'
 
-export function StylingGuide() {
+const stylesImportSource =
+  "import '@nipe-solutions/react-spring-bottom-sheet/styles.css'"
+
+const replacementStylesSource = `import '@nipe-solutions/react-spring-bottom-sheet/core.css'
+import './sheet-theme.css'
+
+/* sheet-theme.css */
+.checkout-sheet.rsbs-content {
+  background: var(--checkout-surface);
+  color: var(--checkout-text);
+}`
+
+export async function StylingGuide() {
+  const stylesImportCode = await CodeBlock({
+    source: stylesImportSource,
+    language: 'tsx',
+  })
+  const replacementStylesCode = await CodeBlock({
+    source: replacementStylesSource,
+    language: 'css',
+  })
+
   return (
     <>
       <section id="entry-points">
@@ -11,11 +33,7 @@ export function StylingGuide() {
           combines the mechanical layer with a restrained, production-ready
           default theme.
         </p>
-        <pre>
-          <code>
-            {"import '@nipe-solutions/react-spring-bottom-sheet/styles.css'"}
-          </code>
-        </pre>
+        {stylesImportCode}
         <p>
           For a complete visual replacement, import <code>core.css</code>{' '}
           instead. Import <code>theme.css</code> when you want the default
@@ -33,16 +51,7 @@ export function StylingGuide() {
           selectors have deliberately low specificity, so ordinary selectors win
           without <code>!important</code>.
         </p>
-        <pre>
-          <code>{`import '@nipe-solutions/react-spring-bottom-sheet/core.css'
-import './sheet-theme.css'
-
-/* sheet-theme.css */
-.checkout-sheet.rsbs-content {
-  background: var(--checkout-surface);
-  color: var(--checkout-text);
-}`}</code>
-        </pre>
+        {replacementStylesCode}
         <p>
           Keep page-layout selectors out of sheet themes. The documentation site
           uses <code>docs-*</code>; its examples use <code>rsbs-example-*</code>
