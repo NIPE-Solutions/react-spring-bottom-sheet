@@ -47,6 +47,7 @@ export function CodeTokens({
             marginRight: '1.5rem',
             minWidth: lineNumberWidth,
             textAlign: 'right',
+            WebkitUserSelect: 'none',
             userSelect: 'none',
             verticalAlign: 'top',
           }}

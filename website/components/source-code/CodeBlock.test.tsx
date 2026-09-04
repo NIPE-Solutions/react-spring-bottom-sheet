@@ -41,6 +41,10 @@ describe('CodeBlock', () => {
     expect(region.querySelector('[data-code-line-numbers]')).toHaveTextContent(
       '1',
     )
+    expect(region.querySelector('[data-code-line-numbers]')).toHaveStyle({
+      WebkitUserSelect: 'none',
+      userSelect: 'none',
+    })
     expect(sourceCodeValue(region)).toBe(source)
     expect(sourceCodeValue(region)).not.toContain('1')
     expect(

@@ -122,6 +122,7 @@ test('shared code blocks own a square, non-wrapping, internally scrolling surfac
   const block = declarationsFor('.docs-code-block')
   const source = declarationsFor('.docs-code-block pre')
   const code = declarationsFor('.docs-code-block code')
+  const numbers = declarationsFor('.docs-code-block [data-code-line-numbers]')
   const line = declarationsFor('.docs-code-block [data-line]')
   const focus = declarationsFor('.docs-code-block pre:focus-visible')
 
@@ -136,6 +137,8 @@ test('shared code blocks own a square, non-wrapping, internally scrolling surfac
   assert.equal(source.get('border-radius'), '0')
   assert.equal(code.get('display'), 'inline-block')
   assert.equal(code.get('vertical-align'), 'top')
+  assert.equal(numbers.get('font-family'), code.get('font-family'))
+  assert.equal(numbers.get('font-size'), code.get('font-size'))
   assert.equal(line.get('min-width'), 'max-content')
   assert.match(focus.get('outline'), /^3px solid /)
 })
@@ -190,6 +193,7 @@ test('source inspector owns horizontal overflow and accessible line-number prese
   assert.equal(source.get('white-space'), 'pre')
   assert.equal(line.get('min-width'), 'max-content')
   assert.equal(number.get('user-select'), 'none')
+  assert.equal(number.get('-webkit-user-select'), 'none')
   assert.equal(number.get('font-variant-numeric'), 'tabular-nums')
 })
 

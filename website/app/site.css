@@ -352,7 +352,11 @@
   }
   .docs-code-block [data-code-line-numbers] {
     color: var(--docs-code-muted);
+    font-family:
+      'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+    font-size: 0.86rem;
     font-variant-numeric: tabular-nums;
+    -webkit-user-select: none;
     user-select: none;
   }
   .docs-home :not(pre) > code,
@@ -1128,6 +1132,7 @@
   .docs-source-inspector [data-code-line-numbers] {
     color: var(--docs-code-muted);
     font-variant-numeric: tabular-nums;
+    -webkit-user-select: none;
     user-select: none;
   }
   .docs-related-docs {
