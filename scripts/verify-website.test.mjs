@@ -147,9 +147,13 @@ test('the website publishes search and social metadata routes', () => {
   }
 })
 
-test('the website identifies its NIPE primitive without a release eyebrow', () => {
+test('the website identifies its primitive and links to NIPE Open Source', () => {
   const header = readFileSync(
     new URL('../website/components/SiteHeader.tsx', import.meta.url),
+    'utf8',
+  )
+  const styles = readFileSync(
+    new URL('../website/app/site.css', import.meta.url),
     'utf8',
   )
   const home = readFileSync(
@@ -157,7 +161,11 @@ test('the website identifies its NIPE primitive without a release eyebrow', () =
     'utf8',
   )
 
-  assert.match(header, /NIPE primitives \/ 02/i)
+  assert.match(header, />Primitives</)
+  assert.match(header, /href="https:\/\/opensource\.nipesolutions\.com"/)
+  assert.match(header, />NIPE Open Source</)
+  assert.doesNotMatch(header, /NIPE primitives \/ 02/i)
+  assert.match(styles, /background-image:\s*url\('\/icon\.svg'\)/)
   assert.doesNotMatch(home, /Version \{buildEvidence\.version\} · React 19/)
   assert.doesNotMatch(home, /docs-status/)
 })
