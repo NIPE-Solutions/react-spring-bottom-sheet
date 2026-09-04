@@ -32,6 +32,74 @@ function recipeFrame(page: Page) {
   return page.frameLocator('[title$="interactive preview"]')
 }
 
+type ScrollTrace = Readonly<{ stop: () => Promise<number[]> }>
+
+async function beginScrollTrace(page: Page): Promise<ScrollTrace> {
+  await page.evaluate(() => {
+    type Trace = {
+      animationFrame: number
+      onScroll: () => void
+      samples: number[]
+    }
+    type TestWindow = typeof window & { deviceLabScrollTrace?: Trace }
+    const testWindow = window as TestWindow
+    if (testWindow.deviceLabScrollTrace) {
+      throw new Error('A device-lab scroll trace is already active')
+    }
+
+    const samples = [window.scrollY]
+    const onScroll = () => samples.push(window.scrollY)
+    const sampleAnimationFrame = () => {
+      samples.push(window.scrollY)
+      testWindow.deviceLabScrollTrace!.animationFrame =
+        window.requestAnimationFrame(sampleAnimationFrame)
+    }
+    testWindow.deviceLabScrollTrace = {
+      animationFrame: window.requestAnimationFrame(sampleAnimationFrame),
+      onScroll,
+      samples,
+    }
+    window.addEventListener('scroll', onScroll, { passive: true })
+  })
+
+  return {
+    stop: () =>
+      page.evaluate(() => {
+        type Trace = {
+          animationFrame: number
+          onScroll: () => void
+          samples: number[]
+        }
+        type TestWindow = typeof window & { deviceLabScrollTrace?: Trace }
+        const testWindow = window as TestWindow
+        const trace = testWindow.deviceLabScrollTrace
+        if (!trace) throw new Error('A device-lab scroll trace is not active')
+        window.cancelAnimationFrame(trace.animationFrame)
+        window.removeEventListener('scroll', trace.onScroll)
+        trace.samples.push(window.scrollY)
+        delete testWindow.deviceLabScrollTrace
+        return trace.samples
+      }),
+  }
+}
+
+function expectScrollTraceToStayAt(
+  samples: number[],
+  expectedScrollY: number,
+  navigation: string,
+) {
+  expect(
+    samples.length,
+    `${navigation} should record scroll samples`,
+  ).toBeGreaterThan(0)
+  for (const [index, scrollY] of samples.entries()) {
+    expect(
+      Math.abs(scrollY - expectedScrollY),
+      `${navigation} scroll sample ${index} should stay within one CSS pixel`,
+    ).toBeLessThanOrEqual(1)
+  }
+}
+
 const DEVICE_STATES = [
   {
     device: 'phone',
@@ -741,28 +809,54 @@ test(
     const initialScrollY = await page
       .locator('.docs-device-controls')
       .evaluate((controls) => {
+        const previousScrollBehavior =
+          document.documentElement.style.scrollBehavior
         document.documentElement.style.scrollBehavior = 'auto'
-        window.scrollTo({
-          top: window.scrollY + controls.getBoundingClientRect().top - 24,
-        })
-        return window.scrollY
+        try {
+          window.scrollTo({
+            top: window.scrollY + controls.getBoundingClientRect().top - 24,
+          })
+          return window.scrollY
+        } finally {
+          document.documentElement.style.scrollBehavior = previousScrollBehavior
+        }
       })
     expect(initialScrollY).toBeGreaterThan(0)
 
+    const orientationTrace = await beginScrollTrace(page)
     await page.getByRole('button', { name: 'Landscape' }).click()
     await expect(page).toHaveURL(
       /campaign=spring&device=phone&orientation=landscape$/,
     )
+    await expect(frame).toHaveAttribute('data-morphing', 'true')
     await expect(frame).toHaveAttribute('data-morphing', 'false')
+    const orientationSamples = await orientationTrace.stop()
+    const scrollAfterOrientation = await page.evaluate(() => window.scrollY)
+    expect(
+      Math.abs(scrollAfterOrientation - initialScrollY),
+    ).toBeLessThanOrEqual(1)
+    expectScrollTraceToStayAt(
+      orientationSamples,
+      initialScrollY,
+      'orientation navigation',
+    )
 
+    const deviceTrace = await beginScrollTrace(page)
     await page.getByRole('button', { name: 'Tablet' }).click()
     await expect(page).toHaveURL(
       /campaign=spring&device=tablet&orientation=landscape$/,
     )
+    await expect(frame).toHaveAttribute('data-morphing', 'true')
     await expect(frame).toHaveAttribute('data-morphing', 'false')
+    const deviceSamples = await deviceTrace.stop()
     const scrollAfterDevice = await page.evaluate(() => window.scrollY)
 
     expect(Math.abs(scrollAfterDevice - initialScrollY)).toBeLessThanOrEqual(1)
+    expectScrollTraceToStayAt(
+      deviceSamples,
+      initialScrollY,
+      'device navigation',
+    )
     expect(
       await iframe.evaluate(
         (element, original) => element === original,
