@@ -30,6 +30,7 @@ export async function QuickStart() {
   const installCode = await CodeBlock({
     source: release.installCommand,
     language: 'shell',
+    label: 'Quick start install command',
     className: 'docs-install',
   })
   const quickStartCode = await CodeBlock({

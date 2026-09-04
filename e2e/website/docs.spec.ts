@@ -88,6 +88,64 @@ test('installation instructions match the package release state', async ({
   ).toHaveCount(release.prerelease && release.published ? 1 : 0)
 })
 
+test(
+  'generic and learn documentation share server-highlighted code presentation',
+  { tag: '@workbench' },
+  async ({ page }) => {
+    const samples = [
+      { route: '/docs/events/', language: 'tsx', minimumColors: 4 },
+      { route: '/docs/styling/', language: 'css', minimumColors: 4 },
+      { route: '/docs/support/', language: 'shell', minimumColors: 3 },
+    ] as const
+
+    for (const { route, language, minimumColors } of samples) {
+      const response = await page.goto(route)
+      expect(await response?.text()).toContain('data-code-token')
+
+      const source = page.getByRole('region', { name: `${language} code` })
+      await expect(source.locator('[data-code-token]')).not.toHaveCount(0)
+      const tokenColors = await source
+        .locator('[data-code-token]')
+        .evaluateAll(
+          (tokens) =>
+            new Set(tokens.map((token) => getComputedStyle(token).color)).size,
+        )
+      expect(tokenColors, route).toBeGreaterThanOrEqual(minimumColors)
+      await expect(source).toHaveCSS('overflow-x', 'auto')
+      await expect(source).toHaveCSS('white-space', 'pre')
+      await source.focus()
+      await page.keyboard.press('Tab')
+      await page.keyboard.press('Shift+Tab')
+      await expect(source).toBeFocused()
+      await expect(source).toHaveCSS('outline-style', 'solid')
+
+      const block = source.locator('..')
+      await expect(block).toHaveCSS('border-radius', '0px')
+      await expect(block).toHaveCSS('border-top-style', 'solid')
+    }
+
+    await page.goto('/docs/styling/')
+    const inlineCode = page.locator('.docs-article p code').first()
+    await expect(inlineCode).not.toHaveAttribute('data-source-code')
+    expect(
+      await inlineCode.evaluate((code) =>
+        Boolean(code.closest('.docs-code-block')),
+      ),
+    ).toBe(false)
+
+    await page.setViewportSize({ width: 320, height: 720 })
+    const cssSource = page.getByRole('region', { name: 'css code' })
+    const containment = await cssSource.evaluate((source) => ({
+      clientWidth: source.clientWidth,
+      documentWidth: document.documentElement.scrollWidth,
+      scrollWidth: source.scrollWidth,
+      viewportWidth: window.innerWidth,
+    }))
+    expect(containment.documentWidth).toBe(containment.viewportWidth)
+    expect(containment.scrollWidth).toBeGreaterThan(containment.clientWidth)
+  },
+)
+
 test('documentation shell exposes location and adjacent routes', async ({
   page,
 }) => {

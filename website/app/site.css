@@ -29,6 +29,12 @@
     --docs-signal: #3157d5;
     --docs-signal-strong: #2444ad;
     --docs-panel: #e9ecf1;
+    --docs-code-surface: #181a25;
+    --docs-code-raised: #20232e;
+    --docs-code-rule: #464b58;
+    --docs-code-ink: #f3f4fb;
+    --docs-code-muted: #b9c0cf;
+    --docs-code-focus: #a8b8ff;
     color-scheme: light dark;
   }
   body {
@@ -69,15 +75,6 @@
   }
   h3 {
     font-size: 1rem;
-  }
-  pre {
-    max-width: 100%;
-    overflow: auto;
-    border-left: 3px solid var(--docs-signal);
-    background: #181a25;
-    color: #f3f4fb;
-    padding: 1rem 1.2rem;
-    border-radius: 0.35rem;
   }
 }
 
@@ -285,8 +282,90 @@
     border-color: var(--docs-signal);
     color: white;
   }
+  .docs-code-block {
+    min-width: 0;
+    max-width: 100%;
+    margin-block: 1.25rem;
+    overflow: hidden;
+    border: 1px solid var(--docs-code-rule);
+    border-radius: 0;
+    background: var(--docs-code-surface);
+    color: var(--docs-code-ink);
+  }
+  .docs-code-block-header {
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem 1rem;
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--docs-code-rule);
+    background: var(--docs-code-raised);
+    color: var(--docs-code-ink);
+    font-family:
+      'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+    font-size: 0.82rem;
+    font-weight: 650;
+  }
+  .docs-code-block-header > span {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+  .docs-code-block-header button {
+    border-color: var(--docs-code-rule);
+    border-radius: 0;
+    color: var(--docs-code-ink);
+  }
+  .docs-code-block pre {
+    width: 100%;
+    max-width: 100%;
+    margin: 0;
+    overflow-x: auto;
+    border: 0;
+    border-radius: 0;
+    background: var(--docs-code-surface);
+    color: var(--docs-code-ink);
+    padding: 1rem 1.2rem;
+    font-variant-ligatures: none;
+    line-height: 1.65;
+    overscroll-behavior-inline: contain;
+    scrollbar-gutter: stable;
+    tab-size: 2;
+    white-space: pre;
+  }
+  .docs-code-block pre:focus-visible {
+    outline: 3px solid var(--docs-code-focus);
+    outline-offset: -4px;
+  }
+  .docs-code-block code {
+    display: inline-block;
+    font-family:
+      'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+    font-size: 0.86rem;
+    vertical-align: top;
+  }
+  .docs-code-block [data-line] {
+    min-width: max-content;
+  }
+  .docs-code-block [data-code-line-numbers] {
+    color: var(--docs-code-muted);
+    font-variant-numeric: tabular-nums;
+    user-select: none;
+  }
+  .docs-home :not(pre) > code,
+  .docs-page :not(pre) > code {
+    padding: 0.08em 0.28em;
+    background: var(--docs-panel);
+    font-family:
+      'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+    font-size: 0.92em;
+    overflow-wrap: anywhere;
+  }
   .docs-install {
     font-size: 0.82rem;
+  }
+  .docs-install code {
+    font-size: inherit;
   }
   .docs-demo-stage {
     position: relative;
@@ -527,12 +606,13 @@
     display: flex;
     flex-wrap: wrap;
     gap: 0.75rem;
+    min-width: 0;
   }
-  .docs-launch-actions code {
+  .docs-launch-actions .docs-code-block {
     flex-basis: 100%;
-    overflow-wrap: anywhere;
-    padding: 1rem;
-    background: var(--docs-panel);
+    width: 100%;
+    min-width: 0;
+    margin: 0;
   }
   .docs-install-label,
   .docs-launch-command-label {
@@ -562,8 +642,13 @@
     margin-block: 2rem 1rem;
   }
   .docs-quick-start-code {
-    max-height: 34rem;
+    width: 100%;
+    min-width: 0;
     margin: 0;
+  }
+  .docs-quick-start-code pre {
+    max-height: 34rem;
+    overflow-y: auto;
   }
   .docs-home-recipes > div {
     max-width: 76rem;
@@ -701,16 +786,20 @@
   }
   .docs-recipe-section-heading {
     display: flex;
-    align-items: end;
+    align-items: center;
     justify-content: space-between;
     gap: 1rem;
+    max-width: 76rem;
+    margin-inline: auto;
   }
   .docs-recipe-section-heading h2,
   .docs-recipe-section-heading p {
     margin-bottom: 0;
   }
   .docs-device-lab {
+    max-width: 76rem;
     margin-top: 1.5rem;
+    margin-inline: auto;
   }
   .docs-device-controls {
     display: flex;
@@ -851,13 +940,24 @@
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: clamp(1.5rem, 4vw, 4rem);
+    max-width: 76rem;
+    margin-inline: auto;
   }
   .docs-recipe-guidance ul {
+    margin-block: 0;
     padding-left: 1.2rem;
   }
+  .docs-recipe-guidance li + li {
+    margin-top: 0.55rem;
+  }
   .docs-recipe-guidance > section {
+    min-width: 0;
     padding: 0;
     border: 0;
+  }
+  .docs-recipe-guidance h2 {
+    margin-bottom: 0.9rem;
+    font-size: clamp(1.15rem, 2vw, 1.4rem);
   }
   .docs-recipe-form {
     display: grid;
@@ -907,7 +1007,11 @@
   .docs-source-inspector-backdrop {
     position: absolute;
     inset: 0;
-    background: rgb(15 23 42 / 42%);
+    background: rgb(15 23 42 / 38%);
+    opacity: 0;
+    transition-duration: 220ms;
+    transition-property: opacity;
+    transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
   }
   .docs-source-inspector-panel {
     position: relative;
@@ -920,10 +1024,19 @@
     display: flex;
     flex-direction: column;
     overflow: hidden;
+    border-inline-start: 1px solid var(--docs-rule);
     background: var(--docs-surface);
-    box-shadow: -1rem 0 3rem rgb(15 23 42 / 22%);
+    box-shadow: -0.75rem 0 2rem rgb(15 23 42 / 14%);
     color: var(--docs-ink);
-    transition: transform 220ms cubic-bezier(0.22, 1, 0.36, 1);
+    transition-duration: 220ms;
+    transition-property: transform;
+    transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  .docs-source-inspector[data-state='closed'] .docs-source-inspector-backdrop {
+    opacity: 0;
+  }
+  .docs-source-inspector[data-state='open'] .docs-source-inspector-backdrop {
+    opacity: 1;
   }
   .docs-source-inspector[data-state='closed'] .docs-source-inspector-panel {
     transform: translateX(100%);
@@ -962,29 +1075,10 @@
     overflow: auto;
     overscroll-behavior: contain;
     padding: clamp(1rem, 3vw, 2rem);
+    background: #12141d;
   }
   .docs-source-inspector .docs-code-block {
-    min-width: 0;
-    border: 1px solid #464b58;
-    border-radius: 0.35rem;
-    overflow: hidden;
-    background: #181a25;
-    color: #f3f4fb;
-  }
-  .docs-source-inspector .docs-code-block-header {
-    min-width: 0;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 1rem;
-    padding: 0.75rem 1rem;
-    border-bottom: 1px solid #464b58;
-    background: #20232e;
-    color: #f3f4fb;
-    font-family:
-      'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
-    font-size: 0.82rem;
-    font-weight: 650;
+    margin: 0;
   }
   .docs-recipe-source-copy {
     display: flex;
@@ -1001,7 +1095,7 @@
   }
   .docs-recipe-source-copy-status {
     min-width: 0;
-    color: var(--docs-muted);
+    color: var(--docs-code-muted);
     font-size: 0.82rem;
     line-height: 1.25;
     overflow-wrap: anywhere;
@@ -1013,28 +1107,23 @@
     overflow-x: auto;
     border: 0;
     border-radius: 0;
-    background: #181a25;
+    background: var(--docs-code-surface);
     padding: 1rem 0;
-    color: #f3f4fb;
+    color: var(--docs-code-ink);
     line-height: 1.65;
     scrollbar-gutter: stable;
     white-space: pre;
   }
   .docs-source-inspector pre:focus-visible {
-    outline: 3px solid #a8b8ff;
-    outline-offset: 3px;
-  }
-  .docs-source-inspector code {
-    font-family:
-      'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
-    font-size: 0.86rem;
+    outline: 3px solid var(--docs-code-focus);
+    outline-offset: -4px;
   }
   .docs-source-inspector [data-line] {
     min-width: max-content;
     padding-inline: 1rem 1.5rem;
   }
   .docs-source-inspector [data-code-line-numbers] {
-    color: #b9c0cf;
+    color: var(--docs-code-muted);
     font-variant-numeric: tabular-nums;
     user-select: none;
   }
@@ -1308,11 +1397,16 @@
   .docs-recipe-grid article:first-child {
     border-left: 1px solid var(--docs-rule);
   }
+  .docs-recipe-section-heading,
+  .docs-code-block-header {
+    flex-wrap: wrap;
+  }
   .docs-source-inspector-panel {
     width: 100%;
     height: 100dvh;
   }
   .docs-source-inspector-header {
+    align-items: flex-start;
     padding-top: calc(1rem + env(safe-area-inset-top));
     padding-inline: calc(1rem + env(safe-area-inset-left))
       calc(1rem + env(safe-area-inset-right));
@@ -1431,6 +1525,9 @@
     scroll-behavior: auto !important;
   }
   .docs-source-inspector-panel {
+    transition: none;
+  }
+  .docs-source-inspector-backdrop {
     transition: none;
   }
 }

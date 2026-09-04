@@ -7,6 +7,7 @@ export async function LaunchPath({ version }: { version: string }) {
   const installCode = await CodeBlock({
     source: release.installCommand,
     language: 'shell',
+    label: 'Release install command',
   })
 
   return (
