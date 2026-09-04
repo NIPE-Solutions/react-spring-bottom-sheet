@@ -14,6 +14,13 @@ export const metadata: Metadata = {
   description:
     'Accessible, composable bottom sheets for React 19 with predictable gestures, explicit state, and complete styling control.',
   alternates: { canonical: '/' },
+  icons: {
+    icon: [
+      { url: '/icon.svg', type: 'image/svg+xml' },
+      { url: '/favicon-32x32.png', sizes: '32x32', type: 'image/png' },
+    ],
+    apple: [{ url: '/apple-icon.png', sizes: '180x180' }],
+  },
   openGraph: {
     title: 'React Spring Bottom Sheet',
     description:

@@ -7,6 +7,7 @@ export function SiteHeader() {
         <span aria-hidden="true" className="docs-wordmark-mark" />
         React Spring Bottom Sheet
       </Link>
+      <span className="docs-collection">NIPE primitives / 02</span>
       <nav aria-label="Primary navigation">
         <Link href="/docs/introduction/">Docs</Link>
         <Link href="/examples/">Examples</Link>
