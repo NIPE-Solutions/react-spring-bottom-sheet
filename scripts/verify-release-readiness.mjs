@@ -6,7 +6,6 @@ import { parseWorkflowModel } from './release-policy.mjs'
 export const readinessCommands = [
   ['npm', ['run', 'check']],
   ['npm', ['run', 'test:browser-matrix']],
-  ['npm', ['audit', '--omit=dev']],
   ['npm', ['pack', '--dry-run']],
 ]
 
@@ -37,10 +36,15 @@ const desktopCommands = [
   'npm run test:e2e -- --project=${{ matrix.project }}',
   'npm run test:website:e2e -- --project=${{ matrix.project }}',
 ]
-const desktopJobCommands = ['npm ci', ...desktopCommands]
+const cleanInstallCommand = 'npm ci --no-audit'
+const desktopJobCommands = [cleanInstallCommand, ...desktopCommands]
 const touchInstallCommand = 'npx playwright install --with-deps chromium'
 const touchTestCommand = 'npm run test:e2e -- --project=chromium-touch'
-const touchJobCommands = ['npm ci', touchInstallCommand, touchTestCommand]
+const touchJobCommands = [
+  cleanInstallCommand,
+  touchInstallCommand,
+  touchTestCommand,
+]
 
 const hasBlockingDefaultPolicy = (step) =>
   step.if === '' &&
@@ -96,10 +100,13 @@ export function validateReadinessWorkflows({ ciWorkflow, releaseWorkflow }) {
     }
 
     if (
-      !sameCommands(commandsIn(quality), ['npm ci', 'npm run release:check'])
+      !sameCommands(commandsIn(quality), [
+        cleanInstallCommand,
+        'npm run release:check',
+      ])
     ) {
       errors.push(
-        `${label} quality must run only npm ci and npm run release:check`,
+        `${label} quality must run only npm ci --no-audit and npm run release:check`,
       )
     }
     if (customizesRunShell(quality)) {

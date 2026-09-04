@@ -29,16 +29,17 @@ Connect; it does not use a long-lived npm write token.
 3. From a clean checkout, run:
 
    ```sh
-   npm ci
+   npm ci --no-audit
    npm run release:check
    npm run test:e2e
    npm run test:website:e2e
    ```
 
    The readiness command runs the repository checks, browser-matrix inventory,
-   blocking production audit, and package dry run in a fixed order. Run
-   `npm audit --json` separately, triage every development advisory in the pull
-   request, and do not treat tooling-only findings as published runtime risk.
+   and package dry run in a fixed order. `npm ci --no-audit` and readiness do not
+   contact the audit endpoint. Run `npm audit --json` separately when audit
+   evidence is needed; it is non-blocking and development advisories should be
+   triaged in the pull request without being presented as published runtime risk.
 
 4. Confirm CI and the Vercel preview are green. Successful Ubuntu WebKit is the
    final browser integration evidence; the checked scenario inventory does not

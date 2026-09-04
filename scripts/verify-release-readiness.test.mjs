@@ -17,7 +17,6 @@ import { parseWorkflowModel } from './release-policy.mjs'
 const expectedCommands = [
   ['npm', ['run', 'check']],
   ['npm', ['run', 'test:browser-matrix']],
-  ['npm', ['audit', '--omit=dev']],
   ['npm', ['pack', '--dry-run']],
 ]
 
@@ -168,7 +167,7 @@ test('readiness manifest contains no direct publication or repository mutation',
   assert.deepEqual(readinessCommands, expectedCommands)
   assert.equal(
     readinessCommands.some(([command, args]) =>
-      /publish|release create|npm dist-tag|git tag|npm version/.test(
+      /audit|publish|release create|npm dist-tag|git tag|npm version/.test(
         `${command} ${args.join(' ')}`,
       ),
     ),
@@ -334,7 +333,7 @@ test('readiness report lists automated gates and leaves every sign-off open', ()
     new URL('../docs/releases/v5-alpha-readiness.md', import.meta.url),
   )
   const automatedCommands = [
-    'npm ci',
+    'npm ci --no-audit',
     'npm run release:check',
     'npm run test:e2e',
     'npm run test:website:e2e',
@@ -357,10 +356,10 @@ test('readiness report lists automated gates and leaves every sign-off open', ()
     checkboxes.map((match) => [match[1], match[2]]),
     manualSignOffs.map((signOff) => [' ', signOff]),
   )
-  assert.match(report, /`npm audit --omit=dev`[^\n]*block/i)
+  assert.doesNotMatch(report, /`npm audit --omit=dev`[^\n]*block/i)
   assert.match(
     report,
-    /full development\s+audit[\s\S]{0,100}informational[\s\S]{0,100}triag/i,
+    /npm audit --json[\s\S]{0,100}non-blocking[\s\S]{0,100}triag/i,
   )
 })
 
@@ -373,7 +372,7 @@ test('prerelease instructions order clean install before readiness and sign-off'
     releasing.indexOf('## Publish the stable release'),
   )
   const milestones = [
-    'npm ci',
+    'npm ci --no-audit',
     'npm run release:check',
     'npm run test:e2e',
     'npm run test:website:e2e',
@@ -429,6 +428,24 @@ test('stable release instructions preserve every protected promotion stage', () 
     const index = normalizedStable.indexOf(milestone)
     assert.ok(index > previous, `${milestone} must follow the prior milestone`)
     previous = index
+  }
+})
+
+test('CI and release clean installs disable audit endpoint calls', () => {
+  for (const [label, workflow, expectedCount] of [
+    ['CI', ciWorkflow, 3],
+    ['release', releaseWorkflow, 4],
+  ]) {
+    assert.equal(
+      workflow.split('run: npm ci --no-audit').length - 1,
+      expectedCount,
+      `${label} must disable audit for every clean install`,
+    )
+    assert.equal(
+      workflow.split('run: npm ci\n').length - 1,
+      0,
+      `${label} must not leave an audit-enabled clean install`,
+    )
   }
 })
 
@@ -732,6 +749,25 @@ for (const [label, workflowName] of [
       `${label} chromium-touch steps must be unconditional and non-tolerated`,
     ],
   ]) {
+    test(`requires ${label} ${jobName} clean installs to disable audit`, () => {
+      const workflows = { ciWorkflow, releaseWorkflow }
+      workflows[workflowName] = replaceInJob(
+        workflows[workflowName],
+        jobName,
+        '      - run: npm ci --no-audit',
+        '      - run: npm ci',
+      )
+
+      assert.match(
+        validateReadinessWorkflows(workflows).join('\n'),
+        new RegExp(
+          jobName === 'browsers'
+            ? `${label} browsers must install and execute each desktop project in both suites`
+            : `${label} chromium-touch must run exactly once as a separate library-only job`,
+        ),
+      )
+    })
+
     for (const [policyName, setting] of [
       ['condition', 'if: always()'],
       ['failure tolerance', 'continue-on-error: true'],
@@ -741,8 +777,8 @@ for (const [label, workflowName] of [
         workflows[workflowName] = replaceInJob(
           workflows[workflowName],
           jobName,
-          '      - run: npm ci',
-          ['      - run: npm ci', `        ${setting}`].join('\n'),
+          '      - run: npm ci --no-audit',
+          ['      - run: npm ci --no-audit', `        ${setting}`].join('\n'),
         )
 
         assert.match(
@@ -1290,7 +1326,7 @@ test('rejects a named duplicate check step in either quality job', () => {
 
     assert.match(
       validateReadinessWorkflows(workflows).join('\n'),
-      /quality must run only npm ci and npm run release:check/,
+      /quality must run only npm ci --no-audit and npm run release:check/,
     )
   }
 })

@@ -36,7 +36,7 @@ jobs:
         with:
           node-version-file: .nvmrc
           cache: npm
-      - run: npm ci
+      - run: npm ci --no-audit
       - run: npm run release:check
 
   browsers:
@@ -53,7 +53,7 @@ jobs:
         with:
           node-version-file: .nvmrc
           cache: npm
-      - run: npm ci
+      - run: npm ci --no-audit
       - run: npx playwright install --with-deps ${{ matrix.project }}
       - run: npm run test:e2e -- --project=${{ matrix.project }}
       - run: npm run test:website:e2e -- --project=${{ matrix.project }}
@@ -76,7 +76,7 @@ jobs:
         with:
           node-version-file: .nvmrc
           cache: npm
-      - run: npm ci
+      - run: npm ci --no-audit
       - run: npx playwright install --with-deps chromium
       - run: npm run test:e2e -- --project=chromium-touch
       - if: failure()
@@ -110,7 +110,7 @@ jobs:
           node-version-file: .nvmrc
           registry-url: https://registry.npmjs.org
           package-manager-cache: false
-      - run: npm ci
+      - run: npm ci --no-audit
       - name: Validate release request
         env:
           CHANNEL: ${{ inputs.channel }}
