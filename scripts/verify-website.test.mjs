@@ -84,18 +84,31 @@ test('the server highlighter emits exact, semantically distinct output for every
   }
 })
 
-test('the README includes the public entry points and project lineage', () => {
+test('the README includes the public entry points, continuation positioning, and project lineage', () => {
   const readme = readFileSync(new URL('../README.md', import.meta.url), 'utf8')
 
   for (const value of [
+    '@nipe-solutions/react-spring-bottom-sheet',
+    'https://react-spring-bottom-sheet.nipesolutions.com',
     'Sheet.Root',
     '/core.css',
     '/theme.css',
+    'React 19',
+    'accessibility',
+    'Chromium',
+    'Firefox',
+    'WebKit',
+    'Cody Olsen',
+    'Jasmine GH',
     'stipsan/react-spring-bottom-sheet',
     'JasGH/react-spring-bottom-sheet',
   ]) {
     assert.match(readme, new RegExp(value.replaceAll('/', '\\/')))
   }
+
+  assert.match(readme, /independently maintained continuation/i)
+  assert.match(readme, /migration-from-react-spring-bottom-sheet/)
+  assert.doesNotMatch(readme, /official successor/i)
 })
 
 test('the v4 migration guide maps public API and styling changes', () => {
