@@ -109,6 +109,16 @@ test('the README includes the public entry points, continuation positioning, and
   assert.match(readme, /independently maintained continuation/i)
   assert.match(readme, /migration-from-react-spring-bottom-sheet/)
   assert.doesNotMatch(readme, /official successor/i)
+
+  const introLinks = readme.indexOf('[Live docs]')
+  const install = readme.indexOf('## Install')
+  const rationale = readme.indexOf('## Why version 5')
+  const migration = readme.indexOf('## Migrating from the original package')
+
+  assert.ok(introLinks >= 0, 'README exposes its intro link row')
+  assert.ok(install > introLinks, 'installation follows the intro link row')
+  assert.ok(install < rationale, 'installation precedes the rationale')
+  assert.ok(install < migration, 'installation precedes migration details')
 })
 
 test('the v4 migration guide maps public API and styling changes', () => {
@@ -186,6 +196,14 @@ test('the website publishes a canonical React 19 migration route', () => {
     /from '\.\.\/\.\.\/\.\.\/components\/source-code\/CodeBlock'/,
   )
   assert.match(page, /from '\.\.\/\.\.\/\.\.\/content\/migration'/)
+  assert.match(
+    page,
+    /import \{ BottomSheet \} from 'react-spring-bottom-sheet'/,
+  )
+  assert.doesNotMatch(
+    page,
+    /import BottomSheet from 'react-spring-bottom-sheet'/,
+  )
   assert.match(page, /language:\s*'shell'/)
   assert.match(sitemap, /migration-from-react-spring-bottom-sheet/)
 })

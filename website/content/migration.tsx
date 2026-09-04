@@ -7,36 +7,69 @@ type MigrationPageContentProps = {
   afterExample?: ReactNode
 }
 
-const mappings = [
-  ['open', 'Keep `open` on `Sheet.Root` or `BottomSheet`.'],
-  ['blocking', 'Replace with `modal`.'],
+const mappings: readonly [string, ReactNode][] = [
+  [
+    'open',
+    <>
+      Keep <code>open</code> on <code>Sheet.Root</code> or{' '}
+      <code>BottomSheet</code>.
+    </>,
+  ],
+  [
+    'blocking',
+    <>
+      Replace with <code>modal</code>.
+    </>,
+  ],
   [
     'onDismiss',
-    'Use `onOpenChange` and update controlled state when it receives `false`.',
+    <>
+      Use <code>onOpenChange</code> and update controlled state when it receives{' '}
+      <code>false</code>.
+    </>,
   ],
-  ['snapPoints', 'Provide named `{ id, value }` snap points.'],
-  ['defaultSnap', 'Use `defaultSnapPoint` with a snap-point id.'],
+  [
+    'snapPoints',
+    <>
+      Provide named <code>{'{ id, value }'}</code> snap points.
+    </>,
+  ],
+  [
+    'defaultSnap',
+    <>
+      Use <code>defaultSnapPoint</code> with a snap-point id.
+    </>,
+  ],
   [
     'header',
-    'Compose header content before the scroll region inside `Sheet.Content`.',
+    <>
+      Compose header content before the scroll region inside{' '}
+      <code>Sheet.Content</code>.
+    </>,
   ],
   [
     'footer',
-    'Compose footer content after the scroll region inside `Sheet.Content`.',
+    <>
+      Compose footer content after the scroll region inside{' '}
+      <code>Sheet.Content</code>.
+    </>,
   ],
   [
     'BottomSheetRef',
-    'Remove it; control active snap state with props and callbacks.',
+    <>Remove it; control active snap state with props and callbacks.</>,
   ],
   [
     'expandOnContentDrag',
-    'Remove it; gesture ownership now follows scroll boundaries.',
+    <>Remove it; gesture ownership now follows scroll boundaries.</>,
   ],
   [
     'stylesheet imports',
-    'Replace `/style.css` or `/dist/style.css` with `/styles.css`; use `/core.css` for a full restyle.',
+    <>
+      Replace <code>/style.css</code> or <code>/dist/style.css</code> with{' '}
+      <code>/styles.css</code>; use <code>/core.css</code> for a full restyle.
+    </>,
   ],
-] as const
+]
 
 export function MigrationPageContent({
   installCommand,

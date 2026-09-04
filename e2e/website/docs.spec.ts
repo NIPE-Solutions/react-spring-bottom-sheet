@@ -50,6 +50,28 @@ test('migration route is discoverable and navigates from site navigation', async
   ).toBeVisible()
 })
 
+test('migration route publishes route-specific social metadata in static HTML', async ({
+  page,
+}) => {
+  const response = await page.goto('/migration-from-react-spring-bottom-sheet/')
+  const html = await response?.text()
+  const url =
+    'https://react-spring-bottom-sheet.nipesolutions.com/migration-from-react-spring-bottom-sheet/'
+  const title = 'Migrate react-spring-bottom-sheet to React 19'
+  const description =
+    'Move from the original react-spring-bottom-sheet to an independently maintained React 19 implementation with an explicit API and styling migration path.'
+
+  expect(html).toContain(`<meta property="og:title" content="${title}"`)
+  expect(html).toContain(
+    `<meta property="og:description" content="${description}"`,
+  )
+  expect(html).toContain(`<meta property="og:url" content="${url}"`)
+  expect(html).toContain(`<meta name="twitter:title" content="${title}"`)
+  expect(html).toContain(
+    `<meta name="twitter:description" content="${description}"`,
+  )
+})
+
 test('migration route is accessible and contained at 320 pixels', async ({
   page,
 }) => {

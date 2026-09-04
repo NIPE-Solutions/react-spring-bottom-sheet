@@ -25,4 +25,12 @@ test('introduces the independently maintained React 19 migration path', () => {
   expect(
     screen.getByRole('region', { name: 'Migration API mapping' }),
   ).toBeVisible()
+
+  const mapping = screen.getByRole('region', { name: 'Migration API mapping' })
+  expect(mapping).not.toHaveTextContent('`')
+  expect(
+    screen
+      .getByRole('cell', { name: 'Replace with modal.' })
+      .querySelector('code'),
+  ).toHaveTextContent('modal')
 })

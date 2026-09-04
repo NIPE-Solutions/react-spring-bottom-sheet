@@ -9,13 +9,25 @@ export const metadata: Metadata = {
   alternates: {
     canonical: '/migration-from-react-spring-bottom-sheet/',
   },
+  openGraph: {
+    title: 'Migrate react-spring-bottom-sheet to React 19',
+    description:
+      'Move from the original react-spring-bottom-sheet to an independently maintained React 19 implementation with an explicit API and styling migration path.',
+    url: '/migration-from-react-spring-bottom-sheet/',
+    type: 'website',
+  },
+  twitter: {
+    title: 'Migrate react-spring-bottom-sheet to React 19',
+    description:
+      'Move from the original react-spring-bottom-sheet to an independently maintained React 19 implementation with an explicit API and styling migration path.',
+  },
 }
 
 const installationCommand =
   'npm install @nipe-solutions/react-spring-bottom-sheet\n'
 
 const originalExample = `import { useState } from 'react'
-import BottomSheet from 'react-spring-bottom-sheet'
+import { BottomSheet } from 'react-spring-bottom-sheet'
 
 export function Details() {
   const [open, setOpen] = useState(false)

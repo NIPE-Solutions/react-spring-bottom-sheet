@@ -9,6 +9,18 @@ Accessible, composable bottom sheets for React 19. An independently maintained c
 
 [Live docs](https://react-spring-bottom-sheet.nipesolutions.com) · [Live demo](https://react-spring-bottom-sheet.nipesolutions.com/examples) · [Migration from the original](https://react-spring-bottom-sheet.nipesolutions.com/migration-from-react-spring-bottom-sheet/) · [API reference](https://react-spring-bottom-sheet.nipesolutions.com/api) · [npm](https://www.npmjs.com/package/@nipe-solutions/react-spring-bottom-sheet)
 
+## Install
+
+```bash
+npm install @nipe-solutions/react-spring-bottom-sheet
+```
+
+Import the complete default styling once from your application entry point:
+
+```ts
+import '@nipe-solutions/react-spring-bottom-sheet/styles.css'
+```
+
 ## Why version 5
 
 - Built for React 19 with accessible dialog and focus behavior backed by
@@ -25,18 +37,6 @@ Move from `react-spring-bottom-sheet` to
 `@nipe-solutions/react-spring-bottom-sheet` with the [dedicated migration
 page](https://react-spring-bottom-sheet.nipesolutions.com/migration-from-react-spring-bottom-sheet/)
 and the [detailed repository guide](docs/migration-v4-to-v5.md).
-
-## Install
-
-```bash
-npm install @nipe-solutions/react-spring-bottom-sheet
-```
-
-Import the complete default styling once from your application entry point:
-
-```ts
-import '@nipe-solutions/react-spring-bottom-sheet/styles.css'
-```
 
 ## Example
 
