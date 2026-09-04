@@ -1,8 +1,13 @@
 # React Spring Bottom Sheet
 
-Accessible, composable bottom sheets for React 19. Version 5 owns its gesture,
-layout, accessibility, and motion boundaries while keeping animation details out
-of the public API.
+[![npm version](https://img.shields.io/npm/v/%40nipe-solutions%2Freact-spring-bottom-sheet?logo=npm&label=npm)](https://www.npmjs.com/package/@nipe-solutions/react-spring-bottom-sheet)
+[![CI](https://github.com/NIPE-Solutions/react-spring-bottom-sheet/actions/workflows/ci.yml/badge.svg)](https://github.com/NIPE-Solutions/react-spring-bottom-sheet/actions/workflows/ci.yml)
+[![MIT license](https://img.shields.io/badge/license-MIT-0f766e.svg)](LICENSE)
+[![React 19](https://img.shields.io/badge/React-19-087ea4.svg?logo=react)](https://react.dev/)
+
+Accessible, composable bottom sheets for React 19. An independently maintained continuation of the original `react-spring-bottom-sheet`, rebuilt with compound components, explicit styling contracts, and current-browser verification.
+
+[Live docs](https://react-spring-bottom-sheet.nipesolutions.com) · [Live demo](https://react-spring-bottom-sheet.nipesolutions.com/examples) · [Migration from the original](https://react-spring-bottom-sheet.nipesolutions.com/migration-from-react-spring-bottom-sheet/) · [API reference](https://react-spring-bottom-sheet.nipesolutions.com/api) · [npm](https://www.npmjs.com/package/@nipe-solutions/react-spring-bottom-sheet)
 
 ## Install
 
@@ -15,6 +20,23 @@ Import the complete default styling once from your application entry point:
 ```ts
 import '@nipe-solutions/react-spring-bottom-sheet/styles.css'
 ```
+
+## Why version 5
+
+- Built for React 19 with accessible dialog and focus behavior backed by
+  explicit accessibility tests.
+- Interruption-safe gestures and motion keep the sheet responsive through rapid
+  input and state changes.
+- Replaceable styling contracts let applications own the visual design without
+  fighting library mechanics.
+- Verified against current evergreen Chromium, Firefox, and WebKit browsers.
+
+## Migrating from the original package
+
+Move from `react-spring-bottom-sheet` to
+`@nipe-solutions/react-spring-bottom-sheet` with the [dedicated migration
+page](https://react-spring-bottom-sheet.nipesolutions.com/migration-from-react-spring-bottom-sheet/)
+and the [detailed repository guide](docs/migration-v4-to-v5.md).
 
 ## Example
 
@@ -64,14 +86,14 @@ visual design with ordinary CSS and without `!important`.
 - TypeScript declarations, ESM, and CommonJS package entry points
 
 Read the [documentation](https://react-spring-bottom-sheet.nipesolutions.com),
-the [v4 to v5 migration guide](docs/migration-v4-to-v5.md), and the
-[contribution guide](CONTRIBUTING.md).
+the [migration guide](docs/migration-v4-to-v5.md), and the [contribution
+guide](CONTRIBUTING.md).
 
 ## Project lineage
 
 The project was created by Cody Olsen in
 [stipsan/react-spring-bottom-sheet](https://github.com/stipsan/react-spring-bottom-sheet)
-and later maintained in
+and later maintained by Jasmine GH in
 [JasGH/react-spring-bottom-sheet](https://github.com/JasGH/react-spring-bottom-sheet).
 This fork remains in that GitHub fork network and is independently maintained by
 [NIPE Solutions](https://github.com/NIPE-Solutions). The original authorship and

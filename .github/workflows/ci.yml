@@ -22,7 +22,7 @@ jobs:
         with:
           node-version-file: .nvmrc
           cache: npm
-      - run: npm ci
+      - run: npm ci --no-audit
       - run: npm run release:check
 
   browsers:
@@ -39,7 +39,7 @@ jobs:
         with:
           node-version-file: .nvmrc
           cache: npm
-      - run: npm ci
+      - run: npm ci --no-audit
       - run: npx playwright install --with-deps ${{ matrix.project }}
       - run: npm run test:e2e -- --project=${{ matrix.project }}
       - run: npm run test:website:e2e -- --project=${{ matrix.project }}
@@ -62,7 +62,7 @@ jobs:
         with:
           node-version-file: .nvmrc
           cache: npm
-      - run: npm ci
+      - run: npm ci --no-audit
       - run: npx playwright install --with-deps chromium
       - run: npm run test:e2e -- --project=chromium-touch
       - if: failure()

@@ -64,7 +64,7 @@ for (const route of routes) {
 
 test('footer exposes both German legal routes', async ({ page }) => {
   await page.goto('/')
-  const navigation = page.getByRole('navigation', { name: 'Legal navigation' })
+  const navigation = page.getByRole('navigation', { name: 'Footer navigation' })
 
   await expect(navigation.getByText('Datenschutz')).toHaveAttribute(
     'href',

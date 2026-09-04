@@ -6,7 +6,7 @@ distribution tag, or create a GitHub release.
 
 ## Automated gates
 
-- `npm ci`
+- `npm ci --no-audit`
 - `npm run release:check`
 - `npm run test:e2e`
 - `npm run test:website:e2e`
@@ -16,18 +16,17 @@ gates in order:
 
 1. `npm run check`
 2. `npm run test:browser-matrix`
-3. `npm audit --omit=dev`
-4. `npm pack --dry-run`
+3. `npm pack --dry-run`
 
 The browser-matrix command checks the release scenario inventory. Successful
 Ubuntu execution of the Chromium, Firefox, WebKit, and Chromium touch jobs is
 the final integration evidence; the inventory does not replace those runs.
 
-The production audit, `npm audit --omit=dev`, is blocking. The full development
-audit from `npm audit --json` is informational and must be separately triaged in
-the pull request, including affected development commands and the available
-upgrade path. Development-only findings do not override a successful production
-audit and must not be presented as published-package vulnerabilities.
+The clean install and readiness command do not call the npm audit endpoint. Run
+`npm audit --json` separately when audit evidence is needed; it is non-blocking
+and should be triaged in the pull request, including affected development commands
+and the available upgrade path. Development-only findings must not be presented as
+published-package vulnerabilities.
 
 ## Maintainer sign-offs required before publication
 

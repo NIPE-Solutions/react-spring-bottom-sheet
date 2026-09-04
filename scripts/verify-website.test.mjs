@@ -84,18 +84,41 @@ test('the server highlighter emits exact, semantically distinct output for every
   }
 })
 
-test('the README includes the public entry points and project lineage', () => {
+test('the README includes the public entry points, continuation positioning, and project lineage', () => {
   const readme = readFileSync(new URL('../README.md', import.meta.url), 'utf8')
 
   for (const value of [
+    '@nipe-solutions/react-spring-bottom-sheet',
+    'https://react-spring-bottom-sheet.nipesolutions.com',
     'Sheet.Root',
     '/core.css',
     '/theme.css',
+    'React 19',
+    'accessibility',
+    'Chromium',
+    'Firefox',
+    'WebKit',
+    'Cody Olsen',
+    'Jasmine GH',
     'stipsan/react-spring-bottom-sheet',
     'JasGH/react-spring-bottom-sheet',
   ]) {
     assert.match(readme, new RegExp(value.replaceAll('/', '\\/')))
   }
+
+  assert.match(readme, /independently maintained continuation/i)
+  assert.match(readme, /migration-from-react-spring-bottom-sheet/)
+  assert.doesNotMatch(readme, /official successor/i)
+
+  const introLinks = readme.indexOf('[Live docs]')
+  const install = readme.indexOf('## Install')
+  const rationale = readme.indexOf('## Why version 5')
+  const migration = readme.indexOf('## Migrating from the original package')
+
+  assert.ok(introLinks >= 0, 'README exposes its intro link row')
+  assert.ok(install > introLinks, 'installation follows the intro link row')
+  assert.ok(install < rationale, 'installation precedes the rationale')
+  assert.ok(install < migration, 'installation precedes migration details')
 })
 
 test('the v4 migration guide maps public API and styling changes', () => {
@@ -148,6 +171,41 @@ test('the website publishes its legal and accessibility routes', () => {
   ]) {
     assert.ok(existsSync(new URL(path, import.meta.url)), path)
   }
+})
+
+test('the website publishes a canonical React 19 migration route', () => {
+  const route = new URL(
+    '../website/app/(site)/migration-from-react-spring-bottom-sheet/page.tsx',
+    import.meta.url,
+  )
+  const sitemap = readFileSync(
+    new URL('../website/app/sitemap.ts', import.meta.url),
+    'utf8',
+  )
+
+  assert.ok(existsSync(route))
+  const page = readFileSync(route, 'utf8')
+
+  assert.match(
+    page,
+    /canonical:\s*'\/migration-from-react-spring-bottom-sheet\/'/,
+  )
+  assert.match(page, /title:\s*'[^']*React 19[^']*'/)
+  assert.match(
+    page,
+    /from '\.\.\/\.\.\/\.\.\/components\/source-code\/CodeBlock'/,
+  )
+  assert.match(page, /from '\.\.\/\.\.\/\.\.\/content\/migration'/)
+  assert.match(
+    page,
+    /import \{ BottomSheet \} from 'react-spring-bottom-sheet'/,
+  )
+  assert.doesNotMatch(
+    page,
+    /import BottomSheet from 'react-spring-bottom-sheet'/,
+  )
+  assert.match(page, /language:\s*'shell'/)
+  assert.match(sitemap, /migration-from-react-spring-bottom-sheet/)
 })
 
 test('displayed public API examples have a type-check fixture', () => {

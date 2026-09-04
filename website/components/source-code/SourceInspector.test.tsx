@@ -67,7 +67,11 @@ describe('SourceInspector', () => {
 
     expect(dialog).toHaveAttribute('aria-modal', 'true')
     expect(dialog).toHaveAttribute('data-state', 'open')
-    expect(screen.getByRole('button', { name: 'Close source' })).toHaveFocus()
+    await waitFor(() =>
+      expect(
+        screen.getByRole('button', { name: 'Close source' }),
+      ).toHaveFocus(),
+    )
   })
 
   it('contains forward, reverse, and programmatic focus movement', async () => {

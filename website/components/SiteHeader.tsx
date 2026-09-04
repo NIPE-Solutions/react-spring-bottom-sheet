@@ -10,6 +10,7 @@ export function SiteHeader() {
       <nav aria-label="Primary navigation">
         <Link href="/docs/introduction/">Docs</Link>
         <Link href="/examples/">Examples</Link>
+        <Link href="/migration-from-react-spring-bottom-sheet/">Migration</Link>
         <a href="https://github.com/NIPE-Solutions/react-spring-bottom-sheet">
           GitHub
         </a>

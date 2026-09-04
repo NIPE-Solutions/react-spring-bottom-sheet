@@ -263,3 +263,22 @@ test('source inspector removes its transform transition for reduced motion', () 
   assert.equal(panel.get('transition'), 'none')
   assert.equal(backdrop.get('transition'), 'none')
 })
+
+test('migration content has a contained article, table, and compact examples', () => {
+  const page = declarationsFor('.docs-migration-page')
+  const article = declarationsFor('.docs-migration-article')
+  const examples = declarationsFor('.docs-migration-examples')
+  const table = declarationsFor('.docs-migration-table-wrap')
+  const compactExamples = declarationsFor(
+    '.docs-migration-examples',
+    '(max-width: 809px)',
+  )
+
+  assert.equal(page.get('min-width'), '0')
+  assert.equal(article.get('max-width'), '76rem')
+  assert.equal(examples.get('display'), 'grid')
+  assert.match(examples.get('grid-template-columns'), /minmax\(0,/)
+  assert.equal(table.get('max-width'), '100%')
+  assert.equal(table.get('overflow-x'), 'auto')
+  assert.equal(compactExamples.get('grid-template-columns'), '1fr')
+})
