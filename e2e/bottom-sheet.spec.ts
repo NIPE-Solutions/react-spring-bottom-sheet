@@ -60,6 +60,40 @@ test('fades the backdrop, restores focus, and reopens', async ({ page }) => {
   await expect(trigger).toBeFocused()
 })
 
+test('fades the surface elevation before the sheet unmounts', async ({
+  page,
+}) => {
+  await page.goto('')
+  const dialog = page.locator('[data-rsbs-content]')
+
+  await expect(dialog).toHaveAttribute('data-rsbs-state', 'open')
+  const fadeObserved = dialog.evaluate(
+    (element) =>
+      new Promise<boolean>((resolve) => {
+        const sample = () => {
+          if (!element.isConnected) {
+            resolve(false)
+            return
+          }
+          const opacity = Number.parseFloat(
+            getComputedStyle(element, '::before').opacity,
+          )
+          if (opacity > 0 && opacity < 1) {
+            resolve(true)
+            return
+          }
+          requestAnimationFrame(sample)
+        }
+        requestAnimationFrame(sample)
+      }),
+  )
+
+  await page.getByRole('button', { name: 'Dismiss sheet' }).click()
+
+  expect(await fadeObserved).toBe(true)
+  await expect(dialog).toHaveCount(0)
+})
+
 test('dismisses with Escape', async ({ page }) => {
   await page.goto('')
   const dialog = page.locator('[data-rsbs-content]')

@@ -24,6 +24,7 @@ export interface SheetContextValue {
     onPointerCancel: PointerEventHandler<HTMLElement>
   }
   position: number
+  surfaceProgress: number
   dragging: boolean
 }
 

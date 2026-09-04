@@ -124,13 +124,17 @@ export function Root({
 
   const getPosition = useCallback(() => motionPositionRef.current, [])
 
-  const updateBackdropProgress = useCallback((progress: number) => {
-    backdropProgressRef.current = progress
-    backdropRef.current?.style.setProperty(
-      '--rsbs-backdrop-progress',
-      String(progress),
-    )
-  }, [])
+  const updateBackdropProgress = useCallback(
+    (progress: number) => {
+      backdropProgressRef.current = progress
+      backdropRef.current?.style.setProperty(
+        '--rsbs-backdrop-progress',
+        String(progress),
+      )
+      content?.style.setProperty('--rsbs-surface-progress', String(progress))
+    },
+    [content],
+  )
 
   const getBackdropProgress = useCallback(() => backdropProgressRef.current, [])
 
@@ -230,6 +234,7 @@ export function Root({
       registerBackdrop,
       interactionHandlers,
       position: motionPositionRef.current,
+      surfaceProgress: backdropProgressRef.current,
       dragging: controllerState.phase === 'dragging',
     }),
     [
