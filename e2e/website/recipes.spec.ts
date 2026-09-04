@@ -204,11 +204,15 @@ test('device lab keeps intermediate user morph geometry aligned and interactive'
   expect(initialWidth).toBeDefined()
   await page.getByRole('button', { name: 'Landscape' }).click()
   await expect(frame).toHaveAttribute('data-morphing', 'true')
-  await page.locator('.docs-device-lab').evaluate((element) => {
+  await page.locator('.docs-device-lab').evaluate(async (element) => {
     for (const animation of element.getAnimations({ subtree: true })) {
       animation.currentTime = 140
       animation.pause()
     }
+
+    await new Promise<void>((resolve) => {
+      requestAnimationFrame(() => requestAnimationFrame(() => resolve()))
+    })
   })
 
   const geometry = await page.evaluate(() => {
@@ -1282,6 +1286,7 @@ test('every highlighted recipe copies its native DOM selection byte-for-byte', a
   page,
 }) => {
   test.slow()
+  const copyShortcut = process.platform === 'darwin' ? 'Meta+C' : 'Control+C'
 
   for (const { filename, slug, source } of CANONICAL_RECIPE_SOURCES) {
     await page.goto(`/examples/${slug}/`)
@@ -1320,7 +1325,7 @@ test('every highlighted recipe copies its native DOM selection byte-for-byte', a
       )
     })
 
-    await scroller.press('ControlOrMeta+C')
+    await page.keyboard.press(copyShortcut)
     await expect
       .poll(() =>
         page.evaluate(
