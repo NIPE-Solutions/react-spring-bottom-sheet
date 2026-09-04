@@ -19,6 +19,11 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 0.3,
     },
     { url: `${base}/examples/`, changeFrequency: 'monthly', priority: 0.8 },
+    {
+      url: `${base}/migration-from-react-spring-bottom-sheet/`,
+      changeFrequency: 'monthly',
+      priority: 0.75,
+    },
     ...recipes.map(({ slug }) => ({
       url: `${base}/examples/${slug}/`,
       changeFrequency: 'monthly' as const,

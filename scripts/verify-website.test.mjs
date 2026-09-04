@@ -163,6 +163,33 @@ test('the website publishes its legal and accessibility routes', () => {
   }
 })
 
+test('the website publishes a canonical React 19 migration route', () => {
+  const route = new URL(
+    '../website/app/(site)/migration-from-react-spring-bottom-sheet/page.tsx',
+    import.meta.url,
+  )
+  const sitemap = readFileSync(
+    new URL('../website/app/sitemap.ts', import.meta.url),
+    'utf8',
+  )
+
+  assert.ok(existsSync(route))
+  const page = readFileSync(route, 'utf8')
+
+  assert.match(
+    page,
+    /canonical:\s*'\/migration-from-react-spring-bottom-sheet\/'/,
+  )
+  assert.match(page, /title:\s*'[^']*React 19[^']*'/)
+  assert.match(
+    page,
+    /from '\.\.\/\.\.\/\.\.\/components\/source-code\/CodeBlock'/,
+  )
+  assert.match(page, /from '\.\.\/\.\.\/\.\.\/content\/migration'/)
+  assert.match(page, /language:\s*'shell'/)
+  assert.match(sitemap, /migration-from-react-spring-bottom-sheet/)
+})
+
 test('displayed public API examples have a type-check fixture', () => {
   assert.ok(
     existsSync(new URL('../test/types/docs-examples.tsx', import.meta.url)),

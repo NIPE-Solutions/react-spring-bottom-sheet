@@ -10,6 +10,7 @@ export function SiteFooter() {
         </a>
       </div>
       <nav aria-label="Legal navigation">
+        <Link href="/migration-from-react-spring-bottom-sheet/">Migration</Link>
         <Link href="/accessibility/">Accessibility</Link>
         <Link href="/impressum/">Impressum</Link>
         <Link href="/privacy/">Privacy</Link>
