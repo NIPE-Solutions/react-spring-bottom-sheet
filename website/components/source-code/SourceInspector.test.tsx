@@ -133,10 +133,12 @@ describe('SourceInspector', () => {
 
     fireEvent.keyDown(document, { key: 'Escape' })
 
-    expect(layer).toHaveAttribute('data-state', 'closed')
-    expect(dialog).toHaveAttribute('data-state', 'closed')
-    expect(dialog).toHaveAttribute('inert')
-    expect(screen.queryByText('const open = true')).not.toBeInTheDocument()
+    await waitFor(() => {
+      expect(layer).toHaveAttribute('data-state', 'closed')
+      expect(dialog).toHaveAttribute('data-state', 'closed')
+      expect(dialog).toHaveAttribute('inert')
+      expect(screen.queryByText('const open = true')).not.toBeInTheDocument()
+    })
 
     fireEvent.transitionEnd(dialog, { propertyName: 'transform' })
     expect(layer).not.toBeInTheDocument()
