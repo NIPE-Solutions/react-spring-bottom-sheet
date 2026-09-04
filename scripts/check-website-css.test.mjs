@@ -86,41 +86,65 @@ test('rejects custom property declarations and references outside the docs names
   assert.match(result.stderr, /--canvas/)
 })
 
-test('recipe source owns horizontal overflow and accessible line-number presentation', () => {
-  const source = declarationsFor('.docs-recipe-source pre')
-  const line = declarationsFor('.docs-recipe-source [data-line]')
+test('source inspector owns horizontal overflow and accessible line-number presentation', () => {
+  const source = declarationsFor('.docs-source-inspector pre')
+  const line = declarationsFor('.docs-source-inspector [data-line]')
   const number = declarationsFor(
-    ".docs-recipe-source [data-line] > [aria-hidden='true']",
+    '.docs-source-inspector [data-code-line-numbers]',
   )
 
   assert.equal(source.get('overflow-x'), 'auto')
   assert.equal(source.get('max-width'), '100%')
+  assert.equal(source.get('white-space'), 'pre')
   assert.equal(line.get('min-width'), 'max-content')
   assert.equal(number.get('user-select'), 'none')
   assert.equal(number.get('font-variant-numeric'), 'tabular-nums')
 })
 
-test('wide recipe layout balances preview and source without fixed-width overflow', () => {
-  const recipePage = declarationsFor('.docs-recipe-page', '(min-width: 90rem)')
-  const preview = declarationsFor('.docs-recipe-preview', '(min-width: 90rem)')
-  const source = declarationsFor('.docs-recipe-source', '(min-width: 90rem)')
+test('wide source inspector overlays the inline end without reflowing preview', () => {
+  const layer = declarationsFor('.docs-source-inspector')
+  const panel = declarationsFor('.docs-source-inspector-panel')
+  const closedPanel = declarationsFor(
+    ".docs-source-inspector[data-state='closed'] .docs-source-inspector-panel",
+  )
+  const openPanel = declarationsFor(
+    ".docs-source-inspector[data-state='open'] .docs-source-inspector-panel",
+  )
 
-  assert.equal(recipePage.get('display'), 'grid')
-  assert.match(recipePage.get('grid-template-columns'), /minmax\(0,/)
-  assert.equal(preview.get('grid-column'), '1')
-  assert.equal(source.get('grid-column'), '2')
-  assert.equal(source.get('min-width'), '0')
+  assert.equal(layer.get('position'), 'fixed')
+  assert.equal(layer.get('inset'), '0')
+  assert.equal(panel.get('width'), 'min(48rem, 72vw)')
+  assert.match(panel.get('transition'), /^transform /)
+  assert.equal(closedPanel.get('transform'), 'translateX(100%)')
+  assert.equal(openPanel.get('transform'), 'translateX(0)')
 })
 
-test('compact recipe controls wrap while recipe sections return to document flow', () => {
+test('compact inspector fills the viewport with safe-area padding', () => {
   const controls = declarationsFor(
     '.docs-device-controls',
     '(max-width: 809px)',
   )
-  const recipePage = declarationsFor('.docs-recipe-page', '(max-width: 809px)')
-  const source = declarationsFor('.docs-recipe-source', '(max-width: 809px)')
+  const panel = declarationsFor(
+    '.docs-source-inspector-panel',
+    '(max-width: 809px)',
+  )
+  const header = declarationsFor(
+    '.docs-source-inspector-header',
+    '(max-width: 809px)',
+  )
 
   assert.equal(controls.get('flex-wrap'), 'wrap')
-  assert.equal(recipePage.get('display'), 'block')
-  assert.equal(source.get('min-width'), '0')
+  assert.equal(panel.get('width'), '100%')
+  assert.equal(panel.get('height'), '100svh')
+  assert.match(header.get('padding-top'), /env\(safe-area-inset-top\)/)
+  assert.match(header.get('padding-inline'), /safe-area-inset/)
+})
+
+test('source inspector removes its transform transition for reduced motion', () => {
+  const panel = declarationsFor(
+    '.docs-source-inspector-panel',
+    '(prefers-reduced-motion: reduce)',
+  )
+
+  assert.equal(panel.get('transition'), 'none')
 })
