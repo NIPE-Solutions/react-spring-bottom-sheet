@@ -717,6 +717,67 @@ test('device lab preserves its iframe and open sheet through browser history', a
   ).toBeVisible()
 })
 
+test(
+  'device lab preserves document scroll through orientation and device navigation',
+  { tag: '@scroll' },
+  async ({ page }) => {
+    await page.setViewportSize({ width: 1200, height: 720 })
+    await page.goto(
+      '/examples/basic/?campaign=spring&device=phone&orientation=portrait',
+    )
+    const frame = page.locator('.docs-device-frame')
+    const iframe = page.locator('[title$="interactive preview"]')
+    await expect(frame).toHaveAttribute('data-preview-ready', 'true')
+    const iframeElement = await iframe.elementHandle()
+    expect(iframeElement).not.toBeNull()
+
+    await recipeFrame(page)
+      .getByRole('button', { name: 'Open basic sheet' })
+      .click()
+    await expect(
+      recipeFrame(page).getByRole('dialog', { name: 'Basic bottom sheet' }),
+    ).toBeVisible()
+
+    const initialScrollY = await page
+      .locator('.docs-device-controls')
+      .evaluate((controls) => {
+        document.documentElement.style.scrollBehavior = 'auto'
+        window.scrollTo({
+          top: window.scrollY + controls.getBoundingClientRect().top - 24,
+        })
+        return window.scrollY
+      })
+    expect(initialScrollY).toBeGreaterThan(0)
+
+    await page.getByRole('button', { name: 'Landscape' }).click()
+    await expect(page).toHaveURL(
+      /campaign=spring&device=phone&orientation=landscape$/,
+    )
+    await expect(frame).toHaveAttribute('data-morphing', 'false')
+
+    await page.getByRole('button', { name: 'Tablet' }).click()
+    await expect(page).toHaveURL(
+      /campaign=spring&device=tablet&orientation=landscape$/,
+    )
+    await expect(frame).toHaveAttribute('data-morphing', 'false')
+    const scrollAfterDevice = await page.evaluate(() => window.scrollY)
+
+    expect(Math.abs(scrollAfterDevice - initialScrollY)).toBeLessThanOrEqual(1)
+    expect(
+      await iframe.evaluate(
+        (element, original) => element === original,
+        iframeElement,
+      ),
+    ).toBe(true)
+    await expect(
+      recipeFrame(page).getByRole('dialog', { name: 'Basic bottom sheet' }),
+    ).toBeVisible()
+    await expect(frame).toHaveAttribute('data-device', 'tablet')
+    await expect(frame).toHaveAttribute('data-orientation', 'landscape')
+    await expect(frame).toHaveAttribute('data-morphing', 'false')
+  },
+)
+
 test('device lab removes frame interpolation for reduced motion', async ({
   page,
 }) => {
