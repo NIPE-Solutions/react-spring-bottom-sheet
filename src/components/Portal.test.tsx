@@ -138,6 +138,24 @@ describe('Sheet.Portal', () => {
     })
   })
 
+  it('fades the surface elevation completely before removing the portal', async () => {
+    render(<AnimatedPortalSheet defaultOpen />)
+
+    const content = document.querySelector<HTMLElement>('[data-rsbs-content]')
+    await waitFor(() =>
+      expect(content?.style.getPropertyValue('--rsbs-surface-progress')).toBe(
+        '1',
+      ),
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: 'Close filters' }))
+
+    await waitFor(() => expect(content).not.toBeInTheDocument(), {
+      timeout: 2_000,
+    })
+    expect(content?.style.getPropertyValue('--rsbs-surface-progress')).toBe('0')
+  })
+
   it('runs Backdrop callback-ref cleanup when closing removes the portal', async () => {
     const cleanup = vi.fn()
     render(<AnimatedPortalSheet defaultOpen backdropRef={() => cleanup} />)

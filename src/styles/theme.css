@@ -11,7 +11,17 @@
     border: var(--rsbs-content-border);
     border-bottom: 0;
     border-radius: var(--rsbs-content-radius) var(--rsbs-content-radius) 0 0;
+  }
+
+  :where(.rsbs-content)::before {
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    pointer-events: none;
+    content: '';
     box-shadow: var(--rsbs-content-shadow);
+    opacity: var(--rsbs-surface-progress, 0);
+    will-change: opacity;
   }
 
   :where(.rsbs-handle) {

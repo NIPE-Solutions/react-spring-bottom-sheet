@@ -40,6 +40,7 @@ export const Content = forwardRef<HTMLDivElement, SheetContentProps>(
       registerContent,
       interactionHandlers,
       position,
+      surfaceProgress,
       dragging,
       titleId,
       transitionPhase,
@@ -115,6 +116,7 @@ export const Content = forwardRef<HTMLDivElement, SheetContentProps>(
     const positionStyle = {
       ...style,
       '--rsbs-position': `${position}px`,
+      '--rsbs-surface-progress': surfaceProgress,
     } as CSSProperties
     const shared = {
       ...props,
