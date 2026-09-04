@@ -1339,10 +1339,12 @@ test(
         numbers.map((number) => number.textContent),
       ),
     ).toEqual(expectedLines.map((_, index) => String(index + 1)))
-    await expect(dialog.locator('[data-code-line-numbers]')).toHaveCSS(
-      'user-select',
-      'none',
-    )
+    expect(
+      await dialog.locator('[data-code-line-numbers]').evaluate((element) => {
+        const styles = getComputedStyle(element)
+        return styles.userSelect || styles.webkitUserSelect
+      }),
+    ).toBe('none')
     const rowAlignment = await dialog.evaluate(() => {
       const lines = [...document.querySelectorAll<HTMLElement>('[data-line]')]
       const numbers = [
