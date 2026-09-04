@@ -219,10 +219,10 @@ test('homepage remains contained at 320 pixels', async ({ page }) => {
   expect(stylingColumns.trim().split(/\s+/)).toHaveLength(1)
 })
 
-test('homepage remains contained at the compact-layout boundary', async ({
+test('homepage launch grid remains contained just above the compact-layout boundary', async ({
   page,
 }) => {
-  await page.setViewportSize({ width: 809, height: 900 })
+  await page.setViewportSize({ width: 810, height: 900 })
   await page.goto('/')
 
   const dimensions = await page.evaluate(() => ({

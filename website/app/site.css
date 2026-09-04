@@ -31,7 +31,7 @@
     --docs-panel: #e9ecf1;
     --docs-code-surface: #181a25;
     --docs-code-raised: #20232e;
-    --docs-code-rule: #464b58;
+    --docs-code-rule: #697286;
     --docs-code-ink: #f3f4fb;
     --docs-code-muted: #b9c0cf;
     --docs-code-focus: #a8b8ff;
@@ -315,6 +315,9 @@
     border-color: var(--docs-code-rule);
     border-radius: 0;
     color: var(--docs-code-ink);
+  }
+  .docs-code-block-header button:focus-visible {
+    outline-color: var(--docs-code-focus);
   }
   .docs-code-block pre {
     width: 100%;
@@ -1281,6 +1284,12 @@
   }
   .docs-footer nav {
     justify-content: flex-end;
+  }
+}
+
+@media (max-width: 56rem) {
+  .docs-launch-path {
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 

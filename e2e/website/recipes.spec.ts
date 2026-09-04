@@ -1387,6 +1387,50 @@ test(
 
     const copyButton = page.getByRole('button', { name: 'Copy source' })
     const copyStatus = page.getByRole('status')
+    await copyButton.focus()
+    await expect(copyButton).toBeFocused()
+    await expect(copyButton).toHaveCSS('outline-style', 'solid')
+    const controlContrast = await copyButton.evaluate((button) => {
+      const header = button.closest('.docs-code-block-header')
+      if (!(header instanceof HTMLElement)) {
+        throw new Error('Missing code block header')
+      }
+
+      const channels = (color: string) => {
+        const values = color
+          .match(/[\d.]+/g)
+          ?.slice(0, 3)
+          .map(Number)
+        if (!values || values.length !== 3) {
+          throw new Error(`Cannot parse ${color}`)
+        }
+        return values as [number, number, number]
+      }
+      const luminance = (color: string) => {
+        const [red, green, blue] = channels(color).map((value) => {
+          const channel = value / 255
+          return channel <= 0.04045
+            ? channel / 12.92
+            : ((channel + 0.055) / 1.055) ** 2.4
+        }) as [number, number, number]
+        return red * 0.2126 + green * 0.7152 + blue * 0.0722
+      }
+      const contrast = (first: string, second: string) => {
+        const values = [luminance(first), luminance(second)].sort(
+          (left, right) => right - left,
+        )
+        return (values[0]! + 0.05) / (values[1]! + 0.05)
+      }
+      const buttonStyle = getComputedStyle(button)
+      const headerBackground = getComputedStyle(header).backgroundColor
+
+      return {
+        boundary: contrast(buttonStyle.borderTopColor, headerBackground),
+        focus: contrast(buttonStyle.outlineColor, headerBackground),
+      }
+    })
+    expect(controlContrast.focus).toBeGreaterThanOrEqual(3)
+    expect(controlContrast.boundary).toBeGreaterThanOrEqual(3)
     await expect(copyStatus).toHaveAttribute('aria-live', 'polite')
     await expect(copyStatus).toHaveAttribute('aria-atomic', 'true')
     await copyButton.click()
