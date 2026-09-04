@@ -160,7 +160,16 @@ export function SourceInspector({
     if (!open || !layer || !dialog) return
 
     const previousOverflow = document.body.style.overflow
+    const previousPaddingInlineEnd = document.body.style.paddingInlineEnd
+    const viewportWidth = document.documentElement.clientWidth
+    const scrollbarWidth =
+      viewportWidth > 0 ? Math.max(0, window.innerWidth - viewportWidth) : 0
     const restoreBackground = isolateBackground(layer)
+    if (scrollbarWidth > 0) {
+      const computedPaddingInlineEnd =
+        Number.parseFloat(getComputedStyle(document.body).paddingInlineEnd) || 0
+      document.body.style.paddingInlineEnd = `${computedPaddingInlineEnd + scrollbarWidth}px`
+    }
     document.body.style.overflow = 'hidden'
 
     const onKeyDown = (event: KeyboardEvent) => {
@@ -186,6 +195,7 @@ export function SourceInspector({
       document.removeEventListener('focusin', onFocusIn)
       restoreBackground()
       document.body.style.overflow = previousOverflow
+      document.body.style.paddingInlineEnd = previousPaddingInlineEnd
       if (triggerRef.current?.isConnected) {
         triggerRef.current.focus({ preventScroll: true })
       }
@@ -231,6 +241,7 @@ export function SourceInspector({
                 aria-labelledby={titleId}
                 aria-modal="true"
                 className="docs-source-inspector-panel"
+                data-copy-fallback-root=""
                 data-state={open ? 'open' : 'closed'}
                 inert={!open}
                 onTransitionEnd={finishPanelTransition}

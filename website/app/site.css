@@ -913,6 +913,7 @@
     position: relative;
     z-index: 1;
     width: min(48rem, 72vw);
+    height: 100vh;
     height: 100dvh;
     min-width: 0;
     margin-inline-start: auto;
@@ -1309,7 +1310,7 @@
   }
   .docs-source-inspector-panel {
     width: 100%;
-    height: 100svh;
+    height: 100dvh;
   }
   .docs-source-inspector-header {
     padding-top: calc(1rem + env(safe-area-inset-top));

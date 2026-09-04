@@ -39,7 +39,11 @@ function mockReducedMotion(matches: boolean) {
 }
 
 afterEach(() => {
+  vi.useRealTimers()
+  vi.restoreAllMocks()
+  vi.unstubAllGlobals()
   document.body.style.overflow = ''
+  document.body.style.paddingInlineEnd = ''
   mockReducedMotion(false)
 })
 
@@ -104,10 +108,12 @@ describe('SourceInspector', () => {
   ])('dismisses with %s and restores trigger focus', async (_, dismiss) => {
     renderInspector()
     const { trigger } = await openInspector()
+    const restoreFocus = vi.spyOn(trigger, 'focus')
 
     dismiss()
 
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    expect(restoreFocus).toHaveBeenCalledWith({ preventScroll: true })
     expect(trigger).toHaveFocus()
   })
 
@@ -157,6 +163,37 @@ describe('SourceInspector', () => {
     await screen.findByRole('dialog')
     unmount()
     expect(document.body.style.overflow).toBe('clip')
+    expect(container).not.toHaveAttribute('aria-hidden')
+    expect(container.inert).toBe(initialInert)
+  })
+
+  it('compensates a classic scrollbar so preview geometry stays fixed', async () => {
+    vi.stubGlobal('innerWidth', 1000)
+    vi.spyOn(document.documentElement, 'clientWidth', 'get').mockReturnValue(
+      980,
+    )
+    document.body.style.paddingInlineEnd = '7px'
+    const { container } = renderInspector()
+    const previewWidth = () => {
+      const viewportWidth =
+        document.body.style.overflow === 'hidden'
+          ? window.innerWidth
+          : document.documentElement.clientWidth
+      const inlineEndPadding =
+        Number.parseFloat(document.body.style.paddingInlineEnd) || 0
+      return viewportWidth - inlineEndPadding
+    }
+    const widthBeforeOpen = previewWidth()
+
+    await openInspector()
+
+    expect(document.body.style.paddingInlineEnd).toBe('27px')
+    expect(previewWidth()).toBe(widthBeforeOpen)
+
+    fireEvent.keyDown(document, { key: 'Escape' })
+    expect(document.body.style.paddingInlineEnd).toBe('7px')
+    expect(previewWidth()).toBe(widthBeforeOpen)
+    expect(container).not.toHaveAttribute('aria-hidden')
   })
 
   it('marks reduced-motion state and removes the portal immediately on close', async () => {
@@ -168,7 +205,43 @@ describe('SourceInspector', () => {
     expect(layer).toHaveAttribute('data-reduced-motion', '')
     fireEvent.keyDown(document, { key: 'Escape' })
 
-    await waitFor(() => expect(layer).not.toBeInTheDocument())
+    expect(layer).not.toBeInTheDocument()
+  })
+
+  it('keeps the selection copy fallback inside the modal until the canonical source reaches the copy sink', async () => {
+    const source = 'const open = true\n'
+    let copiedSelection = ''
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: { writeText: vi.fn(() => Promise.reject(new Error('blocked'))) },
+    })
+    Object.defineProperty(document, 'execCommand', {
+      configurable: true,
+      value: vi.fn(() => {
+        const target = document.querySelector(
+          '[data-copy-fallback-root] textarea',
+        )
+        if (!(target instanceof HTMLTextAreaElement)) return false
+        copiedSelection = target.value.slice(
+          target.selectionStart ?? 0,
+          target.selectionEnd ?? 0,
+        )
+        return copiedSelection === source
+      }),
+    })
+    renderInspector(<CopySourceButton source={source} />)
+    await openInspector()
+    const copyButton = screen.getByRole('button', { name: 'Copy source' })
+
+    copyButton.focus()
+    fireEvent.click(copyButton)
+
+    await waitFor(() =>
+      expect(screen.getByRole('status')).toHaveTextContent('Copied'),
+    )
+    expect(copiedSelection).toBe(source)
+    expect(document.querySelector('textarea')).not.toBeInTheDocument()
+    expect(copyButton).toHaveFocus()
   })
 
   it('keeps dismissal and restored focus stable after a copy failure', async () => {

@@ -32,6 +32,26 @@ function declarationsFor(selector, mediaQuery) {
   return declarations
 }
 
+function declarationValuesFor(selector, property, mediaQuery) {
+  const values = []
+
+  websiteCss.walkRules(selector, (rule) => {
+    let ancestor = rule.parent
+    let media
+    while (ancestor) {
+      if (ancestor.type === 'atrule' && ancestor.name === 'media') {
+        media = ancestor.params
+        break
+      }
+      ancestor = ancestor.parent
+    }
+    if (media !== mediaQuery) return
+    rule.walkDecls(property, (declaration) => values.push(declaration.value))
+  })
+
+  return values
+}
+
 function checkCss(css) {
   const directory = mkdtempSync(join(tmpdir(), 'rsbs-website-css-'))
   const path = join(directory, 'site.css')
@@ -135,7 +155,11 @@ test('compact inspector fills the viewport with safe-area padding', () => {
 
   assert.equal(controls.get('flex-wrap'), 'wrap')
   assert.equal(panel.get('width'), '100%')
-  assert.equal(panel.get('height'), '100svh')
+  assert.deepEqual(
+    declarationValuesFor('.docs-source-inspector-panel', 'height'),
+    ['100vh', '100dvh'],
+  )
+  assert.equal(panel.get('height'), '100dvh')
   assert.match(header.get('padding-top'), /env\(safe-area-inset-top\)/)
   assert.match(header.get('padding-inline'), /safe-area-inset/)
 })
