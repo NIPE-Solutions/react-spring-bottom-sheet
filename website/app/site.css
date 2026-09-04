@@ -109,11 +109,14 @@
     text-decoration: none;
   }
   .docs-wordmark-mark {
-    width: 1rem;
-    height: 1rem;
-    border: 2px solid var(--docs-signal);
-    border-radius: 50% 50% 50% 0;
-    transform: rotate(-45deg);
+    width: 1.25rem;
+    height: 1.25rem;
+    flex: 0 0 auto;
+    border-radius: 0.35rem;
+    background-image: url('/icon.svg');
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: contain;
   }
   .docs-header nav {
     display: flex;
@@ -121,9 +124,17 @@
     gap: clamp(0.8rem, 3vw, 2rem);
   }
   .docs-collection {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
     color: var(--docs-muted);
     font-size: 0.78rem;
     letter-spacing: 0.01em;
+    line-height: 1.35;
+    text-align: center;
+  }
+  .docs-collection a {
+    font-size: 0.7rem;
   }
   .docs-header nav a {
     text-decoration: none;
