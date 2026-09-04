@@ -1282,7 +1282,8 @@ test('highlighted source is a keyboard-readable disclosure with exact copy outpu
   expect(secondCopiedSource).toBe(BASIC_RECIPE_SOURCE)
 })
 
-test('every highlighted recipe copies its native DOM selection byte-for-byte', async ({
+test('every highlighted recipe preserves its native DOM selection byte-for-byte', async ({
+  browserName,
   page,
 }) => {
   test.slow()
@@ -1301,13 +1302,15 @@ test('every highlighted recipe copies its native DOM selection byte-for-byte', a
     await scroller.focus()
     await expect(scroller).toBeFocused()
 
-    await code.evaluate((element) => {
+    await code.evaluate((element, observeTrustedCopy) => {
       const selection = window.getSelection()
       if (!selection) throw new Error('Selection API unavailable')
       const range = document.createRange()
       range.selectNodeContents(element)
       selection.removeAllRanges()
       selection.addRange(range)
+
+      if (!observeTrustedCopy) return
 
       const state = window as Window & {
         nativeSourceCopy?: { isTrusted: boolean; text: string }
@@ -1323,7 +1326,15 @@ test('every highlighted recipe copies its native DOM selection byte-for-byte', a
         },
         { once: true },
       )
-    })
+    }, browserName !== 'webkit')
+
+    expect(await page.evaluate(() => window.getSelection()?.toString())).toBe(
+      source,
+    )
+
+    // Playwright's Linux WebKit backend does not surface copy events from its
+    // simulated keyboard shortcut, so only engines that expose it prove this.
+    if (browserName === 'webkit') continue
 
     await page.keyboard.press(copyShortcut)
     await expect
