@@ -53,6 +53,8 @@ Independent review found no actionable correctness or packaging issues.
 WebKit cannot create a page on this machine: Playwright reports
 `Unknown setting: PushAPIEnabled`. A fresh download of the macOS 14 WebKit
 build reproduces the problem before application code runs. WebKit validation
-is still required on a supported environment before release.
+was subsequently completed successfully by the Ubuntu CI job for PR #57
+(run `34335422276`), including both interaction and website tests.
 
-This prototype has not been published.
+Prepared for release as version 5.0.2. Publication is verified separately after
+the protected Release workflow completes.

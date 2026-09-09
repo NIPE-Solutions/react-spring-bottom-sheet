@@ -1,3 +1,20 @@
+## [5.0.2](https://github.com/NIPE-Solutions/react-spring-bottom-sheet/compare/v5.0.1...v5.0.2) (2026-09-09)
+
+### Changed
+
+- Bundle Motion's spring generator with a small animation driver, removing the
+  Motion runtime dependency tree and reducing the package installation to about
+  322 KB excluding React peers, including source maps.
+- Preserve the public API, spring settings, drag velocity, reduced motion, and
+  settling timing; suppress stale completion callbacks after cancellation.
+
+### Testing
+
+- Compare spring trajectories and completion timing against Motion's existing
+  numeric engine, and cover cancellation, reversal, frame timing, and pauses.
+- Enforce an unpacked package budget and verify clean ESM, CommonJS, and
+  TypeScript consumers without Motion installed.
+
 ## [5.0.1](https://github.com/NIPE-Solutions/react-spring-bottom-sheet/compare/v5.0.0...v5.0.1) (2026-09-04)
 
 ### Fixed
