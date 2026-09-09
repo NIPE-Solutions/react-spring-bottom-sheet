@@ -418,7 +418,9 @@ test('device lab interrupts a morph from its live geometry without replacing the
     })
   await page.getByRole('button', { name: 'Landscape' }).click()
   await expect(frame).toHaveAttribute('data-morphing', 'true')
-  await setAnimationsAt(90, false)
+  // Sample a fixed intermediate presentation so elapsed animation time cannot
+  // look like a discontinuity across the synchronous click handler.
+  await setAnimationsAt(90, true)
 
   let releaseNavigation = () => {}
   let markNavigationBlocked = () => {}
@@ -507,6 +509,13 @@ test('device lab interrupts a morph from its live geometry without replacing the
 
   await page.getByRole('button', { name: 'Tablet' }).dispatchEvent('click')
   await navigationBlocked
+  // Correct hold animations remain still when played; an uncancelled original
+  // morph must advance so the stability assertion below can catch it.
+  await page.locator('.docs-device-lab').evaluate(async (element) => {
+    const animations = element.getAnimations({ subtree: true })
+    for (const animation of animations) animation.play()
+    await Promise.all(animations.map((animation) => animation.ready))
+  })
   await page.waitForTimeout(80)
   const heldPresentation = await readGeometry()
   const blockedPresentation = await page.evaluate(() => {
@@ -1207,6 +1216,10 @@ test(
   async ({ page }) => {
     await page.emulateMedia({ reducedMotion: 'reduce' })
     await page.goto('/examples/reduced-motion/')
+    await expect(page.locator('.docs-device-frame')).toHaveAttribute(
+      'data-preview-ready',
+      'true',
+    )
     const frame = recipeFrame(page)
     const trigger = frame.getByRole('button', {
       name: 'Open reduced-motion sheet',
@@ -1688,6 +1701,10 @@ test(
   async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 })
     await page.goto('/examples/basic/?device=phone&orientation=portrait')
+    await expect(page.locator('.docs-device-frame')).toHaveAttribute(
+      'data-preview-ready',
+      'true',
+    )
     const iframe = page.locator('[title$="interactive preview"]')
     const iframeElement = await iframe.elementHandle()
     expect(iframeElement).not.toBeNull()
