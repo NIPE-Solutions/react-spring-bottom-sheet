@@ -10,7 +10,7 @@ export default defineConfig({
     },
     rollupOptions: {
       external: (id) =>
-        ['motion', 'react', 'react-dom'].some(
+        ['react', 'react-dom'].some(
           (dependency) => id === dependency || id.startsWith(`${dependency}/`),
         ),
     },

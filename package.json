@@ -34,7 +34,8 @@
     "./package.json": "./package.json"
   },
   "files": [
-    "dist"
+    "dist",
+    "THIRD_PARTY_NOTICES.md"
   ],
   "sideEffects": [
     "**/*.css"
@@ -77,9 +78,6 @@
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
   },
-  "dependencies": {
-    "motion": "^13.2.0"
-  },
   "devDependencies": {
     "@axe-core/playwright": "^4.13.0",
     "@eslint/js": "^10.0.0",
@@ -94,6 +92,7 @@
     "eslint": "^10.0.0",
     "globals": "^17.3.0",
     "jsdom": "^30.0.1",
+    "motion": "13.2.0",
     "next": "^16.3.4",
     "postcss": "^8.5.27",
     "postcss-selector-parser": "^7.1.6",
