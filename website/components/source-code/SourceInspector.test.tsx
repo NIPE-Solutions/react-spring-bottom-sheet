@@ -19,6 +19,12 @@ async function openInspector() {
     name: 'BasicSheet.tsx source',
   })
 
+  // The dialog can render before its effect attaches keyboard handlers.
+  // Focus is moved by that same effect, so wait for the modal to be ready.
+  await waitFor(() =>
+    expect(screen.getByRole('button', { name: 'Close source' })).toHaveFocus(),
+  )
+
   return { dialog, trigger }
 }
 
