@@ -56,5 +56,10 @@ build reproduces the problem before application code runs. WebKit validation
 was subsequently completed successfully by the Ubuntu CI job for PR #57
 (run `34335422276`), including both interaction and website tests.
 
-Prepared for release as version 5.0.2. Publication is verified separately after
-the protected Release workflow completes.
+Version 5.0.2 is published to npm's `latest` tag with provenance pointing to
+commit `aae46dc38f7acbe9f3edf306ccb2838d1cff9530` and protected Release run
+`34337485009`. Quality and all browser jobs passed. The registry verification
+step timed out during npm propagation; subsequent registry checks and a clean
+React 19 ESM, CommonJS, and TypeScript install passed. The GitHub release record
+was then completed against that same commit. The `next` tag remains
+`5.0.0-alpha.0`.
