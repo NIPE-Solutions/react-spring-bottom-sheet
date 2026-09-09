@@ -509,6 +509,13 @@ test('device lab interrupts a morph from its live geometry without replacing the
 
   await page.getByRole('button', { name: 'Tablet' }).dispatchEvent('click')
   await navigationBlocked
+  // Correct hold animations remain still when played; an uncancelled original
+  // morph must advance so the stability assertion below can catch it.
+  await page.locator('.docs-device-lab').evaluate(async (element) => {
+    const animations = element.getAnimations({ subtree: true })
+    for (const animation of animations) animation.play()
+    await Promise.all(animations.map((animation) => animation.ready))
+  })
   await page.waitForTimeout(80)
   const heldPresentation = await readGeometry()
   const blockedPresentation = await page.evaluate(() => {
