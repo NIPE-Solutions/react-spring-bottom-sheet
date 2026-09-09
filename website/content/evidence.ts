@@ -6,7 +6,7 @@ export interface BuildEvidence {
 }
 
 export const buildEvidence = {
-  version: '5.0.1',
+  version: '5.0.2',
   moduleGzipBytes: 10405,
   browserEngines: ['Chromium', 'Firefox', 'WebKit'],
   reactRange: '^19.0.0',
