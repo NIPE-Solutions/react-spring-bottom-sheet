@@ -1,6 +1,7 @@
 const requiredPackedFiles = [
   'LICENSE',
   'README.md',
+  'THIRD_PARTY_NOTICES.md',
   'dist/accessibility/focus.d.ts',
   'dist/accessibility/isolation.d.ts',
   'dist/components/Backdrop.d.ts',

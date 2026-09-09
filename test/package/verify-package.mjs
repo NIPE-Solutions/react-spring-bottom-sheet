@@ -30,6 +30,10 @@ try {
     }),
   )[0]
   tarball = join(packageRoot, packResult.filename)
+  assert.ok(
+    packResult.unpackedSize <= 450_000,
+    `unpacked package size ${packResult.unpackedSize} B exceeds 450000 B`,
+  )
   assert.deepEqual(
     validatePackedFiles(packResult.files.map(({ path }) => path)),
     [],
@@ -70,6 +74,23 @@ try {
     verifyInstalledMetadata(installedMetadata, sourceMetadata),
     [],
   )
+  assert.deepEqual(
+    Object.keys(installedMetadata.dependencies || {}),
+    [],
+    'the package must have no runtime dependencies beyond React peers',
+  )
+  for (const name of [
+    'motion',
+    'framer-motion',
+    'motion-dom',
+    'motion-utils',
+  ]) {
+    assert.throws(
+      () => temporaryRequire.resolve(`${name}/package.json`),
+      { code: 'MODULE_NOT_FOUND' },
+      `${name} must not be installed for consumers`,
+    )
+  }
 
   const installedReadme = readFileSync(
     join(dirname(installedPackageJson), 'README.md'),
