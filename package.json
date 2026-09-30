@@ -93,7 +93,7 @@
     "globals": "^17.3.0",
     "jsdom": "^30.0.1",
     "motion": "13.4.0",
-    "next": "^16.3.4",
+    "next": "^16.3.6",
     "postcss": "^8.5.27",
     "postcss-selector-parser": "^7.1.6",
     "prettier": "^3.9.0",
