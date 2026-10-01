@@ -1031,10 +1031,14 @@ test('basic recipe opens, closes, and restores focus', async ({ page }) => {
   const frame = recipeFrame(page)
   const trigger = frame.getByRole('button', { name: 'Open basic sheet' })
 
-  await trigger.click()
+  await trigger.focus()
+  await trigger.press('Enter')
   await expect(
     frame.getByRole('dialog', { name: 'Basic bottom sheet' }),
   ).toBeVisible()
+  await expect(
+    frame.getByRole('dialog', { name: 'Basic bottom sheet' }),
+  ).toHaveAttribute('data-rsbs-state', 'open')
   await frame.getByRole('button', { name: 'Close sheet' }).click()
   await expect(frame.getByRole('dialog')).toHaveCount(0)
   await expect(trigger).toBeFocused()
@@ -1263,6 +1267,9 @@ test('confirmation recipe cannot dismiss without an explicit choice', async ({
   await page.goto('/examples/confirmation/')
   const frame = recipeFrame(page)
   await frame.getByRole('button', { name: 'Delete workspace' }).click()
+  await expect(
+    frame.getByRole('dialog', { name: 'Delete this workspace?' }),
+  ).toHaveAttribute('data-rsbs-state', 'open')
   await page.keyboard.press('Escape')
   await expect(
     frame.getByRole('dialog', { name: 'Delete this workspace?' }),

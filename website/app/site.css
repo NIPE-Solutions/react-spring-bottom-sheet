@@ -253,6 +253,22 @@
     color: var(--docs-muted);
     font-size: 0.86rem;
   }
+  .docs-support {
+    padding: clamp(2rem, 5vw, 4rem) clamp(1.2rem, 7vw, 7rem);
+    border-block: 1px solid var(--docs-rule);
+  }
+  .docs-support p {
+    max-width: 65ch;
+    color: var(--docs-muted);
+  }
+  .docs-support .docs-actions {
+    margin-bottom: 0;
+  }
+  .docs-support .docs-button {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+  }
   .docs-lede {
     max-width: 44rem;
     color: var(--docs-muted);
