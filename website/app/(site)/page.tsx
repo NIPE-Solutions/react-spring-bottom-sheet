@@ -33,6 +33,27 @@ export default function Home() {
         </div>
         <LiveSheet />
       </section>
+      <section className="docs-support" aria-labelledby="docs-support-title">
+        <h2 id="docs-support-title">Useful in your project?</h2>
+        <p>
+          If this sheet helps your project, a GitHub star is a simple way to
+          support the work and help others find it.
+        </p>
+        <div className="docs-actions">
+          <a
+            className="docs-button docs-button-primary"
+            href="https://github.com/NIPE-Solutions/react-spring-bottom-sheet"
+          >
+            Star on GitHub
+          </a>
+          <a
+            className="docs-button"
+            href="https://opensource.nipesolutions.com"
+          >
+            Explore NIPE Open Source
+          </a>
+        </div>
+      </section>
       <Evidence evidence={buildEvidence} />
       <Capabilities />
       <StylingContract />

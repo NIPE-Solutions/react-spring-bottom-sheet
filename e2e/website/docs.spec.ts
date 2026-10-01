@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test'
 import AxeBuilder from '@axe-core/playwright'
 import { readFileSync } from 'node:fs'
+import process from 'node:process'
 import { getReleasePresentation } from '../../website/content/release'
 
 const generatedPublicApi = JSON.parse(
@@ -320,6 +321,7 @@ test('API reference renders every generated entry exactly once', async ({
 
 test('API signatures stay out of keyboard order while links remain reachable', async ({
   page,
+  browserName,
 }) => {
   await page.goto('/docs/api/')
 
@@ -327,12 +329,15 @@ test('API signatures stay out of keyboard order while links remain reachable', a
   const controlledRecipe = page.getByRole('link', {
     name: 'Run the controlled-state recipe',
   })
+  // macOS Safari uses Option+Tab to include links in keyboard navigation.
+  const modifier =
+    browserName === 'webkit' && process.platform === 'darwin' ? 'Alt+' : ''
   await source.focus()
-  await page.keyboard.press('Shift+Tab')
+  await page.keyboard.press(`${modifier}Shift+Tab`)
   await expect(page.locator(':focus')).toHaveAttribute('href')
-  await page.keyboard.press('Tab')
+  await page.keyboard.press(`${modifier}Tab`)
   await expect(source).toBeFocused()
-  await page.keyboard.press('Tab')
+  await page.keyboard.press(`${modifier}Tab`)
   await expect(controlledRecipe).toBeFocused()
 })
 
@@ -459,9 +464,16 @@ test('home page does not overflow a mobile viewport', async ({ page }) => {
   expect(dimensions.demo?.right).toBeLessThanOrEqual(dimensions.viewport)
 })
 
-test('skip link moves keyboard focus to the main content', async ({ page }) => {
+test('skip link moves keyboard focus to the main content', async ({
+  page,
+  browserName,
+}) => {
   await page.goto('/')
-  await page.keyboard.press('Tab')
+  const tab =
+    browserName === 'webkit' && process.platform === 'darwin'
+      ? 'Alt+Tab'
+      : 'Tab'
+  await page.keyboard.press(tab)
 
   const skipLink = page.getByRole('link', { name: 'Skip to content' })
   await expect(skipLink).toBeFocused()

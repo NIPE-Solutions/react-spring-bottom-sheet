@@ -3,6 +3,63 @@ import AxeBuilder from '@axe-core/playwright'
 import { readFileSync } from 'node:fs'
 import { buildEvidence } from '../../website/content/evidence'
 
+test('homepage support links follow the demo and remain usable at mobile sizes', async ({
+  page,
+}, testInfo) => {
+  await page.goto('/')
+  const support = page.getByRole('region', { name: 'Useful in your project?' })
+  await expect(support).toBeVisible()
+  await expect(
+    support.getByRole('heading', { level: 2, name: 'Useful in your project?' }),
+  ).toBeVisible()
+  expect(
+    await support.evaluate((element) =>
+      element.previousElementSibling?.matches('.docs-hero'),
+    ),
+  ).toBe(true)
+  const links = [
+    [
+      'Star on GitHub',
+      'https://github.com/NIPE-Solutions/react-spring-bottom-sheet',
+    ],
+    ['Explore NIPE Open Source', 'https://opensource.nipesolutions.com'],
+  ] as const
+  for (const width of [1440, 320]) {
+    await page.setViewportSize({ width, height: 900 })
+    await support.screenshot({
+      path: testInfo.outputPath(`support-${width.toString()}.png`),
+    })
+    for (const [name, href] of links) {
+      const link = support.getByRole('link', { name, exact: true })
+      await expect(link).toHaveAttribute('href', href)
+      await link.focus()
+      await expect(link).toBeFocused()
+      await expect(link).toHaveCSS('outline-style', 'solid')
+      const bounds = await link.boundingBox()
+      expect(bounds?.height).toBeGreaterThanOrEqual(44)
+      expect(bounds?.width).toBeGreaterThanOrEqual(44)
+      expect(bounds?.x).toBeGreaterThanOrEqual(0)
+      expect((bounds?.x ?? 0) + (bounds?.width ?? 0)).toBeLessThanOrEqual(width)
+    }
+    expect(
+      await page.evaluate(() => document.documentElement.scrollWidth),
+    ).toBe(width)
+  }
+})
+
+test('support section stays off task and legal routes', async ({ page }) => {
+  for (const route of ['/impressum/', '/privacy/', '/examples/basic/embed/']) {
+    await page.goto(route)
+    await expect(page.getByRole('main')).toBeVisible()
+    await expect(
+      page.getByRole('region', { name: 'Useful in your project?' }),
+    ).toHaveCount(0)
+    await expect(
+      page.getByRole('link', { name: 'Star on GitHub', exact: true }),
+    ).toHaveCount(0)
+  }
+})
+
 const packageVersion = JSON.parse(
   readFileSync(new URL('../../package.json', import.meta.url), 'utf8'),
 ).version as string
@@ -138,11 +195,24 @@ test('live sheet opens, changes destination, and restores focus', async ({
   await page.goto('/')
   const trigger = page.getByRole('button', { name: 'Open the live sheet' })
 
-  await trigger.click()
+  await trigger.focus()
+  await trigger.press('Enter')
   const phone = page.getByLabel('Interactive sheet preview')
   const dialog = page.getByRole('dialog', { name: 'Try the real package' })
   await expect(dialog).toBeVisible()
   await expect(phone.locator('[role="dialog"]')).toHaveCount(1)
+  await expect
+    .poll(() =>
+      dialog.evaluate((element) => {
+        const phone = document
+          .querySelector('.docs-phone-screen')
+          ?.getBoundingClientRect()
+        return phone
+          ? element.getBoundingClientRect().top < phone.bottom
+          : false
+      }),
+    )
+    .toBe(true)
   const containment = await page.evaluate(() => {
     const screen = document.querySelector('.docs-phone-screen')
     const phone = screen?.getBoundingClientRect()
