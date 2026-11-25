@@ -225,10 +225,10 @@ test('documentation shell exposes location and adjacent routes', async ({
     page.getByRole('navigation', { name: 'On this page' }),
   ).toContainText('Package')
   await expect(
-    page.getByRole('link', { name: 'Previous: Introduction' }),
+    page.getByRole('link', { name: 'Previous Introduction' }),
   ).toHaveAttribute('href', '/docs/introduction/')
   await expect(
-    page.getByRole('link', { name: 'Next: Component anatomy' }),
+    page.getByRole('link', { name: 'Next Component anatomy' }),
   ).toHaveAttribute('href', '/docs/anatomy/')
   await expect(page.locator('section#package')).toBeVisible()
 })
