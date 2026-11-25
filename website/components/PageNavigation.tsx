@@ -13,10 +13,7 @@ export function PageNavigation({
   return (
     <nav className="docs-page-navigation" aria-label="Pagination">
       {previous ? (
-        <Link
-          aria-label={`Previous: ${previous.title}`}
-          href={`/docs/${previous.slug}/`}
-        >
+        <Link href={`/docs/${previous.slug}/`}>
           <span>Previous</span>
           <strong>{previous.title}</strong>
         </Link>
@@ -24,7 +21,7 @@ export function PageNavigation({
         <span />
       )}
       {next ? (
-        <Link aria-label={`Next: ${next.title}`} href={`/docs/${next.slug}/`}>
+        <Link href={`/docs/${next.slug}/`}>
           <span>Next</span>
           <strong>{next.title}</strong>
         </Link>
