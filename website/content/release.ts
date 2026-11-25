@@ -6,6 +6,7 @@ export function getReleasePresentation(version: string) {
     '5.0.0',
     '5.0.1',
     '5.0.2',
+    '5.0.3',
   ])
   return {
     channel: prerelease ? ('next' as const) : ('latest' as const),
