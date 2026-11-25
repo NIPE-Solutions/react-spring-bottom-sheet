@@ -124,6 +124,31 @@ export function Root({
 
   const getPosition = useCallback(() => motionPositionRef.current, [])
 
+  // A drag can bring the sheet almost offscreen before the closing spring starts.
+  // Fade its shadow below the lowest open snap point, independently of the backdrop.
+  const getSurfaceProgress = useCallback(() => {
+    const currentLayout = layoutRef.current
+    const lowestSnap = currentLayout?.snapPoints.at(-1)
+    const progress = backdropProgressRef.current
+    if (!currentLayout || !lowestSnap) return progress
+    const travel = currentLayout.closedPosition - lowestSnap.position
+    if (travel <= 0) return progress
+    const remaining =
+      (currentLayout.closedPosition - motionPositionRef.current) / travel
+    return Math.max(0, Math.min(progress, remaining))
+  }, [])
+
+  const updateDraggedPosition = useCallback(
+    (position: number) => {
+      updatePosition(position)
+      content?.style.setProperty(
+        '--rsbs-surface-progress',
+        String(getSurfaceProgress()),
+      )
+    },
+    [content, getSurfaceProgress, updatePosition],
+  )
+
   const updateBackdropProgress = useCallback(
     (progress: number) => {
       backdropProgressRef.current = progress
@@ -131,9 +156,12 @@ export function Root({
         '--rsbs-backdrop-progress',
         String(progress),
       )
-      content?.style.setProperty('--rsbs-surface-progress', String(progress))
+      content?.style.setProperty(
+        '--rsbs-surface-progress',
+        String(getSurfaceProgress()),
+      )
     },
-    [content],
+    [content, getSurfaceProgress],
   )
 
   const getBackdropProgress = useCallback(() => backdropProgressRef.current, [])
@@ -214,7 +242,7 @@ export function Root({
     dismissible,
     onDismiss: handleDragDismiss,
     onSnapPointChange: handleSnapPointChange,
-    onPositionChange: updatePosition,
+    onPositionChange: updateDraggedPosition,
   })
 
   const value = useMemo(
@@ -234,11 +262,12 @@ export function Root({
       registerBackdrop,
       interactionHandlers,
       position: motionPositionRef.current,
-      surfaceProgress: backdropProgressRef.current,
+      surfaceProgress: getSurfaceProgress(),
       dragging: controllerState.phase === 'dragging',
     }),
     [
       descriptionId,
+      getSurfaceProgress,
       dismissible,
       modal,
       open,

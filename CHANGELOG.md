@@ -1,3 +1,15 @@
+## [5.0.3](https://github.com/NIPE-Solutions/react-spring-bottom-sheet/compare/v5.0.2...v5.0.3) (2026-11-25)
+
+### Fixed
+
+- Fade the default surface shadow as the handle is dragged below the lowest open
+  snap point. A nearly dismissed sheet now has a nearly transparent shadow before
+  the pointer is released.
+
+### Changed
+
+- Update the Motion dependency used for bundled spring animations to 13.4.0.
+
 ## [5.0.2](https://github.com/NIPE-Solutions/react-spring-bottom-sheet/compare/v5.0.1...v5.0.2) (2026-09-09)
 
 ### Changed

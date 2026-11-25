@@ -191,3 +191,29 @@ test('reconciles position when the visual viewport contracts', async ({
 
   await expect(page.getByRole('dialog')).toHaveCSS('--rsbs-position', '300px')
 })
+
+test('fades the surface shadow during a drag toward dismissal', async ({
+  page,
+}) => {
+  await page.goto('')
+  const dialog = page.getByRole('dialog')
+  const handle = page.getByText('Drag sheet')
+  await expect(dialog).toHaveAttribute('data-rsbs-state', 'open')
+  const box = await handle.boundingBox()
+  if (!box) throw new Error('Expected the handle to be visible')
+  const x = box.x + box.width / 2
+  const y = box.y + box.height / 2
+  const travel =
+    (await page.evaluate(() => innerHeight)) - (await sheetPosition(page))
+  const opacity = () =>
+    dialog.evaluate((el) => Number(getComputedStyle(el, '::before').opacity))
+
+  await page.mouse.move(x, y)
+  await page.mouse.down()
+  await page.mouse.move(x, y + travel * 0.5, { steps: 4 })
+  expect(await opacity()).toBeCloseTo(0.5, 1)
+  await page.mouse.move(x, y + travel * 0.9, { steps: 4 })
+  expect(await opacity()).toBeCloseTo(0.1, 1)
+  await page.mouse.up()
+  await expect(dialog).toHaveCount(0)
+})

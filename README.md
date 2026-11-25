@@ -102,6 +102,12 @@ All library-owned classes and custom properties use the `rsbs` namespace.
 Mechanical selectors use low specificity so an application can replace the
 visual design with ordinary CSS and without `!important`.
 
+For an animated exit, keep `Sheet.Root` and its portal in the React tree and
+set `open={false}`. The portal removes its content after the closing spring
+settles. With the default theme, customize the fading shadow through
+`--rsbs-content-shadow`. A `box-shadow` applied directly to the panel keeps
+its own opacity.
+
 ## Support
 
 - React 19
